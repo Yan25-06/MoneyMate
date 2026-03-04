@@ -1,0 +1,68 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# ====================
+# Firebase (QUAN TRỌNG - không bao giờ commit file này)
+# ====================
+google-services.json
+
+# ====================
+# APK / AAB output
+# ====================
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# ====================
+# Gradle cache
+# ====================
+.gradletasknamecache
+gradle-app.setting
+
+# ====================
+# Room Database export schema
+# ====================
+app/schemas/
+
+# ====================
+# Signing / Keystore (BẢO MẬT)
+# ====================
+*.jks
+*.keystore
+key.properties
+release/
+
+# ====================
+# ProGuard mapping
+# ====================
+*.map
+proguard/
+
+# ====================
+# OS - Windows
+# ====================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ====================
+# Test / Lint results
+# ====================
+test-results/
+lint-results*
+*.hprof

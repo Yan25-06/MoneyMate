@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name">MoneyMate</string>
+
+    <!-- Auth -->
+    <string name="btn_login">Đăng nhập</string>
+    <string name="btn_register">Đăng ký</string>
+    <string name="title_register">Tạo tài khoản</string>
+    <string name="hint_email">Email</string>
+    <string name="hint_password">Mật khẩu</string>
+    <string name="hint_confirm_password">Xác nhận mật khẩu</string>
+    <string name="hint_display_name">Tên hiển thị</string>
+    <string name="forgot_password">Quên mật khẩu?</string>
+    <string name="no_account">Chưa có tài khoản?</string>
+    <string name="have_account">Đã có tài khoản?</string>
+
+    <!-- Navigation -->
+    <string name="home">Trang chủ</string>
+    <string name="transactions">Giao dịch</string>
+    <string name="statistics">Thống kê</string>
+    <string name="title_settings">Cài đặt</string>
+
+    <!-- Home -->
+    <string name="total_balance">Tổng số dư</string>
+    <string name="income">Thu nhập</string>
+    <string name="expense">Chi tiêu</string>
+    <string name="recent_transactions">Giao dịch gần đây</string>
+
+    <!-- Transaction -->
+    <string name="add_transaction">Thêm giao dịch</string>
+    <string name="hint_amount">Số tiền</string>
+    <string name="hint_note">Ghi chú</string>
+    <string name="category">Danh mục</string>
+    <string name="wallet">Ví</string>
+    <string name="date">Ngày</string>
+    <string name="btn_save">Lưu</string>
+
+    <!-- Category -->
+    <string name="categories">Danh mục</string>
+    <string name="add_category">Thêm danh mục</string>
+    <string name="hint_category_name">Tên danh mục</string>
+    <string name="btn_pick_icon">Chọn biểu tượng</string>
+
+    <!-- Budget -->
+    <string name="budgets">Ngân sách</string>
+    <string name="add_budget">Thêm ngân sách</string>
+    <string name="hint_budget_limit">Hạn mức chi tiêu</string>
+
+    <!-- Wallet -->
+    <string name="wallets">Ví</string>
+    <string name="add_wallet">Thêm ví</string>
+    <string name="hint_wallet_name">Tên ví</string>
+    <string name="wallet_type">Loại ví</string>
+    <string name="hint_initial_balance">Số dư ban đầu</string>
+
+    <!-- Profile -->
+    <string name="profile">Hồ sơ</string>
+    <string name="avatar">Ảnh đại diện</string>
+    <string name="currency">Đơn vị tiền tệ</string>
+    <string name="language">Ngôn ngữ</string>
+    <string name="hide_balance">Ẩn số dư</string>
+
+    <!-- Settings -->
+    <string name="dark_mode">Chế độ tối</string>
+    <string name="date_format">Định dạng ngày</string>
+    <string name="btn_logout">Đăng xuất</string>
+</resources>

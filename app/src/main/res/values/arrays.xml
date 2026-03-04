@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="currencies">
+        <item>VND</item>
+        <item>USD</item>
+        <item>EUR</item>
+    </string-array>
+
+    <string-array name="languages">
+        <item>Tiếng Việt</item>
+        <item>English</item>
+    </string-array>
+
+    <string-array name="date_formats">
+        <item>dd/MM/yyyy</item>
+        <item>MM/dd/yyyy</item>
+        <item>yyyy-MM-dd</item>
+    </string-array>
+
+    <string-array name="wallet_types">
+        <item>Tiền mặt</item>
+        <item>Ngân hàng</item>
+        <item>Ví điện tử</item>
+    </string-array>
+</resources>
