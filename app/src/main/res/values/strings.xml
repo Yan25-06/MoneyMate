@@ -58,6 +58,7 @@
     <string name="currency">Đơn vị tiền tệ</string>
     <string name="language">Ngôn ngữ</string>
     <string name="hide_balance">Ẩn số dư</string>
+    <string name="btn_edit_profile">Chỉnh sửa hồ sơ</string>
 
     <!-- Settings -->
     <string name="dark_mode">Chế độ tối</string>

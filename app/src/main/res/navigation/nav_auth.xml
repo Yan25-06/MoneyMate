@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.moneymate.ui.auth.LoginFragment"
+        android:name="com.group10.moneymate.ui.auth.LoginFragment"
         android:label="@string/btn_login"
         tools:layout="@layout/fragment_login">
         <action android:id="@+id/action_login_to_register" app:destination="@id/registerFragment" />
@@ -15,7 +15,7 @@
 
     <fragment
         android:id="@+id/registerFragment"
-        android:name="com.example.moneymate.ui.auth.RegisterFragment"
+        android:name="com.group10.moneymate.ui.auth.RegisterFragment"
         android:label="@string/title_register"
         tools:layout="@layout/fragment_register" />
 

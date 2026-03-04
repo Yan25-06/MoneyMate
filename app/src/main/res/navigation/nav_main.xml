@@ -8,7 +8,7 @@
     <!-- Home -->
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.moneymate.ui.home.HomeFragment"
+        android:name="com.group10.moneymate.ui.home.HomeFragment"
         android:label="@string/home"
         tools:layout="@layout/fragment_home">
         <action android:id="@+id/action_home_to_addTransaction" app:destination="@id/addEditTransactionFragment" />
@@ -17,7 +17,7 @@
     <!-- Transactions -->
     <fragment
         android:id="@+id/transactionListFragment"
-        android:name="com.example.moneymate.ui.transaction.TransactionListFragment"
+        android:name="com.group10.moneymate.ui.transaction.TransactionListFragment"
         android:label="@string/transactions"
         tools:layout="@layout/fragment_transaction_list">
         <action android:id="@+id/action_transactionList_to_addEdit" app:destination="@id/addEditTransactionFragment" />
@@ -25,21 +25,21 @@
 
     <fragment
         android:id="@+id/addEditTransactionFragment"
-        android:name="com.example.moneymate.ui.transaction.AddEditTransactionFragment"
+        android:name="com.group10.moneymate.ui.transaction.AddEditTransactionFragment"
         android:label="@string/add_transaction"
         tools:layout="@layout/fragment_add_edit_transaction" />
 
     <!-- Statistics -->
     <fragment
         android:id="@+id/statisticsFragment"
-        android:name="com.example.moneymate.ui.statistics.StatisticsFragment"
+        android:name="com.group10.moneymate.ui.statistics.StatisticsFragment"
         android:label="@string/statistics"
         tools:layout="@layout/fragment_statistics" />
 
     <!-- Settings -->
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.example.moneymate.ui.settings.SettingsFragment"
+        android:name="com.group10.moneymate.ui.settings.SettingsFragment"
         android:label="@string/title_settings"
         tools:layout="@layout/fragment_settings">
         <action android:id="@+id/action_settings_to_profile" app:destination="@id/profileFragment" />
@@ -51,14 +51,14 @@
     <!-- Profile -->
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.example.moneymate.ui.profile.ProfileFragment"
+        android:name="com.group10.moneymate.ui.profile.ProfileFragment"
         android:label="@string/profile"
         tools:layout="@layout/fragment_profile" />
 
     <!-- Categories -->
     <fragment
         android:id="@+id/categoryListFragment"
-        android:name="com.example.moneymate.ui.category.CategoryListFragment"
+        android:name="com.group10.moneymate.ui.category.CategoryListFragment"
         android:label="@string/categories"
         tools:layout="@layout/fragment_category_list">
         <action android:id="@+id/action_categoryList_to_addEdit" app:destination="@id/addEditCategoryFragment" />
@@ -66,14 +66,14 @@
 
     <fragment
         android:id="@+id/addEditCategoryFragment"
-        android:name="com.example.moneymate.ui.category.AddEditCategoryFragment"
+        android:name="com.group10.moneymate.ui.category.AddEditCategoryFragment"
         android:label="@string/add_category"
         tools:layout="@layout/fragment_add_edit_category" />
 
     <!-- Budgets -->
     <fragment
         android:id="@+id/budgetListFragment"
-        android:name="com.example.moneymate.ui.budget.BudgetListFragment"
+        android:name="com.group10.moneymate.ui.budget.BudgetListFragment"
         android:label="@string/budgets"
         tools:layout="@layout/fragment_budget_list">
         <action android:id="@+id/action_budgetList_to_addEdit" app:destination="@id/addEditBudgetFragment" />
@@ -81,14 +81,14 @@
 
     <fragment
         android:id="@+id/addEditBudgetFragment"
-        android:name="com.example.moneymate.ui.budget.AddEditBudgetFragment"
+        android:name="com.group10.moneymate.ui.budget.AddEditBudgetFragment"
         android:label="@string/add_budget"
         tools:layout="@layout/fragment_add_edit_budget" />
 
     <!-- Wallets -->
     <fragment
         android:id="@+id/walletListFragment"
-        android:name="com.example.moneymate.ui.wallet.WalletListFragment"
+        android:name="com.group10.moneymate.ui.wallet.WalletListFragment"
         android:label="@string/wallets"
         tools:layout="@layout/fragment_wallet_list">
         <action android:id="@+id/action_walletList_to_addEdit" app:destination="@id/addEditWalletFragment" />
@@ -96,7 +96,7 @@
 
     <fragment
         android:id="@+id/addEditWalletFragment"
-        android:name="com.example.moneymate.ui.wallet.AddEditWalletFragment"
+        android:name="com.group10.moneymate.ui.wallet.AddEditWalletFragment"
         android:label="@string/add_wallet"
         tools:layout="@layout/fragment_add_edit_wallet" />
 

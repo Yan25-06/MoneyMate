@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MoneyMate — Cấu trúc dự án thu gọn
 
 ## Kiến trúc: MVVM + Repository Pattern
@@ -12,6 +13,12 @@
 
 ---
 
+=======
+# MoneyMate — Cấu trúc dự án
+
+## Kiến trúc: MVVM + Repository Pattern
+
+>>>>>>> 2221bd1 (fix: completed setup moneymate app)
 ## Cấu trúc Java (~55 files)
 
 ```
@@ -126,7 +133,11 @@ HomeActivity — BottomNav 4 tabs
 
 ---
 
+<<<<<<< HEAD
 ## Tính năng đã loại bỏ (có thể thêm sau)
+=======
+## Tính năng có thể thêm sau
+>>>>>>> 2221bd1 (fix: completed setup moneymate app)
 
 - Firebase Firestore sync
 - Google Sign-In

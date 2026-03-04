@@ -1,15 +1,14 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.services)
-    alias(libs.plugins.navigation.safeargs)
 }
 
 android {
-    namespace = "com.example.moneymate"
+    namespace = "com.group10.moneymate"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.moneymate"
+        applicationId = "com.group10.moneymate"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
@@ -48,9 +47,10 @@ dependencies {
     implementation(libs.room.runtime)
     annotationProcessor(libs.room.compiler)
 
-    // Firebase Auth only
+    // Firebase (BOM quản lý version tự động)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.analytics)
 
     // Navigation
     implementation(libs.navigation.fragment)
@@ -59,7 +59,6 @@ dependencies {
     // Lifecycle
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
-
 
     // MPAndroidChart
     implementation(libs.mpandroidchart)
