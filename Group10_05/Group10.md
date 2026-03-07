@@ -22,13 +22,11 @@
 ---
 
 ### 23127499 – Lê Huy Toàn
-- Công việc 1
-- Công việc 2
-- ...
+- Set up project, tạo cấu trúc thư mục, và thiết lập môi trường phát triển với AI(Copilot).
+- Đảm bảo các file setup không bị xung đột và có thể build thành công.
+- Điều chỉnh và tối ưu để project không bị quá phức tạp.
 
 **Minh chứng:**
-<!-- *(Ảnh chụp màn hình Jira, tài liệu đầu ra, hoặc các tài liệu liên quan khác)* -->
-
 ---
 
 ### 23127510 – Phùng Ngọc Tuấn
@@ -39,8 +37,10 @@
 
 ## III. Khai Báo Sử Dụng AI
 
-<!-- **Tài liệu tham khảo:** [Hướng dẫn khai báo AI](https://drive.google.com/file/d/1l6bO6fog1eM6K4_10oMshg5GawmEkr_o/view?usp=sharing) -->
-
+- **Lê Huy Toàn**: Sử dụng AI (Copilot) để hỗ trợ viết code, tạo cấu trúc dự án, và tối ưu hóa quy trình phát triển. AI đã giúp giảm thời gian setup và đảm bảo code được viết theo chuẩn mực.
+  + Claude, Opus 4.6, truy cập lúc 9:24 AM ngày 04/03/2026, prompt: "<nội dung mô tả các chức năng (đã soạn trước)> Hãy setup cấu trúc cho sự án này", sử dụng để thiết lập cấu trúc dự án ban đầu, tạo các thư mục và file cần thiết cho việc phát triển ứng dụng quản lý chi tiêu.
+  + Claude, Opus 4.6, truy cập lúc 10:05 AM ngày 04/03/2026, prompt: "Điều chỉnh để cấu trúc bớt phức tạp hơn, bỏ các file chưa cần thiết cho hiện tại và có thể cho thêm sau này", sử dụng để tối ưu hóa cấu trúc dự án, loại bỏ các file không cần thiết và đảm bảo rằng cấu trúc dự án phù hợp với quy trình phát triển hiện tại.
+  + Claude, Sonnet 4.6, truy cập lúc 10:27 AM ngày 04/03/2026, prompt: "Sửa các lỗi đang có trong project" sử dụng để hỗ trợ sửa các lỗi phát sinh trong quá trình generate code, đảm bảo rằng project có thể build thành công.
 ---
 
 ## IV. Kế Hoạch Công Việc Tuần Tới
@@ -56,6 +56,4 @@
 
 ## V. Các Vấn Đề Phát Sinh
 
-- Vấn đề 1
-- Vấn đề 2
-- ...
+- Không có vấn đề phát sinh trong tuần.
