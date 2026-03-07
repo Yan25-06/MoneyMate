@@ -17,12 +17,7 @@
 
 ### 23127472 – Phạm Ngọc Thái
 
-- Công việc 1
-- Công việc 2
-- ...
-
-**Minh chứng:**
-<!-- *(Ảnh chụp màn hình Jira, tài liệu đầu ra, hoặc các tài liệu liên quan khác)* -->
+*Không có công việc trong tuần*
 
 ---
 
@@ -50,9 +45,12 @@
 
 ## IV. Kế Hoạch Công Việc Tuần Tới
 
-- Công việc 1
-- Công việc 2
-- ...
+- Thiết lập toàn bộ các Entity Room và Database class.
+- Đăng ký/Đăng nhập bằng Firebase. Thiết lập màn hình Splash để kiểm tra trạng thái đăng nhập.
+- Tạo bộ danh mục mặc định, icon và màu sắc. Xây dựng màn hình quản lý Danh mục.
+- Xây dựng màn hình tạo ví, chọn loại ví (CASH, BANK...).
+- Thiết kế UI/UX tổng thể cho cả nhóm (Figma/Sketch) để thống nhất màu sắc, font chữ.
+- Thực hiện Nhóm 10 (Thông báo): Cấu hình Notification Channel. Viết logic nhắc nhở người dùng nhập chi tiêu hàng ngày.
   
 ---
 
