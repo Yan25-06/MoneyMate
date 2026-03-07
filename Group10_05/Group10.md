@@ -26,6 +26,11 @@
 - Đảm bảo các file setup không bị xung đột và có thể build thành công.
 - Điều chỉnh và tối ưu để project không bị quá phức tạp.
 
+- Cấu trúc project:
+![Structure1.png](Structure1.png)
+![Structure2.png](Structure2.png)
+![Structure3.png](Structure3.png)
+
 **Minh chứng:**
 ---
 
