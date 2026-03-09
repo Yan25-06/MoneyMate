@@ -9,7 +9,7 @@ import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 @Entity(
-    tableName = "categories",
+    tableName = "debts",
     foreignKeys = {
         @ForeignKey(
             entity = UserEntity.class,
@@ -22,31 +22,37 @@ import androidx.room.PrimaryKey;
         @Index("user_id")
     }
 )
-public class CategoryEntity {
+public class DebtEntity {
 
     @PrimaryKey
     @NonNull
     @ColumnInfo(name = "id")
     private String id;
 
-    @Nullable
     @ColumnInfo(name = "user_id")
     private String userId;
 
-    @ColumnInfo(name = "name")
-    private String name;
+    @ColumnInfo(name = "person_name")
+    private String personName;
 
     @ColumnInfo(name = "type")
     private String type;
 
-    @ColumnInfo(name = "icon_res_id")
-    private String iconResId;
+    @ColumnInfo(name = "amount")
+    private double amount;
 
-    @ColumnInfo(name = "color_hex")
-    private String colorHex;
+    @ColumnInfo(name = "remaining_amount")
+    private double remainingAmount;
 
-    @ColumnInfo(name = "is_default")
-    private boolean isDefault;
+    @Nullable
+    @ColumnInfo(name = "due_date")
+    private Long dueDate;
+
+    @ColumnInfo(name = "status")
+    private String status;
+
+    @ColumnInfo(name = "note")
+    private String note;
 
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
@@ -57,39 +63,30 @@ public class CategoryEntity {
     @ColumnInfo(name = "is_deleted")
     private boolean isDeleted;
 
-    public CategoryEntity() {
-        this.id = "";
-    }
+    public DebtEntity() { this.id = ""; }
 
-    @NonNull
-    public String getId() { return id; }
+    @NonNull public String getId() { return id; }
     public void setId(@NonNull String id) { this.id = id; }
-
-    @Nullable
     public String getUserId() { return userId; }
-    public void setUserId(@Nullable String userId) { this.userId = userId; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
+    public void setUserId(String userId) { this.userId = userId; }
+    public String getPersonName() { return personName; }
+    public void setPersonName(String personName) { this.personName = personName; }
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
-
-    public String getIconResId() { return iconResId; }
-    public void setIconResId(String iconResId) { this.iconResId = iconResId; }
-
-    public String getColorHex() { return colorHex; }
-    public void setColorHex(String colorHex) { this.colorHex = colorHex; }
-
-    public boolean isDefault() { return isDefault; }
-    public void setDefault(boolean aDefault) { isDefault = aDefault; }
-
+    public double getAmount() { return amount; }
+    public void setAmount(double amount) { this.amount = amount; }
+    public double getRemainingAmount() { return remainingAmount; }
+    public void setRemainingAmount(double remainingAmount) { this.remainingAmount = remainingAmount; }
+    @Nullable public Long getDueDate() { return dueDate; }
+    public void setDueDate(@Nullable Long dueDate) { this.dueDate = dueDate; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
-
     public int getSyncStatus() { return syncStatus; }
     public void setSyncStatus(int syncStatus) { this.syncStatus = syncStatus; }
-
     public boolean isDeleted() { return isDeleted; }
     public void setDeleted(boolean deleted) { isDeleted = deleted; }
 }

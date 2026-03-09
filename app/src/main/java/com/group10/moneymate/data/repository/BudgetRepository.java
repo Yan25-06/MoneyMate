@@ -2,14 +2,12 @@ package com.group10.moneymate.data.repository;
 
 import androidx.lifecycle.LiveData;
 
+import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.BudgetDao;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 
 import java.util.List;
 
-/**
- * Repository for budget data.
- */
 public class BudgetRepository {
     private final BudgetDao budgetDao;
 
@@ -17,27 +15,28 @@ public class BudgetRepository {
         this.budgetDao = budgetDao;
     }
 
-    public LiveData<List<BudgetEntity>> getBudgetsByMonth(String userId, String monthYear) {
-        return budgetDao.getBudgetsByMonth(userId, monthYear);
+    public LiveData<List<BudgetEntity>> getBudgetsByMonth(String userId, int month, int year) {
+        return budgetDao.getBudgetsByMonth(userId, month, year);
     }
 
     public LiveData<BudgetEntity> getBudgetById(String id) {
         return budgetDao.getBudgetById(id);
     }
 
-    public void insertBudget(BudgetEntity budget) {
-        budgetDao.insertBudget(budget);
+    public BudgetEntity getBudgetByCategoryAndMonthSync(String userId, String categoryId, int month, int year) {
+        return budgetDao.getBudgetByCategoryAndMonthSync(userId, categoryId, month, year);
     }
 
-    public void updateBudget(BudgetEntity budget) {
-        budgetDao.updateBudget(budget);
+    public void insert(BudgetEntity budget) {
+        AppDatabase.databaseWriteExecutor.execute(() -> budgetDao.insertBudget(budget));
     }
 
-    public void deleteBudget(BudgetEntity budget) {
-        budgetDao.deleteBudget(budget);
+    public void update(BudgetEntity budget) {
+        AppDatabase.databaseWriteExecutor.execute(() -> budgetDao.updateBudget(budget));
     }
 
-    public BudgetEntity getBudgetByCategoryAndMonthSync(String userId, String categoryId, String monthYear) {
-        return budgetDao.getBudgetByCategoryAndMonthSync(userId, categoryId, monthYear);
+    public void softDelete(String id) {
+        AppDatabase.databaseWriteExecutor.execute(() ->
+                budgetDao.softDelete(id, System.currentTimeMillis()));
     }
 }

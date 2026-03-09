@@ -23,19 +23,24 @@ public interface WalletDao {
     @Delete
     void deleteWallet(WalletEntity wallet);
 
-    @Query("SELECT * FROM wallets WHERE userId = :userId ORDER BY createdAt ASC")
+    @Query("SELECT * FROM wallets WHERE user_id = :userId AND is_deleted = 0 ORDER BY created_at ASC")
     LiveData<List<WalletEntity>> getAllWallets(String userId);
 
-    @Query("SELECT * FROM wallets WHERE id = :id")
+    @Query("SELECT * FROM wallets WHERE id = :id AND is_deleted = 0")
     LiveData<WalletEntity> getWalletById(String id);
 
     @Query("SELECT * FROM wallets WHERE id = :id")
     WalletEntity getWalletByIdSync(String id);
 
-    @Query("SELECT SUM(balance) FROM wallets WHERE userId = :userId")
+    @Query("SELECT SUM(balance) FROM wallets WHERE user_id = :userId AND is_deleted = 0 AND is_excluded = 0")
     LiveData<Double> getTotalBalance(String userId);
 
+    @Query("UPDATE wallets SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    void softDelete(String id, long updatedAt);
 
-    @Query("DELETE FROM wallets WHERE userId = :userId")
+    @Query("SELECT * FROM wallets WHERE user_id = :userId AND sync_status != 0")
+    List<WalletEntity> getPendingSyncWallets(String userId);
+
+    @Query("DELETE FROM wallets WHERE user_id = :userId")
     void deleteAllByUser(String userId);
 }

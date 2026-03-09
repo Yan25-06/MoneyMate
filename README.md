@@ -1,94 +1,109 @@
-# 💰 MoneyMate — Ứng dụng Quản lý Chi tiêu Cá nhân
+# MoneyMate — Ứng dụng Quản lý Chi tiêu Cá nhân
 
-> Giải pháp quản lý tài chính cá nhân toàn diện: theo dõi thu chi, quản lý nhiều ví, lập ngân sách và thống kê trực quan.
-
----
-
-## 📋 Mục lục
-
-- [Tính năng](#-tính-năng)
-- [Tech Stack](#-tech-stack)
-- [Kiến trúc](#-kiến-trúc)
-- [Cấu trúc dự án](#-cấu-trúc-dự-án)
-- [Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
-- [Hướng dẫn cài đặt](#-hướng-dẫn-cài-đặt)
-- [Kế hoạch triển khai](#-kế-hoạch-triển-khai)
-- [Tài liệu](#-tài-liệu)
+> Giải pháp quản lý tài chính cá nhân toàn diện: theo dõi thu chi, quản lý nhiều ví, lập ngân sách, ghi nợ mượn, thống kê trực quan và trợ lý AI.
 
 ---
 
-## ✨ Tính năng
+## Mục lục
 
-### 🔐 Xác thực & Tài khoản
-- Đăng ký / Đăng nhập bằng Email & Password
+- [Tính năng](#tính-năng)
+- [Tech Stack](#tech-stack)
+- [Kiến trúc](#kiến-trúc)
+- [Cấu trúc dự án](#cấu-trúc-dự-án)
+- [Cơ sở dữ liệu](#cơ-sở-dữ-liệu)
+- [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
+- [Hướng dẫn cài đặt](#hướng-dẫn-cài-đặt)
+- [Trạng thái phát triển](#trạng-thái-phát-triển)
+- [Tài liệu](#tài-liệu)
+
+---
+
+## Tính năng
+
+### Xác thực & Bảo mật
+- Đăng ký / Đăng nhập bằng Email & Password (Firebase Auth)
 - Đăng nhập nhanh bằng **Passcode 6 số** (hoạt động offline)
-- Đăng nhập bằng Google (Gmail)
-- Ghi nhớ trạng thái đăng nhập
-- Đổi mật khẩu & khôi phục mật khẩu
+- Xác thực sinh trắc học (vân tay / Face ID) qua Biometric API
+- Ẩn/hiện số dư tổng để bảo mật
 
-### 👛 Quản lý Ví
+### Quản lý Ví
 - Tạo nhiều ví: Tiền mặt / Ngân hàng / Ví điện tử
 - Theo dõi số dư từng ví riêng biệt
 - Chuyển tiền giữa các ví
+- Đánh dấu ví loại trừ khỏi tổng số dư
 
-### 💸 Giao dịch Thu – Chi
-- Thêm / Sửa / Xóa giao dịch
-- Gán danh mục, chọn ví, chọn ngày
-- Tự động cập nhật số dư ví
+### Giao dịch Thu – Chi
+- Thêm / Sửa / Xóa giao dịch (Thu nhập / Chi tiêu / Chuyển khoản)
+- Gán danh mục, chọn ví, đính kèm ghi chú và ảnh
+- Liên kết giao dịch với khoản nợ hoặc sự kiện
+- Quét hoá đơn tự động bằng camera (ML Kit + Gemini AI)
 - Tìm kiếm & lọc giao dịch
 
-### 🏷️ Danh mục
-- Danh mục mặc định sẵn có (Ăn uống, Di chuyển, Lương, ...)
-- Tạo danh mục tùy chỉnh với biểu tượng riêng
+### Danh mục
+- Danh mục hệ thống mặc định sẵn có
+- Tạo danh mục tùy chỉnh (Thu / Chi) với màu sắc riêng
 
-### 📊 Ngân sách
+### Ngân sách
 - Đặt hạn mức chi tiêu theo tháng / theo danh mục
-- Theo dõi % đã sử dụng với Progress Bar
-- Cảnh báo khi chi tiêu vượt 80% và 100% ngân sách
+- Ngưỡng cảnh báo linh hoạt (`alert_threshold`)
+- Theo dõi % đã sử dụng
 
-### 📈 Thống kê & Báo cáo
+### Nợ / Mượn
+- Ghi nhận các khoản cho vay (LEND) và đi vay (BORROW)
+- Theo dõi số tiền còn lại (`remaining_amount`)
+- Trạng thái: Đang nợ (ONGOING) / Đã thanh toán (SETTLED)
+
+### Sự kiện tài chính
+- Tạo sự kiện có ngân sách riêng (sinh nhật, du lịch, ...)
+- Gắn giao dịch vào sự kiện
+- Theo dõi sự kiện đang hoạt động
+
+### Thống kê & Báo cáo
 - Biểu đồ tròn (PieChart) chi tiêu theo danh mục
-- Biểu đồ cột (BarChart) so sánh 6 tháng gần nhất
-- Thống kê tổng thu / chi theo ngày, tháng
+- Biểu đồ cột (BarChart) so sánh thu/chi theo tháng
 
-### 👤 Hồ sơ & Cài đặt
-- Chỉnh sửa tên hiển thị, ảnh đại diện
-- Chọn đơn vị tiền tệ (VND / USD / EUR)
-- Chuyển đổi Dark Mode / Light Mode
-- Ẩn/hiện số dư tổng để bảo mật
+### Trợ lý AI (Gemini)
+- Hỏi đáp phân tích chi tiêu bằng ngôn ngữ tự nhiên
+- Quét và nhận diện văn bản từ hoá đơn (CameraX + ML Kit)
 
-### 🔄 Lưu trữ & Đồng bộ
-- Lưu cục bộ với **Room Database** (SQLite)
+### Đồng bộ đám mây
+- Lưu cục bộ với **Room Database** (SQLite) — hoạt động offline hoàn toàn
 - Sao lưu & đồng bộ lên **Firebase Firestore**
-- Khôi phục dữ liệu khi đổi thiết bị
+- Soft-delete + `sync_status` để xử lý xung đột offline/online
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Thành phần | Công nghệ | Phiên bản |
-|------------|-----------|-----------|
+|---|---|---|
 | Ngôn ngữ | Java | 11 |
 | Min SDK | Android | API 29 (Android 10) |
 | Target SDK | Android | API 36 |
-| Local DB | Room (SQLite) | 2.6.1 |
-| Auth & Cloud | Firebase | BOM 33.7.0 |
-| Navigation | Navigation Component | 2.8.6 |
-| Lifecycle | ViewModel + LiveData | 2.8.7 |
+| Build System | Gradle (Kotlin DSL) | 9.0.1 |
+| Local DB | Room (SQLite) | 2.8.4 |
+| Auth & Cloud | Firebase | BOM 34.10.0 |
+| Cloud DB | Firebase Firestore | (via BOM) |
+| Navigation | Jetpack Navigation + Safe Args | 2.9.7 |
+| Lifecycle | ViewModel + LiveData | 2.10.0 |
 | Charts | MPAndroidChart | v3.1.0 |
 | UI | Material Design 3 | 1.13.0 |
-| View Binding | ViewBinding | — |
+| Biometric | AndroidX Biometric | 1.1.0 |
+| Background | WorkManager | 2.10.1 |
+| Camera | CameraX (core/camera2/lifecycle/view) | 1.4.2 |
+| OCR | ML Kit Text Recognition | 16.0.1 |
+| AI | Google Generative AI (Gemini) | 0.9.0 |
 
 ---
 
-## 🏗 Kiến trúc
+## Kiến trúc
 
-Dự án sử dụng **MVVM + Repository Pattern**:
+Dự án sử dụng **MVVM + Repository Pattern + Manual DI**:
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                      UI Layer                       │
-│         Fragment / Activity + ViewBinding           │
+│       Fragment / Activity + ViewBinding             │
 └──────────────────────┬──────────────────────────────┘
                        │ observe LiveData
 ┌──────────────────────▼──────────────────────────────┐
@@ -98,50 +113,58 @@ Dự án sử dụng **MVVM + Repository Pattern**:
                        │ call methods
 ┌──────────────────────▼──────────────────────────────┐
 │                 Repository Layer                    │
-│       (single source of truth, business logic)      │
+│       (single source of truth, offline-first)       │
 └──────────┬───────────────────────────┬──────────────┘
            │                           │
 ┌──────────▼──────────┐   ┌────────────▼──────────────┐
-│   Local (Room DB)   │   │  Remote (Firebase Auth /  │
-│   DAOs + Entities   │   │        Firestore)         │
+│   Local (Room DB)   │   │   Remote (Firebase Auth / │
+│   DAOs + Entities   │   │         Firestore)        │
 └─────────────────────┘   └───────────────────────────┘
 ```
 
 **Nguyên tắc:**
 - UI chỉ quan sát `LiveData`, không chứa business logic
-- ViewModel không biết về Android framework
+- ViewModel không phụ thuộc vào Android framework
 - Repository là nguồn dữ liệu duy nhất (offline-first)
 - Manual DI qua `AppContainer` trong `Application` class
 
 ---
 
-## 📁 Cấu trúc dự án
+## Cấu trúc dự án
 
 ```
-app/src/main/java/com/example/moneymate/
+app/src/main/java/com/group10/moneymate/
 │
 ├── MainActivity.java              ← Router: Login hoặc Home
 │
 ├── models/
-│   ├── TransactionType.java       (INCOME / EXPENSE)
-│   └── WalletType.java            (CASH / BANK / E_WALLET)
+│   ├── TransactionType.java       (INCOME / EXPENSE / TRANSFER)
+│   ├── WalletType.java            (CASH / BANK / E_WALLET)
+│   ├── CategoryType.java          (INCOME / EXPENSE)
+│   ├── DebtType.java              (LEND / BORROW)
+│   ├── DebtStatus.java            (ONGOING / SETTLED)
+│   └── SyncStatus.java            (SYNCED / PENDING_UPLOAD / PENDING_DELETE)
 │
 ├── data/
 │   ├── local/
-│   │   ├── AppDatabase.java       ← Room singleton
-│   │   ├── Converters.java        ← Date↔Long, Enum↔String
+│   │   ├── AppDatabase.java       ← Room singleton (version 3)
+│   │   ├── Converters.java        ← TypeConverters: Enum↔String, Date↔Long
 │   │   ├── entity/
 │   │   │   ├── UserEntity.java
 │   │   │   ├── WalletEntity.java
 │   │   │   ├── CategoryEntity.java
 │   │   │   ├── TransactionEntity.java
-│   │   │   └── BudgetEntity.java
+│   │   │   ├── BudgetEntity.java
+│   │   │   ├── DebtEntity.java
+│   │   │   └── EventEntity.java
 │   │   └── dao/
 │   │       ├── UserDao.java
 │   │       ├── WalletDao.java
 │   │       ├── CategoryDao.java
 │   │       ├── TransactionDao.java
-│   │       └── BudgetDao.java
+│   │       ├── BudgetDao.java
+│   │       ├── DebtDao.java
+│   │       └── EventDao.java
 │   ├── remote/
 │   │   └── FirebaseAuthHelper.java
 │   └── repository/
@@ -150,11 +173,13 @@ app/src/main/java/com/example/moneymate/
 │       ├── WalletRepository.java
 │       ├── CategoryRepository.java
 │       ├── TransactionRepository.java
-│       └── BudgetRepository.java
+│       ├── BudgetRepository.java
+│       ├── DebtRepository.java
+│       └── EventRepository.java
 │
 ├── di/
 │   ├── MoneyMateApplication.java  ← Application class
-│   └── AppContainer.java          ← Manual DI container
+│   └── AppContainer.java          ← Manual DI (8 repositories)
 │
 ├── utils/
 │   ├── Constants.java
@@ -163,33 +188,53 @@ app/src/main/java/com/example/moneymate/
 │   └── DateUtils.java
 │
 └── ui/
-    ├── auth/         LoginActivity, Login/RegisterFragment, AuthViewModel
-    ├── main/         HomeActivity (BottomNavigationView host)
-    ├── home/         HomeFragment, HomeViewModel
-    ├── wallet/       WalletListFragment, AddEditWalletFragment, WalletAdapter, WalletViewModel
-    ├── category/     CategoryListFragment, AddEditCategoryFragment, CategoryAdapter, CategoryViewModel
-    ├── transaction/  TransactionListFragment, AddEditTransactionFragment, TransactionAdapter, TransactionViewModel
-    ├── budget/       BudgetListFragment, AddEditBudgetFragment, BudgetAdapter, BudgetViewModel
-    ├── statistics/   StatisticsFragment, StatisticsViewModel
-    ├── profile/      ProfileFragment, ProfileViewModel
-    └── settings/     SettingsFragment, SettingsViewModel
+    ├── auth/       LoginActivity, Login/RegisterFragment, AuthViewModel
+    ├── main/       HomeActivity (BottomNavigationView host)
+    ├── home/       HomeFragment, HomeViewModel
+    ├── wallet/     WalletListFragment, AddEditWalletFragment, WalletAdapter, WalletViewModel
+    ├── category/   AddEditCategoryFragment
+    ├── transaction/ (scaffolded)
+    ├── budget/     BudgetListFragment, AddEditBudgetFragment, BudgetAdapter, BudgetViewModel
+    ├── debt/       DebtListFragment, AddEditDebtFragment, DebtViewModel
+    ├── event/      EventListFragment, AddEditEventFragment, EventViewModel
+    ├── statistics/ StatisticsFragment
+    ├── profile/    ProfileFragment
+    ├── settings/   SettingsFragment
+    ├── ai/         AIAssistantFragment, AIReceiptScannerFragment, AIViewModel
+    └── security/   PasscodeFragment, SecurityViewModel
 ```
-
-> 📄 Chi tiết đầy đủ: [`docs/project-structure.md`](docs/project-structure.md)
 
 ---
 
-## ⚙️ Yêu cầu hệ thống
+## Cơ sở dữ liệu
 
-- **Android Studio** Hedgehog (2023.1.1) trở lên
+Room Database version **3** với **7 bảng**, áp dụng offline-first:
+
+| Bảng | Mô tả | FK |
+|---|---|---|
+| `users` | Tài khoản người dùng (Firebase UID) | — |
+| `wallets` | Ví tiền | → users |
+| `categories` | Danh mục thu/chi (system + custom) | → users (nullable) |
+| `transactions` | Giao dịch thu/chi/chuyển khoản | → wallets, categories, debts, events |
+| `budgets` | Ngân sách theo tháng/danh mục | → users, categories (nullable) |
+| `debts` | Khoản nợ/mượn | → users |
+| `events` | Sự kiện tài chính | → users |
+
+Tất cả bảng có `sync_status (Int)` và `is_deleted (Boolean)` để hỗ trợ đồng bộ offline-first.
+
+---
+
+## Yêu cầu hệ thống
+
+- **Android Studio** Ladybug (2024.2.1) trở lên
 - **JDK** 11 trở lên
 - **Android SDK** API 29+
 - Tài khoản **Firebase** (để cấu hình Auth & Firestore)
-- Kết nối internet (để đăng ký tài khoản lần đầu)
+- File `local.properties` với `sdk.dir` và `GEMINI_API_KEY`
 
 ---
 
-## 🚀 Hướng dẫn cài đặt
+## Hướng dẫn cài đặt
 
 ### 1. Clone dự án
 
@@ -198,60 +243,72 @@ git clone https://github.com/Yan25-06/MoneyMate.git
 cd MoneyMate
 ```
 
-### 2. Cấu hình Firebase
+### 2. Cấu hình `local.properties`
+
+Tạo file `local.properties` ở thư mục gốc (nếu chưa có):
+
+```properties
+sdk.dir=C\:\\Users\\<your-username>\\AppData\\Local\\Android\\Sdk
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+### 3. Cấu hình Firebase
 
 1. Truy cập [Firebase Console](https://console.firebase.google.com/)
-2. Tạo project mới → Thêm ứng dụng Android
-3. Package name: `com.example.moneymate`
-4. Tải file `google-services.json`
-5. Đặt vào thư mục `app/`
-6. Trong Firebase Console, bật:
-   - **Authentication** → Email/Password
-   - **Firestore Database** (chế độ test)
-7. Mở `app/build.gradle.kts`, bỏ comment dòng:
-   ```kotlin
-   alias(libs.plugins.google.services)
-   ```
+2. Tạo project → Thêm ứng dụng Android
+3. Package name: `com.group10.moneymate`
+4. Tải file `google-services.json` → đặt vào thư mục `app/`
+5. Bật **Authentication** (Email/Password) và **Firestore Database**
 
-### 3. Build & Run
+### 4. Build & Run
 
 ```bash
-# Build debug
-./gradlew assembleDebug
+# Windows
+.\gradlew.bat assembleDebug
 
-# Cài đặt lên thiết bị/emulator
-./gradlew installDebug
+# macOS / Linux
+./gradlew assembleDebug
 ```
 
 Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 
 ---
 
-## 📅 Kế hoạch triển khai
+## Trạng thái phát triển
 
-| Phase | Tên | Trạng thái |
-|-------|-----|-----------|
-| 0 | Foundation (Room DB, DI, Utils) | 🔲 Chưa bắt đầu |
-| 1 | Authentication (Đăng ký / Đăng nhập) | 🔲 Chưa bắt đầu |
-| 2 | Wallet Management (Quản lý Ví) | 🔲 Chưa bắt đầu |
-| 3 | Category Management (Danh mục) | 🔲 Chưa bắt đầu |
-| 4 | Transaction Management (Giao dịch) | 🔲 Chưa bắt đầu |
-| 5 | Home Dashboard (Trang chủ) | 🔲 Chưa bắt đầu |
-| 6 | Budget Management (Ngân sách) | 🔲 Chưa bắt đầu |
-| 7 | Statistics (Thống kê) | 🔲 Chưa bắt đầu |
-| 8 | Profile & Settings (Hồ sơ) | 🔲 Chưa bắt đầu |
-| 9 | Passcode Login (Đăng nhập nhanh) | 🔲 Chưa bắt đầu |
-| 10 | Polish & QA (Hoàn thiện) | 🔲 Chưa bắt đầu |
+### Phase 0 — Foundation & Scaffolding ✅ Hoàn thành
 
-> 📄 Chi tiết từng phase: [`docs/implementation-phases.md`](docs/implementation-phases.md)
+| Mục | Trạng thái |
+|---|---|
+| Cấu hình build.gradle.kts (tất cả dependencies) | ✅ |
+| AndroidManifest (CAMERA, BIOMETRIC, NETWORK permissions) | ✅ |
+| Room DB v3: 7 entities, 7 DAOs, Converters | ✅ |
+| FK + Index đầy đủ trên tất cả entities | ✅ |
+| Nullability (@Nullable) chính xác theo spec | ✅ |
+| 8 Repositories + AppContainer (Manual DI) | ✅ |
+| UI Scaffolding: 14 packages, tất cả Fragment/ViewModel shells | ✅ |
+| Navigation graph (nav_main.xml) với 7 fragments mới | ✅ |
+| BUILD SUCCESSFUL | ✅ |
+
+### Phase 1-3 — Feature Development
+
+| Phase | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Authentication (Đăng ký / Đăng nhập / Passcode) | 🔲 Chưa bắt đầu |
+| 2 | Wallet + Category + Transaction + Event (Dev 1) | 🔲 Chưa bắt đầu |
+| 3 | Budget + Debt + Statistics + Cloud Sync (Dev 2) | 🔲 Chưa bắt đầu |
+| 4 | Settings + Security + AI Assistant (Dev 3) | 🔲 Chưa bắt đầu |
+| 5 | Integration, QA & Polish | 🔲 Chưa bắt đầu |
+
+> Chi tiết lịch 14 ngày cho 3 developer: [`docs/implementation-phases.md`](docs/implementation-phases.md)
 
 ---
 
-## 📚 Tài liệu
+## Tài liệu
 
 | File | Mô tả |
-|------|-------|
+|---|---|
 | [`docs/project-structure.md`](docs/project-structure.md) | Cấu trúc file & kiến trúc chi tiết |
-| [`docs/implementation-phases.md`](docs/implementation-phases.md) | Kế hoạch triển khai theo từng phase |
+| [`docs/implementation-phases.md`](docs/implementation-phases.md) | Kế hoạch Parallel Tracks Agile cho 3 developers / 14 ngày |
 
 ---

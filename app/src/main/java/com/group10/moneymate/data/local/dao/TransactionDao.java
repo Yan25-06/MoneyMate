@@ -23,40 +23,48 @@ public interface TransactionDao {
     @Delete
     void deleteTransaction(TransactionEntity transaction);
 
-    @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> getAllTransactions(String userId);
 
-    @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC LIMIT :limit")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND is_deleted = 0 ORDER BY timestamp DESC LIMIT :limit")
     LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit);
 
-    @Query("SELECT * FROM transactions WHERE id = :id")
+    @Query("SELECT * FROM transactions WHERE id = :id AND is_deleted = 0")
     LiveData<TransactionEntity> getTransactionById(String id);
 
-    @Query("SELECT * FROM transactions WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> getTransactionsByDateRange(String userId, long startDate, long endDate);
 
-    @Query("SELECT * FROM transactions WHERE userId = :userId AND type = :type ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND type = :type AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> getTransactionsByType(String userId, String type);
 
-    @Query("SELECT * FROM transactions WHERE userId = :userId AND categoryId = :categoryId ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND category_id = :categoryId AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> getTransactionsByCategory(String userId, String categoryId);
 
-    @Query("SELECT * FROM transactions WHERE userId = :userId AND walletId = :walletId ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND wallet_id = :walletId AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> getTransactionsByWallet(String userId, String walletId);
 
-    @Query("SELECT * FROM transactions WHERE userId = :userId AND note LIKE '%' || :keyword || '%' ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE event_id = :eventId AND is_deleted = 0 ORDER BY timestamp DESC")
+    LiveData<List<TransactionEntity>> getTransactionsByEvent(String eventId);
+
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND note LIKE '%' || :keyword || '%' AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> searchTransactions(String userId, String keyword);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE userId = :userId AND type = 'INCOME' AND date BETWEEN :startDate AND :endDate")
+    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'INCOME' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
     LiveData<Double> getTotalIncome(String userId, long startDate, long endDate);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE userId = :userId AND type = 'EXPENSE' AND date BETWEEN :startDate AND :endDate")
+    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
     LiveData<Double> getTotalExpense(String userId, long startDate, long endDate);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE userId = :userId AND type = 'EXPENSE' AND categoryId = :categoryId AND date BETWEEN :startDate AND :endDate")
+    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND category_id = :categoryId AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
     double getTotalExpenseByCategorySync(String userId, String categoryId, long startDate, long endDate);
 
+    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    void softDelete(String id, long updatedAt);
 
-    @Query("DELETE FROM transactions WHERE userId = :userId")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0")
+    List<TransactionEntity> getPendingSyncTransactions(String userId);
+
+    @Query("DELETE FROM transactions WHERE user_id = :userId")
     void deleteAllByUser(String userId);
 }

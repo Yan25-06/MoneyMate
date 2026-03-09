@@ -64,4 +64,39 @@
     <string name="dark_mode">Chế độ tối</string>
     <string name="date_format">Định dạng ngày</string>
     <string name="btn_logout">Đăng xuất</string>
+
+    <!-- Debt (Sổ nợ) -->
+    <string name="debts">Sổ nợ</string>
+    <string name="add_debt">Thêm khoản nợ</string>
+    <string name="hint_person_name">Tên người</string>
+    <string name="hint_debt_amount">Số tiền</string>
+    <string name="debt_type_lend">Cho vay</string>
+    <string name="debt_type_borrow">Đi vay</string>
+    <string name="debt_status_active">Đang nợ</string>
+    <string name="debt_status_settled">Đã trả</string>
+    <string name="hint_due_date">Hạn trả</string>
+
+    <!-- Event (Sự kiện) -->
+    <string name="events">Sự kiện</string>
+    <string name="add_event">Thêm sự kiện</string>
+    <string name="hint_event_name">Tên sự kiện</string>
+    <string name="hint_event_budget">Ngân sách sự kiện</string>
+    <string name="hint_start_date">Ngày bắt đầu</string>
+    <string name="hint_end_date">Ngày kết thúc</string>
+
+    <!-- AI Assistant -->
+    <string name="ai_assistant">Trợ lý AI</string>
+    <string name="ai_receipt_scanner">Quét hóa đơn</string>
+    <string name="hint_ai_message">Nhập tin nhắn...</string>
+    <string name="btn_send_message">Gửi</string>
+    <string name="btn_capture">Chụp ảnh</string>
+
+    <!-- Security -->
+    <string name="title_passcode">Mã PIN</string>
+    <string name="hint_passcode">Nhập mã PIN</string>
+    <string name="btn_use_biometric">Dùng sinh trắc học</string>
+
+    <!-- Cloud Sync -->
+    <string name="sync_now">Đồng bộ ngay</string>
+    <string name="last_synced">Đồng bộ lần cuối: %1$s</string>
 </resources>

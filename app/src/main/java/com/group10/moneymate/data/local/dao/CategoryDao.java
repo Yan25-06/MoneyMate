@@ -26,22 +26,27 @@ public interface CategoryDao {
     @Delete
     void deleteCategory(CategoryEntity category);
 
-    @Query("SELECT * FROM categories WHERE userId = :userId OR isDefault = 1 ORDER BY isDefault DESC, name ASC")
+    @Query("SELECT * FROM categories WHERE (user_id = :userId OR is_default = 1) AND is_deleted = 0 ORDER BY is_default DESC, name ASC")
     LiveData<List<CategoryEntity>> getAllCategories(String userId);
 
-    @Query("SELECT * FROM categories WHERE (userId = :userId OR isDefault = 1) AND type = :type ORDER BY isDefault DESC, name ASC")
+    @Query("SELECT * FROM categories WHERE (user_id = :userId OR is_default = 1) AND type = :type AND is_deleted = 0 ORDER BY is_default DESC, name ASC")
     LiveData<List<CategoryEntity>> getCategoriesByType(String userId, String type);
 
-    @Query("SELECT * FROM categories WHERE id = :id")
+    @Query("SELECT * FROM categories WHERE id = :id AND is_deleted = 0")
     LiveData<CategoryEntity> getCategoryById(String id);
 
-    @Query("SELECT * FROM categories WHERE isDefault = 1")
+    @Query("SELECT * FROM categories WHERE is_default = 1")
     List<CategoryEntity> getDefaultCategories();
 
-    @Query("SELECT COUNT(*) FROM categories WHERE isDefault = 1")
+    @Query("SELECT COUNT(*) FROM categories WHERE is_default = 1")
     int getDefaultCategoryCount();
 
+    @Query("UPDATE categories SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    void softDelete(String id, long updatedAt);
 
-    @Query("DELETE FROM categories WHERE userId = :userId AND isDefault = 0")
+    @Query("SELECT * FROM categories WHERE user_id = :userId AND sync_status != 0")
+    List<CategoryEntity> getPendingSyncCategories(String userId);
+
+    @Query("DELETE FROM categories WHERE user_id = :userId AND is_default = 0")
     void deleteAllCustomByUser(String userId);
 }
