@@ -1,29 +1,18 @@
 package com.group10.moneymate.ui.budget;
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
-import java.util.ArrayList;
+import com.group10.moneymate.ui.common.BaseListAdapter;
 import java.util.List;
 
-public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.ViewHolder> {
-    private List<BudgetEntity> budgets = new ArrayList<>();
+public class BudgetAdapter extends BaseListAdapter<BudgetEntity> {
 
-    public void setBudgets(List<BudgetEntity> budgets) { this.budgets = budgets; notifyDataSetChanged(); }
-
-    @NonNull @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_budget, parent, false);
-        return new ViewHolder(view);
+    public void setBudgets(List<BudgetEntity> budgets) {
+        setItems(budgets);
     }
-    @Override public void onBindViewHolder(@NonNull ViewHolder holder, int position) { /* TODO */ }
-    @Override public int getItemCount() { return budgets.size(); }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        ViewHolder(@NonNull View itemView) { super(itemView); }
+    @Override
+    protected int getItemLayoutId() {
+        return R.layout.item_budget;
     }
 }

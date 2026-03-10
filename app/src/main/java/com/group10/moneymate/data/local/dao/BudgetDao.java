@@ -23,16 +23,21 @@ public interface BudgetDao {
     @Delete
     void deleteBudget(BudgetEntity budget);
 
-    @Query("SELECT * FROM budgets WHERE userId = :userId AND monthYear = :monthYear")
-    LiveData<List<BudgetEntity>> getBudgetsByMonth(String userId, String monthYear);
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND month = :month AND year = :year AND is_deleted = 0")
+    LiveData<List<BudgetEntity>> getBudgetsByMonth(String userId, int month, int year);
 
-    @Query("SELECT * FROM budgets WHERE id = :id")
+    @Query("SELECT * FROM budgets WHERE id = :id AND is_deleted = 0")
     LiveData<BudgetEntity> getBudgetById(String id);
 
-    @Query("SELECT * FROM budgets WHERE userId = :userId AND categoryId = :categoryId AND monthYear = :monthYear")
-    BudgetEntity getBudgetByCategoryAndMonthSync(String userId, String categoryId, String monthYear);
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND category_id = :categoryId AND month = :month AND year = :year AND is_deleted = 0")
+    BudgetEntity getBudgetByCategoryAndMonthSync(String userId, String categoryId, int month, int year);
 
+    @Query("UPDATE budgets SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    void softDelete(String id, long updatedAt);
 
-    @Query("DELETE FROM budgets WHERE userId = :userId")
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND sync_status != 0")
+    List<BudgetEntity> getPendingSyncBudgets(String userId);
+
+    @Query("DELETE FROM budgets WHERE user_id = :userId")
     void deleteAllByUser(String userId);
 }

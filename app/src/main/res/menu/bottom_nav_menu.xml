@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/homeFragment" android:icon="@android:drawable/ic_menu_today" android:title="@string/home" />
     <item android:id="@+id/transactionListFragment" android:icon="@android:drawable/ic_menu_recent_history" android:title="@string/transactions" />

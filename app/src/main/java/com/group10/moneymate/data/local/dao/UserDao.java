@@ -17,12 +17,12 @@ public interface UserDao {
     @Update
     void updateUser(UserEntity user);
 
-    @Query("SELECT * FROM users WHERE uid = :uid")
-    LiveData<UserEntity> getUserById(String uid);
+    @Query("SELECT * FROM users WHERE id = :id")
+    LiveData<UserEntity> getUserById(String id);
 
-    @Query("SELECT * FROM users WHERE uid = :uid")
-    UserEntity getUserByIdSync(String uid);
+    @Query("SELECT * FROM users WHERE id = :id")
+    UserEntity getUserByIdSync(String id);
 
-    @Query("DELETE FROM users WHERE uid = :uid")
-    void deleteUser(String uid);
+    @Query("DELETE FROM users WHERE id = :id")
+    void deleteUser(String id);
 }

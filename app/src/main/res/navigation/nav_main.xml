@@ -12,6 +12,7 @@
         android:label="@string/home"
         tools:layout="@layout/fragment_home">
         <action android:id="@+id/action_home_to_addTransaction" app:destination="@id/addEditTransactionFragment" />
+        <action android:id="@+id/action_home_to_aiAssistant" app:destination="@id/aiAssistantFragment" />
     </fragment>
 
     <!-- Transactions -->
@@ -46,6 +47,9 @@
         <action android:id="@+id/action_settings_to_categories" app:destination="@id/categoryListFragment" />
         <action android:id="@+id/action_settings_to_budgets" app:destination="@id/budgetListFragment" />
         <action android:id="@+id/action_settings_to_wallets" app:destination="@id/walletListFragment" />
+        <action android:id="@+id/action_settings_to_debts" app:destination="@id/debtListFragment" />
+        <action android:id="@+id/action_settings_to_events" app:destination="@id/eventListFragment" />
+        <action android:id="@+id/action_settings_to_passcode" app:destination="@id/passcodeFragment" />
     </fragment>
 
     <!-- Profile -->
@@ -99,5 +103,57 @@
         android:name="com.group10.moneymate.ui.wallet.AddEditWalletFragment"
         android:label="@string/add_wallet"
         tools:layout="@layout/fragment_add_edit_wallet" />
+
+    <!-- Debts (Sổ nợ) -->
+    <fragment
+        android:id="@+id/debtListFragment"
+        android:name="com.group10.moneymate.ui.debt.DebtListFragment"
+        android:label="@string/debts"
+        tools:layout="@layout/fragment_debt_list">
+        <action android:id="@+id/action_debtList_to_addEdit" app:destination="@id/addEditDebtFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addEditDebtFragment"
+        android:name="com.group10.moneymate.ui.debt.AddEditDebtFragment"
+        android:label="@string/add_debt"
+        tools:layout="@layout/fragment_add_edit_debt" />
+
+    <!-- Events (Sự kiện) -->
+    <fragment
+        android:id="@+id/eventListFragment"
+        android:name="com.group10.moneymate.ui.event.EventListFragment"
+        android:label="@string/events"
+        tools:layout="@layout/fragment_event_list">
+        <action android:id="@+id/action_eventList_to_addEdit" app:destination="@id/addEditEventFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addEditEventFragment"
+        android:name="com.group10.moneymate.ui.event.AddEditEventFragment"
+        android:label="@string/add_event"
+        tools:layout="@layout/fragment_add_edit_event" />
+
+    <!-- AI Assistant (Trợ lý AI) -->
+    <fragment
+        android:id="@+id/aiAssistantFragment"
+        android:name="com.group10.moneymate.ui.ai.AIAssistantFragment"
+        android:label="@string/ai_assistant"
+        tools:layout="@layout/fragment_ai_assistant">
+        <action android:id="@+id/action_aiAssistant_to_scanner" app:destination="@id/aiReceiptScannerFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/aiReceiptScannerFragment"
+        android:name="com.group10.moneymate.ui.ai.AIReceiptScannerFragment"
+        android:label="@string/ai_receipt_scanner"
+        tools:layout="@layout/fragment_ai_receipt_scanner" />
+
+    <!-- Security (Bảo mật) -->
+    <fragment
+        android:id="@+id/passcodeFragment"
+        android:name="com.group10.moneymate.ui.security.PasscodeFragment"
+        android:label="@string/title_passcode"
+        tools:layout="@layout/fragment_passcode" />
 
 </navigation>

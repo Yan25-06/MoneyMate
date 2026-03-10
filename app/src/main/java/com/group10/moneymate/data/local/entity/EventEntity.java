@@ -9,7 +9,7 @@ import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 @Entity(
-    tableName = "categories",
+    tableName = "events",
     foreignKeys = {
         @ForeignKey(
             entity = UserEntity.class,
@@ -22,31 +22,31 @@ import androidx.room.PrimaryKey;
         @Index("user_id")
     }
 )
-public class CategoryEntity {
+public class EventEntity {
 
     @PrimaryKey
     @NonNull
     @ColumnInfo(name = "id")
     private String id;
 
-    @Nullable
     @ColumnInfo(name = "user_id")
     private String userId;
 
     @ColumnInfo(name = "name")
     private String name;
 
-    @ColumnInfo(name = "type")
-    private String type;
+    @Nullable
+    @ColumnInfo(name = "budget_limit")
+    private Double budgetLimit;
 
-    @ColumnInfo(name = "icon_res_id")
-    private String iconResId;
+    @ColumnInfo(name = "start_date")
+    private long startDate;
 
-    @ColumnInfo(name = "color_hex")
-    private String colorHex;
+    @ColumnInfo(name = "end_date")
+    private long endDate;
 
-    @ColumnInfo(name = "is_default")
-    private boolean isDefault;
+    @ColumnInfo(name = "is_active")
+    private boolean isActive;
 
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
@@ -57,39 +57,26 @@ public class CategoryEntity {
     @ColumnInfo(name = "is_deleted")
     private boolean isDeleted;
 
-    public CategoryEntity() {
-        this.id = "";
-    }
+    public EventEntity() { this.id = ""; }
 
-    @NonNull
-    public String getId() { return id; }
+    @NonNull public String getId() { return id; }
     public void setId(@NonNull String id) { this.id = id; }
-
-    @Nullable
     public String getUserId() { return userId; }
-    public void setUserId(@Nullable String userId) { this.userId = userId; }
-
+    public void setUserId(String userId) { this.userId = userId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-
-    public String getIconResId() { return iconResId; }
-    public void setIconResId(String iconResId) { this.iconResId = iconResId; }
-
-    public String getColorHex() { return colorHex; }
-    public void setColorHex(String colorHex) { this.colorHex = colorHex; }
-
-    public boolean isDefault() { return isDefault; }
-    public void setDefault(boolean aDefault) { isDefault = aDefault; }
-
+    @Nullable public Double getBudgetLimit() { return budgetLimit; }
+    public void setBudgetLimit(@Nullable Double budgetLimit) { this.budgetLimit = budgetLimit; }
+    public long getStartDate() { return startDate; }
+    public void setStartDate(long startDate) { this.startDate = startDate; }
+    public long getEndDate() { return endDate; }
+    public void setEndDate(long endDate) { this.endDate = endDate; }
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
-
     public int getSyncStatus() { return syncStatus; }
     public void setSyncStatus(int syncStatus) { this.syncStatus = syncStatus; }
-
     public boolean isDeleted() { return isDeleted; }
     public void setDeleted(boolean deleted) { isDeleted = deleted; }
 }
