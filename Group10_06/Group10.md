@@ -15,7 +15,34 @@
 
 ### 23127472 – Phạm Ngọc Thái
 
-*Không có công việc trong tuần*
+[1] Định nghĩa thêm 4 nhóm chức năng cho app. Setup các file cơ sở ban đầu cho các nhóm chức năng mới:
+    - DebtDao và EventDao để thực hiện các thao tác với cơ sở dữ liệu cục bộ.
+
+    - DebtEntity và EventEntity để biểu diễn dữ liệu.
+
+    - DebtRepository và EventRepository để xử lý dữ liệu.
+
+    - ViewModel cho việc quản lý nợ và sự kiện.
+
+    - Các kiểu liệt kê (enum) cho CategoryType, DebtStatus, DebtType và SyncStatus.
+
+    - Fragment và ViewModel liên quan đến AI cho các chức năng AI.
+
+    - Thành phần giao diện người dùng để thêm/chỉnh sửa nợ và sự kiện.
+
+    - RecyclerView để hiển thị danh sách nợ và sự kiện.
+
+    - Bố cục cho nhiều fragment khác nhau, bao gồm trợ lý AI và máy quét biên lai.
+
+    - Firebase Firestore và các thư viện khác để tăng cường chức năng.
+[2] Refactor Adapters để mở rộng BaseListAdapter nhằm cải thiện khả năng tái sử dụng mã và khả năng bảo trì.
+
+#### **`Minh chứng`**
+
+![Công việc [1]](./Image/img-pnt-1.png)
+![Công việc [2]](./Image/img-pnt-2.png)
+
+
 
 ---
 
@@ -25,8 +52,7 @@
 - Implement auto-redirect khi đăng nhập thành công, clean back stack để không quay lại login.
 
 **Minh chứng:**
-![img1.png](Image/img1.png)
-
+![alt text](image.png)
 ---
 
 ### 23127510 – Phùng Ngọc Tuấn
