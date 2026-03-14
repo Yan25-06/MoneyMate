@@ -27,11 +27,10 @@
 - Điều chỉnh và tối ưu để project không bị quá phức tạp.
 
 - Cấu trúc project:
-![Structure1.png](Structure1.png)
-![Structure2.png](Structure2.png)
-![Structure3.png](Structure3.png)
+![Structure1.png](img/Structure1.png)
+![Structure2.png](img/Structure2.png)
+![Structure3.png](img/Structure3.png)
 
-**Minh chứng:**
 ---
 
 ### 23127510 – Phùng Ngọc Tuấn
@@ -61,4 +60,4 @@
 
 ## V. Các Vấn Đề Phát Sinh
 
-- Không có vấn đề phát sinh trong tuần.
+*Không có vấn đề phát sinh trong tuần.*
