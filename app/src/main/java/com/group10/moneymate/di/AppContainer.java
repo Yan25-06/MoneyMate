@@ -31,7 +31,7 @@ public class AppContainer {
         database = AppDatabase.getInstance(context);
         firebaseAuthHelper = new FirebaseAuthHelper();
         prefsManager = new PrefsManager(context);
-        authRepository = new AuthRepository(firebaseAuthHelper);
+        authRepository = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
         userRepository = new UserRepository(database.userDao());
         walletRepository = new WalletRepository(database.walletDao());
         categoryRepository = new CategoryRepository(database.categoryDao());

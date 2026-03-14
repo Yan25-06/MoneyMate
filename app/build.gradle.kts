@@ -63,6 +63,7 @@ dependencies {
 
     // Room Database
     implementation(libs.room.runtime)
+    implementation(libs.fragment)
     annotationProcessor(libs.room.compiler)
 
     // Firebase (BOM quản lý version tự động)
@@ -106,4 +107,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    implementation(libs.fragment.ktx)
+    implementation(libs.navigation.fragment.ktx)
+    implementation(libs.navigation.ui.ktx)
 }

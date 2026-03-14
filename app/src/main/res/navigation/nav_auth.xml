@@ -5,18 +5,52 @@
     android:id="@+id/nav_auth"
     app:startDestination="@id/loginFragment">
 
+    <!-- Login Fragment: Email/Password login via Firebase -->
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.group10.moneymate.ui.auth.LoginFragment"
         android:label="@string/btn_login"
         tools:layout="@layout/fragment_login">
-        <action android:id="@+id/action_login_to_register" app:destination="@id/registerFragment" />
+        <action
+            android:id="@+id/action_login_to_register"
+            app:destination="@id/registerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_login_to_forgot_password"
+            app:destination="@id/forgotPasswordFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
+    <!-- Register Fragment: Email/Password registration via Firebase -->
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.group10.moneymate.ui.auth.RegisterFragment"
         android:label="@string/title_register"
-        tools:layout="@layout/fragment_register" />
+        tools:layout="@layout/fragment_register">
+        <action
+            android:id="@+id/action_register_back_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- Forgot Password Fragment: Reset password via email -->
+    <fragment
+        android:id="@+id/forgotPasswordFragment"
+        android:name="com.group10.moneymate.ui.auth.ForgotPasswordFragment"
+        android:label="@string/forgot_password"
+        tools:layout="@layout/fragment_forgot_password">
+        <action
+            android:id="@+id/action_forgot_password_back_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
 
 </navigation>

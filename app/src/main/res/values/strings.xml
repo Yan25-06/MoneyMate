@@ -3,6 +3,7 @@
 
     <!-- Auth -->
     <string name="btn_login">Đăng nhập</string>
+    <string name="btn_guest_login">Đăng nhập với tư cách khách</string>
     <string name="btn_register">Đăng ký</string>
     <string name="title_register">Tạo tài khoản</string>
     <string name="hint_email">Email</string>
@@ -12,6 +13,12 @@
     <string name="forgot_password">Quên mật khẩu?</string>
     <string name="no_account">Chưa có tài khoản?</string>
     <string name="have_account">Đã có tài khoản?</string>
+    <string name="forgot_password_subtitle">Nhập email của bạn để nhận liên kết đặt lại mật khẩu</string>
+    <string name="btn_send_reset_link">Gửi liên kết</string>
+    <string name="forgot_password_email_sent">Email đã được gửi!</string>
+    <string name="forgot_password_check_email">Kiểm tra email của bạn để nhận liên kết đặt lại mật khẩu</string>
+    <string name="btn_back_to_login">Quay lại đăng nhập</string>
+    <string name="btn_back">Quay lại</string>
 
     <!-- Navigation -->
     <string name="home">Trang chủ</string>

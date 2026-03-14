@@ -39,7 +39,9 @@ public class FirebaseAuthHelper {
     public Task<Void> sendPasswordResetEmail(String email) {
         return firebaseAuth.sendPasswordResetEmail(email);
     }
-
+    public Task<AuthResult> signInAnonymously() {
+        return firebaseAuth.signInAnonymously();
+    }
     public void signOut() {
         firebaseAuth.signOut();
     }

@@ -24,10 +24,14 @@ public class MainActivity extends AppCompatActivity {
 
         if (appContainer.authRepository.isLoggedIn()) {
             // User is authenticated via Firebase
-            startActivity(new Intent(this, HomeActivity.class));
+            Intent homeIntent = new Intent(this, HomeActivity.class);
+            homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(homeIntent);
         } else {
             // No auth state - go to login
-            startActivity(new Intent(this, LoginActivity.class));
+            Intent loginIntent = new Intent(this, LoginActivity.class);
+            loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(loginIntent);
         }
 
         finish();
