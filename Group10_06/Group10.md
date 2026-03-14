@@ -52,7 +52,7 @@
 - Implement auto-redirect khi đăng nhập thành công, clean back stack để không quay lại login.
 
 **Minh chứng:**
-![alt text](image.png)
+![alt text](./Image/image.png)
 ---
 
 ### 23127510 – Phùng Ngọc Tuấn
