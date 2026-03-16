@@ -1,4 +1,4 @@
-﻿package com.group10.moneymate;
+package com.group10.moneymate;
 
 import org.junit.Test;
 
