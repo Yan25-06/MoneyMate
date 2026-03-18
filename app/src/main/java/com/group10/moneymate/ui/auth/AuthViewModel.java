@@ -1,6 +1,7 @@
 package com.group10.moneymate.ui.auth;
 
 import android.app.Application;
+import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
@@ -8,6 +9,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.AndroidViewModel;
 
 import com.google.firebase.auth.FirebaseUser;
+import com.group10.moneymate.R;
 import com.group10.moneymate.data.repository.AuthRepository;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
@@ -24,6 +26,7 @@ public class AuthViewModel extends AndroidViewModel {
         IDLE,
         LOADING,
         AUTHENTICATED,
+        PASSWORD_RESET_EMAIL_SENT,
         ERROR
     }
 
@@ -68,12 +71,27 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
     public void register(String email, String password, String confirmPassword, String displayName) {
+        String trimmedDisplayName = displayName != null ? displayName.trim() : "";
+        if (TextUtils.isEmpty(trimmedDisplayName)) {
+            setError(getApplication().getString(R.string.error_display_name_required));
+            return;
+        }
+        if (TextUtils.isEmpty(confirmPassword)) {
+            setError(getApplication().getString(R.string.error_confirm_password_required));
+            return;
+        }
+        if (!TextUtils.equals(password, confirmPassword)) {
+            setError(getApplication().getString(R.string.error_passwords_do_not_match));
+            return;
+        }
+
         authState.setValue(AuthState.LOADING);
-        authRepository.register(email, password, confirmPassword, displayName, new AuthRepository.AuthCallback() {
+        authRepository.register(email, password, trimmedDisplayName, new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(FirebaseUser user) {
                 authState.postValue(AuthState.AUTHENTICATED);
             }
+
             @Override
             public void onError(String message) {
                 errorMessage.postValue(message);
@@ -88,6 +106,23 @@ public class AuthViewModel extends AndroidViewModel {
             @Override
             public void onSuccess(FirebaseUser user) {
                 authState.postValue(AuthState.AUTHENTICATED);
+            }
+
+            @Override
+            public void onError(String message) {
+                errorMessage.postValue(message);
+                authState.postValue(AuthState.ERROR);
+            }
+        });
+    }
+
+    public void sendPasswordResetEmail(String email) {
+        authState.setValue(AuthState.LOADING);
+        authRepository.sendPasswordResetEmail(email, new AuthRepository.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                errorMessage.postValue(null);
+                authState.postValue(AuthState.PASSWORD_RESET_EMAIL_SENT);
             }
 
             @Override

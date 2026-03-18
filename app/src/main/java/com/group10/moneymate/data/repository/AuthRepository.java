@@ -1,5 +1,7 @@
 package com.group10.moneymate.data.repository;
 
+import android.text.TextUtils;
+
 import androidx.annotation.NonNull;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -19,6 +21,12 @@ public class AuthRepository {
 
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
+
+        void onError(String message);
+    }
+
+    public interface SimpleCallback {
+        void onSuccess();
 
         void onError(String message);
     }
@@ -48,9 +56,10 @@ public class AuthRepository {
     }
 
     /**
-     * Register with email/password, then persist a UserEntity locally.
+     * Register with email/password, update Firebase display name, then persist a UserEntity locally.
      */
-    public void register(String email, String password, String comfirmPassword, String displayName, @NonNull final AuthCallback callback) {
+    public void register(String email, String password, String displayName, @NonNull final AuthCallback callback) {
+        final String trimmedDisplayName = displayName != null ? displayName.trim() : "";
         Task<AuthResult> task = firebaseAuthHelper.signUpWithEmail(email, password);
         task.addOnCompleteListener(new OnCompleteListener<AuthResult>() {
             @Override
@@ -66,8 +75,21 @@ public class AuthRepository {
                         callback.onError("Registration failed: no user");
                         return;
                     }
-                    handleAuthSuccess(firebaseUser);
-                    callback.onSuccess(firebaseUser);
+
+                    if (TextUtils.isEmpty(trimmedDisplayName)) {
+                        handleAuthSuccess(firebaseUser, trimmedDisplayName);
+                        callback.onSuccess(firebaseUser);
+                        return;
+                    }
+
+                    firebaseAuthHelper.updateDisplayName(firebaseUser, trimmedDisplayName)
+                            .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> updateTask) {
+                                    handleAuthSuccess(firebaseUser, trimmedDisplayName);
+                                    callback.onSuccess(firebaseUser);
+                                }
+                            });
                 } else {
                     Exception e = task.getException();
                     callback.onError(e != null ? e.getMessage() : "Registration failed");
@@ -135,15 +157,43 @@ public class AuthRepository {
     }
 
     /**
+     * Send password reset email via Firebase Auth.
+     */
+    public void sendPasswordResetEmail(String email, @NonNull final SimpleCallback callback) {
+        Task<Void> task = firebaseAuthHelper.sendPasswordResetEmail(email);
+        task.addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    callback.onSuccess();
+                } else {
+                    Exception e = task.getException();
+                    callback.onError(e != null ? e.getMessage() : "Failed to send password reset email");
+                }
+            }
+        });
+    }
+
+    /**
      * Internal helper: map FirebaseUser → UserEntity and save to Room.
      */
     private void handleAuthSuccess(@NonNull final FirebaseUser firebaseUser) {
+        handleAuthSuccess(firebaseUser, firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
+    }
+
+    /**
+     * Internal helper: map FirebaseUser → UserEntity and save to Room.
+     */
+    private void handleAuthSuccess(@NonNull final FirebaseUser firebaseUser, @NonNull String displayName) {
         final long now = System.currentTimeMillis();
+        final String resolvedDisplayName = !TextUtils.isEmpty(displayName)
+                ? displayName
+                : (firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
 
         final UserEntity entity = new UserEntity();
         entity.setId(firebaseUser.getUid());
         entity.setEmail(firebaseUser.getEmail());
-        entity.setDisplayName(firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
+        entity.setDisplayName(resolvedDisplayName);
         entity.setAvatarUrl(null);
         entity.setCurrency("VND");
         entity.setLanguage("vi");

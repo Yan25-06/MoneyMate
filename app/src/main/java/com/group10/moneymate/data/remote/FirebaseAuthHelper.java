@@ -4,6 +4,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
 
 /**
  * Helper class for Firebase Authentication operations.
@@ -44,5 +45,12 @@ public class FirebaseAuthHelper {
     }
     public void signOut() {
         firebaseAuth.signOut();
+    }
+
+    public Task<Void> updateDisplayName(FirebaseUser user, String displayName) {
+        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                .setDisplayName(displayName)
+                .build();
+        return user.updateProfile(profileUpdates);
     }
 }

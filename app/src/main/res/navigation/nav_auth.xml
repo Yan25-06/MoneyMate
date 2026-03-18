@@ -36,8 +36,11 @@
         <action
             android:id="@+id/action_register_back_to_login"
             app:destination="@id/loginFragment"
-            app:popUpTo="@id/loginFragment"
-            app:popUpToInclusive="true" />
+            app:enterAnim="@anim/slide_in_left"
+            app:exitAnim="@anim/slide_out_right"
+            app:popEnterAnim="@anim/slide_out_left"
+            app:popExitAnim="@anim/slide_in_right" />
+
     </fragment>
 
     <!-- Forgot Password Fragment: Reset password via email -->

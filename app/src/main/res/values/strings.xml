@@ -19,6 +19,12 @@
     <string name="forgot_password_check_email">Kiểm tra email của bạn để nhận liên kết đặt lại mật khẩu</string>
     <string name="btn_back_to_login">Quay lại đăng nhập</string>
     <string name="btn_back">Quay lại</string>
+    <string name="error_email_required">Vui lòng nhập email</string>
+    <string name="error_email_invalid">Email không hợp lệ</string>
+    <string name="error_display_name_required">Vui lòng nhập tên hiển thị</string>
+    <string name="error_password_required">Vui lòng nhập mật khẩu</string>
+    <string name="error_confirm_password_required">Vui lòng xác nhận mật khẩu</string>
+    <string name="error_passwords_do_not_match">Mật khẩu xác nhận không khớp</string>
 
     <!-- Navigation -->
     <string name="home">Trang chủ</string>
@@ -94,7 +100,7 @@
     <!-- AI Assistant -->
     <string name="ai_assistant">Trợ lý AI</string>
     <string name="ai_receipt_scanner">Quét hóa đơn</string>
-    <string name="hint_ai_message">Nhập tin nhắn...</string>
+    <string name="hint_ai_message">Nhập tin nhắn…</string>
     <string name="btn_send_message">Gửi</string>
     <string name="btn_capture">Chụp ảnh</string>
 
