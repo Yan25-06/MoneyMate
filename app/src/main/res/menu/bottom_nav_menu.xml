@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/homeFragment" android:icon="@android:drawable/ic_menu_today" android:title="@string/home" />
-    <item android:id="@+id/transactionListFragment" android:icon="@android:drawable/ic_menu_recent_history" android:title="@string/transactions" />
-    <item android:id="@+id/statisticsFragment" android:icon="@android:drawable/ic_menu_sort_by_size" android:title="@string/statistics" />
-    <item android:id="@+id/settingsFragment" android:icon="@android:drawable/ic_menu_preferences" android:title="@string/title_settings" />
+    <item android:id="@+id/homeFragment" android:icon="@drawable/outline_home_24" android:title="@string/home" />
+    <item android:id="@+id/transactionListFragment" android:icon="@drawable/outline_receipt_24" android:title="@string/transactions" />
+    <item android:id="@+id/statisticsFragment" android:icon="@drawable/outline_bar_chart_24" android:title="@string/statistics" />
+    <item android:id="@+id/settingsFragment" android:icon="@drawable/outline_settings_24" android:title="@string/title_settings" />
 </menu>

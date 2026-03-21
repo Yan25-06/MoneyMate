@@ -13,6 +13,11 @@
         tools:layout="@layout/fragment_home">
         <action android:id="@+id/action_home_to_addTransaction" app:destination="@id/addEditTransactionFragment" />
         <action android:id="@+id/action_home_to_aiAssistant" app:destination="@id/aiAssistantFragment" />
+        <action
+            android:id="@+id/action_home_to_wallets"
+            app:destination="@id/walletListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <!-- Transactions -->
@@ -46,7 +51,11 @@
         <action android:id="@+id/action_settings_to_profile" app:destination="@id/profileFragment" />
         <action android:id="@+id/action_settings_to_categories" app:destination="@id/categoryListFragment" />
         <action android:id="@+id/action_settings_to_budgets" app:destination="@id/budgetListFragment" />
-        <action android:id="@+id/action_settings_to_wallets" app:destination="@id/walletListFragment" />
+        <action
+            android:id="@+id/action_settings_to_wallets"
+            app:destination="@id/walletListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
         <action android:id="@+id/action_settings_to_debts" app:destination="@id/debtListFragment" />
         <action android:id="@+id/action_settings_to_events" app:destination="@id/eventListFragment" />
         <action android:id="@+id/action_settings_to_passcode" app:destination="@id/passcodeFragment" />
@@ -95,14 +104,24 @@
         android:name="com.group10.moneymate.ui.wallet.WalletListFragment"
         android:label="@string/wallets"
         tools:layout="@layout/fragment_wallet_list">
-        <action android:id="@+id/action_walletList_to_addEdit" app:destination="@id/addEditWalletFragment" />
+        <action
+            android:id="@+id/action_walletList_to_addEdit"
+            app:destination="@id/addEditWalletFragment"
+            app:enterAnim="@anim/slide_in_up"
+            app:popExitAnim="@anim/slide_out_down" />
     </fragment>
 
     <fragment
         android:id="@+id/addEditWalletFragment"
         android:name="com.group10.moneymate.ui.wallet.AddEditWalletFragment"
         android:label="@string/add_wallet"
-        tools:layout="@layout/fragment_add_edit_wallet" />
+        tools:layout="@layout/fragment_add_edit_wallet">
+        <argument
+            android:name="walletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+    </fragment>
 
     <!-- Debts (Sổ nợ) -->
     <fragment

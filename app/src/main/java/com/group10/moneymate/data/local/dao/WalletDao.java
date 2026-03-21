@@ -2,7 +2,6 @@ package com.group10.moneymate.data.local.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
-import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
@@ -15,27 +14,24 @@ import java.util.List;
 @Dao
 public interface WalletDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertWallet(WalletEntity wallet);
+    void insert(WalletEntity wallet);
 
     @Update
-    void updateWallet(WalletEntity wallet);
-
-    @Delete
-    void deleteWallet(WalletEntity wallet);
+    void update(WalletEntity wallet);
 
     @Query("SELECT * FROM wallets WHERE user_id = :userId AND is_deleted = 0 ORDER BY created_at ASC")
-    LiveData<List<WalletEntity>> getAllWallets(String userId);
+    LiveData<List<WalletEntity>> getAllByUser(String userId);
 
     @Query("SELECT * FROM wallets WHERE id = :id AND is_deleted = 0")
-    LiveData<WalletEntity> getWalletById(String id);
+    LiveData<WalletEntity> getById(String id);
 
     @Query("SELECT * FROM wallets WHERE id = :id")
-    WalletEntity getWalletByIdSync(String id);
+    WalletEntity getByIdSync(String id);
 
     @Query("SELECT SUM(balance) FROM wallets WHERE user_id = :userId AND is_deleted = 0 AND is_excluded = 0")
     LiveData<Double> getTotalBalance(String userId);
 
-    @Query("UPDATE wallets SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    @Query("UPDATE wallets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 
     @Query("SELECT * FROM wallets WHERE user_id = :userId AND sync_status != 0")

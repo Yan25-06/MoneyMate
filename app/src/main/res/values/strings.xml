@@ -37,6 +37,9 @@
     <string name="income">Thu nhập</string>
     <string name="expense">Chi tiêu</string>
     <string name="recent_transactions">Giao dịch gần đây</string>
+    <string name="my_wallets">Ví của tôi</string>
+    <string name="view_all">Xem tất cả</string>
+    <string name="wallet_preview_empty">Bạn chưa có ví nào</string>
 
     <!-- Transaction -->
     <string name="add_transaction">Thêm giao dịch</string>
@@ -46,6 +49,8 @@
     <string name="wallet">Ví</string>
     <string name="date">Ngày</string>
     <string name="btn_save">Lưu</string>
+    <string name="common_cancel">Hủy</string>
+    <string name="common_back">Quay về</string>
 
     <!-- Category -->
     <string name="categories">Danh mục</string>
@@ -61,9 +66,24 @@
     <!-- Wallet -->
     <string name="wallets">Ví</string>
     <string name="add_wallet">Thêm ví</string>
+    <string name="edit_wallet">Sửa ví</string>
+    <string name="delete_wallet">Xóa ví</string>
+    <string name="wallet_options">Tùy chọn ví</string>
     <string name="hint_wallet_name">Tên ví</string>
     <string name="wallet_type">Loại ví</string>
     <string name="hint_initial_balance">Số dư ban đầu</string>
+    <string name="wallet_type_cash">Tiền mặt</string>
+    <string name="wallet_type_bank">Ngân hàng</string>
+    <string name="wallet_type_ewallet">Ví điện tử</string>
+    <string name="btn_update">Cập nhật</string>
+    <string name="wallet_saved">Đã lưu ví</string>
+    <string name="wallet_total">Tổng cộng</string>
+    <string name="error_wallet_name_required">Vui lòng nhập tên ví</string>
+    <string name="error_wallet_balance_required">Vui lòng nhập số dư</string>
+    <string name="error_wallet_balance_invalid">Số dư không hợp lệ</string>
+    <string name="delete_wallet_title">Xóa ví</string>
+    <string name="delete_wallet_message">Bạn có chắc muốn xóa ví "%1$s"?</string>
+    <string name="default_currency_zero">0 ₫</string>
 
     <!-- Profile -->
     <string name="profile">Hồ sơ</string>

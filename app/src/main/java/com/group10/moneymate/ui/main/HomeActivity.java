@@ -1,11 +1,13 @@
 package com.group10.moneymate.ui.main;
 
 import android.os.Bundle;
+import android.view.MenuItem;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.NavigationUI;
 
 import com.group10.moneymate.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -26,7 +28,41 @@ public class HomeActivity extends AppCompatActivity {
 
         if (navHostFragment != null) {
             NavController navController = navHostFragment.getNavController();
-            NavigationUI.setupWithNavController(bottomNav, navController);
+            setupBottomNavigation(bottomNav, navController);
+        }
+    }
+
+    private void setupBottomNavigation(BottomNavigationView bottomNav, NavController navController) {
+        bottomNav.setOnItemSelectedListener(item -> navigateToRootDestination(navController, item.getItemId()));
+
+        bottomNav.setOnItemReselectedListener(item -> navController.popBackStack(item.getItemId(), false));
+
+        navController.addOnDestinationChangedListener(
+                (controller, destination, arguments) -> updateSelectedBottomItem(bottomNav, destination));
+    }
+
+    private boolean navigateToRootDestination(NavController navController, int destinationId) {
+        NavOptions navOptions = new NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setPopUpTo(navController.getGraph().getStartDestinationId(), false)
+                .build();
+        navController.navigate(destinationId, null, navOptions);
+        return true;
+    }
+
+    private void updateSelectedBottomItem(BottomNavigationView bottomNav, NavDestination destination) {
+        int destinationId = destination.getId();
+        if (destinationId == R.id.walletListFragment || destinationId == R.id.addEditWalletFragment) {
+            MenuItem homeItem = bottomNav.getMenu().findItem(R.id.homeFragment);
+            if (homeItem != null) {
+                homeItem.setChecked(true);
+            }
+            return;
+        }
+
+        MenuItem destinationItem = bottomNav.getMenu().findItem(destinationId);
+        if (destinationItem != null) {
+            destinationItem.setChecked(true);
         }
     }
 }
