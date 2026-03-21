@@ -74,14 +74,25 @@
         android:name="com.group10.moneymate.ui.category.CategoryListFragment"
         android:label="@string/categories"
         tools:layout="@layout/fragment_category_list">
-        <action android:id="@+id/action_categoryList_to_addEdit" app:destination="@id/addEditCategoryFragment" />
+        <action
+            android:id="@+id/action_categoryList_to_addEdit"
+            app:destination="@id/addEditCategoryFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
         android:id="@+id/addEditCategoryFragment"
         android:name="com.group10.moneymate.ui.category.AddEditCategoryFragment"
         android:label="@string/add_category"
-        tools:layout="@layout/fragment_add_edit_category" />
+        tools:layout="@layout/fragment_add_edit_category">
+        <!-- null = Add mode, non-null = Edit mode -->
+        <argument
+            android:name="categoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+    </fragment>
 
     <!-- Budgets -->
     <fragment
@@ -123,7 +134,7 @@
             app:nullable="true" />
     </fragment>
 
-    <!-- Debts (Sổ nợ) -->
+    <!-- Debts -->
     <fragment
         android:id="@+id/debtListFragment"
         android:name="com.group10.moneymate.ui.debt.DebtListFragment"
@@ -138,7 +149,7 @@
         android:label="@string/add_debt"
         tools:layout="@layout/fragment_add_edit_debt" />
 
-    <!-- Events (Sự kiện) -->
+    <!-- Events -->
     <fragment
         android:id="@+id/eventListFragment"
         android:name="com.group10.moneymate.ui.event.EventListFragment"
@@ -153,7 +164,7 @@
         android:label="@string/add_event"
         tools:layout="@layout/fragment_add_edit_event" />
 
-    <!-- AI Assistant (Trợ lý AI) -->
+    <!-- AI Assistant -->
     <fragment
         android:id="@+id/aiAssistantFragment"
         android:name="com.group10.moneymate.ui.ai.AIAssistantFragment"
@@ -168,7 +179,7 @@
         android:label="@string/ai_receipt_scanner"
         tools:layout="@layout/fragment_ai_receipt_scanner" />
 
-    <!-- Security (Bảo mật) -->
+    <!-- Security -->
     <fragment
         android:id="@+id/passcodeFragment"
         android:name="com.group10.moneymate.ui.security.PasscodeFragment"

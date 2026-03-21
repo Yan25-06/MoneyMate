@@ -15,6 +15,7 @@ import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.utils.PrefsManager;
 
 public class AppContainer {
+
     public final AppDatabase database;
     public final FirebaseAuthHelper firebaseAuthHelper;
     public final PrefsManager prefsManager;
@@ -28,16 +29,31 @@ public class AppContainer {
     public final EventRepository eventRepository;
 
     public AppContainer(Context context) {
-        database = AppDatabase.getInstance(context);
+        database           = AppDatabase.getInstance(context);
         firebaseAuthHelper = new FirebaseAuthHelper();
-        prefsManager = new PrefsManager(context);
-        authRepository = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
-        userRepository = new UserRepository(database.userDao());
-        walletRepository = new WalletRepository(database.walletDao());
-        categoryRepository = new CategoryRepository(database.categoryDao());
+        prefsManager       = new PrefsManager(context);
+        authRepository        = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
+        userRepository        = new UserRepository(database.userDao());
+        walletRepository      = new WalletRepository(database.walletDao());
+        categoryRepository    = new CategoryRepository(database.categoryDao());
         transactionRepository = new TransactionRepository(database.transactionDao());
-        budgetRepository = new BudgetRepository(database.budgetDao());
-        debtRepository = new DebtRepository(database.debtDao());
-        eventRepository = new EventRepository(database.eventDao());
+        budgetRepository      = new BudgetRepository(database.budgetDao());
+        debtRepository        = new DebtRepository(database.debtDao());
+        eventRepository       = new EventRepository(database.eventDao());
+    }
+
+    /**
+     * Seed danh mục mặc định nếu chưa có.
+     * Delegate xuống {@link CategoryRepository#seedDefaults()} — chạy trên
+     * {@link AppDatabase#databaseWriteExecutor}, không block UI.
+     * <p>
+     * Gọi sau khi đăng ký hoặc đăng nhập thành công:
+     * <pre>
+     *   MoneyMateApplication app = (MoneyMateApplication) requireActivity().getApplication();
+     *   app.getAppContainer().seedDefaultCategoriesIfNeeded();
+     * </pre>
+     */
+    public void seedDefaultCategoriesIfNeeded() {
+        categoryRepository.seedDefaults();
     }
 }

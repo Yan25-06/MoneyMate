@@ -57,6 +57,20 @@
     <string name="add_category">Thêm danh mục</string>
     <string name="hint_category_name">Tên danh mục</string>
     <string name="btn_pick_icon">Chọn biểu tượng</string>
+    <string name="dialog_delete_title">Xóa danh mục</string>
+    <string name="dialog_delete_category_message">Bạn có chắc muốn xóa danh mục này?</string>
+    <string name="btn_delete">Xóa</string>
+    <string name="btn_cancel">Hủy</string>
+    <string name="category_added">Đã thêm danh mục</string>
+    <string name="category_updated">Đã cập nhật danh mục</string>
+    <string name="error_name_required">Vui lòng nhập tên</string>
+    <string name="edit_category">Sửa danh mục</string>
+    <string name="category_type_label">Loại</string>
+    <string name="category_color_label">Màu sắc</string>
+    <string name="btn_pick_color">Chọn màu</string>
+    <string name="badge_default">Mặc định</string>
+    <string name="empty_categories">Chưa có danh mục nào</string>
+    <string name="btn_update">Cập nhật</string>
 
     <!-- Budget -->
     <string name="budgets">Ngân sách</string>
@@ -75,7 +89,6 @@
     <string name="wallet_type_cash">Tiền mặt</string>
     <string name="wallet_type_bank">Ngân hàng</string>
     <string name="wallet_type_ewallet">Ví điện tử</string>
-    <string name="btn_update">Cập nhật</string>
     <string name="wallet_saved">Đã lưu ví</string>
     <string name="wallet_total">Tổng cộng</string>
     <string name="error_wallet_name_required">Vui lòng nhập tên ví</string>

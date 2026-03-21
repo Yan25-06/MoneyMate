@@ -2,20 +2,28 @@ package com.group10.moneymate.data.repository;
 
 import androidx.lifecycle.LiveData;
 
+import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.CategoryDao;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.utils.Constants;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Repository for category data.
+ * Write operations chạy trên {@link AppDatabase#databaseWriteExecutor}.
  */
 public class CategoryRepository {
+
     private final CategoryDao categoryDao;
 
     public CategoryRepository(CategoryDao categoryDao) {
         this.categoryDao = categoryDao;
     }
+
+    // ─── Read (LiveData — Room tự chạy trên background) ──────────────────────
 
     public LiveData<List<CategoryEntity>> getAllCategories(String userId) {
         return categoryDao.getAllCategories(userId);
@@ -29,23 +37,73 @@ public class CategoryRepository {
         return categoryDao.getCategoryById(id);
     }
 
-    public void insertCategory(CategoryEntity category) {
-        categoryDao.insertCategory(category);
-    }
+    // ─── Write (AppDatabase.databaseWriteExecutor) ────────────────────────────
 
-    public void insertAll(List<CategoryEntity> categories) {
-        categoryDao.insertAll(categories);
+    public void addCategory(CategoryEntity category) {
+        category.setId(UUID.randomUUID().toString());
+        category.setUpdatedAt(System.currentTimeMillis());
+        category.setSyncStatus(1); // PENDING_UPLOAD
+        category.setDeleted(false);
+        AppDatabase.databaseWriteExecutor.execute(() ->
+                categoryDao.insertCategory(category)
+        );
     }
 
     public void updateCategory(CategoryEntity category) {
-        categoryDao.updateCategory(category);
+        category.setUpdatedAt(System.currentTimeMillis());
+        category.setSyncStatus(1); // PENDING_UPLOAD
+        AppDatabase.databaseWriteExecutor.execute(() ->
+                categoryDao.updateCategory(category)
+        );
     }
 
+    /**
+     * Soft delete — chỉ áp dụng cho danh mục tùy chỉnh (isDefault = false).
+     * Danh mục mặc định không thể xóa.
+     */
     public void deleteCategory(CategoryEntity category) {
-        categoryDao.deleteCategory(category);
+        if (category.isDefault()) return;
+        category.setDeleted(true);
+        category.setSyncStatus(2); // PENDING_DELETE
+        category.setUpdatedAt(System.currentTimeMillis());
+        AppDatabase.databaseWriteExecutor.execute(() ->
+                categoryDao.updateCategory(category)
+        );
     }
 
-    public int getDefaultCategoryCount() {
-        return categoryDao.getDefaultCategoryCount();
+    // ─── Seed ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Seed danh mục mặc định nếu chưa có.
+     * Kiểm tra {@code getDefaultCategoryCount()} để tránh seed lại khi user
+     * đăng nhập nhiều lần.
+     * <p>
+     * Gọi sau khi đăng ký hoặc đăng nhập thành công.
+     */
+    public void seedDefaults() {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            if (categoryDao.getDefaultCategoryCount() > 0) return;
+
+            List<Constants.DefaultCategory> defaults = Constants.getDefaultCategories();
+            List<CategoryEntity> entities = new ArrayList<>();
+            long now = System.currentTimeMillis();
+
+            for (Constants.DefaultCategory dc : defaults) {
+                CategoryEntity entity = new CategoryEntity();
+                entity.setId(UUID.randomUUID().toString());
+                entity.setUserId(null);        // null = dùng chung cho mọi user
+                entity.setName(dc.name);
+                entity.setIconResId(dc.iconResId);
+                entity.setColorHex(dc.colorHex);
+                entity.setType(dc.type);
+                entity.setDefault(true);
+                entity.setUpdatedAt(now);
+                entity.setSyncStatus(0);       // SYNCED — default categories không cần sync
+                entity.setDeleted(false);
+                entities.add(entity);
+            }
+
+            categoryDao.insertAll(entities);
+        });
     }
 }
