@@ -1,0 +1,62 @@
+# Gradle files
+.gradle/
+build/
+*.apk
+*.ap_
+*.aab
+
+# Local configuration file
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+*.swp
+.DS_Store
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# Generated files
+gen/
+bin/
+
+# Gradle wrapper
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Android Studio cache files
+.gradle
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Android Profiler
+.idea/profiler
+.idea/caches/build_file_checksums.ser
+
+# Log files
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+*.tmp
+*.swp
+*~
+
+# Output files
+outputs/
+reports/

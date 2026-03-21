@@ -20,9 +20,13 @@
 
 ### 23127499 – Lê Huy Toàn
 
+- Hoàn thiện chức năng đăng nhập với gmail với Firebase Authentication.
+- Thêm chức năng đăng xuất khỏi tài khoản.
 
 **Minh chứng:**
 
+![alt text](Image/image1.png)
+![alt text](Image/image2.png)
 ---
 
 ### 23127510 – Phùng Ngọc Tuấn
