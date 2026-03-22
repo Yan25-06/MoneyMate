@@ -8,12 +8,16 @@ import android.app.Application;
  */
 public class MoneyMateApplication extends Application {
 
-    public AppContainer appContainer;
+    private AppContainer appContainer;
 
     @Override
     public void onCreate() {
         super.onCreate();
         // Initialize dependency injection container
         appContainer = new AppContainer(this);
+    }
+
+    public AppContainer getAppContainer() {
+        return appContainer;
     }
 }

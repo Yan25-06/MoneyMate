@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void redirectToHomeIfLoggedIn() {
-        AppContainer appContainer = ((MoneyMateApplication) getApplication()).appContainer;
+        AppContainer appContainer = ((MoneyMateApplication) getApplication()).getAppContainer();
         if (appContainer.authRepository.isLoggedIn()) {
             Intent intent = new Intent(this, HomeActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

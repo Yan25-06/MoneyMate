@@ -17,7 +17,7 @@ public class SettingsViewModel extends AndroidViewModel {
     public SettingsViewModel(@NonNull Application application) {
         super(application);
         MoneyMateApplication app = (MoneyMateApplication) application;
-        AppContainer container = app.appContainer;
+        AppContainer container = app.getAppContainer();
         authRepository = container.authRepository;
     }
 

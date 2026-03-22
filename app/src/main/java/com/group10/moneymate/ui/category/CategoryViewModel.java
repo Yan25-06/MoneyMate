@@ -31,7 +31,7 @@ public class CategoryViewModel extends AndroidViewModel {
 
     public CategoryViewModel(@NonNull Application application) {
         super(application);
-        AppContainer container = ((MoneyMateApplication) application).appContainer;
+        AppContainer container = ((MoneyMateApplication) application).getAppContainer();
         repository = container.categoryRepository;
         userId = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()

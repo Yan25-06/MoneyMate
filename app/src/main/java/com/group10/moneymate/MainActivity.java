@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        AppContainer appContainer = ((MoneyMateApplication) getApplication()).appContainer;
+        AppContainer appContainer = ((MoneyMateApplication) getApplication()).getAppContainer();
 
         if (appContainer.authRepository.isLoggedIn()) {
             // User is authenticated via Firebase

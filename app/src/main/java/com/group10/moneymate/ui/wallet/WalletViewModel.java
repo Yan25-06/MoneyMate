@@ -25,7 +25,7 @@ public class WalletViewModel extends AndroidViewModel {
     public WalletViewModel(@NonNull Application application) {
         super(application);
         MoneyMateApplication app = (MoneyMateApplication) application;
-        container = app.appContainer;
+        container = app.getAppContainer();
 
         userId = container.authRepository.getCurrentUserId();
 

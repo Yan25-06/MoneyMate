@@ -72,6 +72,7 @@
     <string name="empty_categories">Chưa có danh mục nào</string>
     <string name="btn_update">Cập nhật</string>
 
+
     <!-- Budget -->
     <string name="budgets">Ngân sách</string>
     <string name="add_budget">Thêm ngân sách</string>
@@ -110,6 +111,9 @@
     <string name="dark_mode">Chế độ tối</string>
     <string name="date_format">Định dạng ngày</string>
     <string name="btn_logout">Đăng xuất</string>
+    <string name="section_account">Tài khoản</string>
+    <string name="section_data">Quản lý dữ liệu</string>
+    <string name="section_display">Hiển thị</string>
 
     <!-- Debt (Sổ nợ) -->
     <string name="debts">Sổ nợ</string>

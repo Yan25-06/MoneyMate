@@ -33,7 +33,7 @@ public class AuthViewModel extends AndroidViewModel {
     public AuthViewModel(@NonNull Application application) {
         super(application);
         MoneyMateApplication app = (MoneyMateApplication) application;
-        AppContainer container = app.appContainer;
+        AppContainer container = app.getAppContainer();
         authRepository = container.authRepository;
         authState.setValue(AuthState.IDLE);
     }

@@ -23,7 +23,7 @@ public class HomeViewModel extends AndroidViewModel {
         super(application);
 
         MoneyMateApplication app = (MoneyMateApplication) application;
-        AppContainer container = app.appContainer;
+        AppContainer container = app.getAppContainer();
         String userId = container.authRepository.getCurrentUserId();
 
         wallets = container.walletRepository.getAllByUser(userId);
