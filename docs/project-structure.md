@@ -1,82 +1,197 @@
 # MoneyMate — Cấu trúc dự án
 
-## Kiến trúc: MVVM + Repository Pattern
+## Kiến trúc: MVVM + Repository Pattern + Manual DI
 
-## Cấu trúc Java (~55 files)
+---
+
+## Cấu trúc Java
 
 ```
-com.example.moneymate/
-├── MainActivity.java                  ← Router (login or home)
+com.group10.moneymate/
+├── MainActivity.java                        ← Router (login or home)
 │
 ├── models/
-│   ├── TransactionType.java           (INCOME, EXPENSE)
-│   └── WalletType.java                (CASH, BANK, E_WALLET)
+│   ├── TransactionType.java                 (INCOME, EXPENSE)
+│   ├── WalletType.java                      (CASH, BANK, E_WALLET)
+│   ├── CategoryType.java                    (INCOME, EXPENSE)
+│   ├── DebtType.java                        (LEND, BORROW)
+│   ├── DebtStatus.java                      (ACTIVE, SETTLED)
+│   └── SyncStatus.java                      (SYNCED=0, PENDING_UPLOAD=1, PENDING_DELETE=2)
 │
 ├── data/
 │   ├── local/
-│   │   ├── AppDatabase.java           ← Room Database (5 entities, 5 DAOs)
-│   │   ├── Converters.java
+│   │   ├── AppDatabase.java                 ← Room singleton (version 3, 7 entities)
+│   │   ├── Converters.java                  ← TypeConverters: Enum↔String, Date↔Long
 │   │   ├── entity/
 │   │   │   ├── UserEntity.java
-│   │   │   ├── TransactionEntity.java
+│   │   │   ├── WalletEntity.java
 │   │   │   ├── CategoryEntity.java
+│   │   │   ├── TransactionEntity.java
 │   │   │   ├── BudgetEntity.java
-│   │   │   └── WalletEntity.java
+│   │   │   ├── DebtEntity.java
+│   │   │   └── EventEntity.java
 │   │   └── dao/
 │   │       ├── UserDao.java
+│   │       ├── WalletDao.java
+│   │       ├── CategoryDao.java             ← thêm countDefaultCategoriesByUid()
 │   │       ├── TransactionDao.java
-│   │       ├── CategoryDao.java
 │   │       ├── BudgetDao.java
-│   │       └── WalletDao.java
+│   │       ├── DebtDao.java
+│   │       └── EventDao.java
 │   ├── remote/
-│   │   └── FirebaseAuthHelper.java    ← Email/Password only
+│   │   └── FirebaseAuthHelper.java
 │   └── repository/
 │       ├── AuthRepository.java
 │       ├── UserRepository.java
+│       ├── WalletRepository.java
+│       ├── CategoryRepository.java          ← seedDefaults(), soft delete, background executor
 │       ├── TransactionRepository.java
-│       ├── CategoryRepository.java
 │       ├── BudgetRepository.java
-│       └── WalletRepository.java
+│       ├── DebtRepository.java
+│       └── EventRepository.java
 │
 ├── di/
-│   ├── AppContainer.java              ← Manual DI
-│   └── MoneyMateApplication.java
+│   ├── AppContainer.java                    ← Manual DI + seedDefaultCategoriesIfNeeded()
+│   └── MoneyMateApplication.java            ← getAppContainer()
 │
 ├── utils/
-│   ├── Constants.java
+│   ├── Constants.java                       ← Prefs keys, DefaultCategory, getDefaultCategories()
 │   ├── CurrencyFormatter.java
 │   ├── DateUtils.java
-│   └── PrefsManager.java
+│   └── PrefsManager.java                    ← getUid(), saveUid(), isLoggedIn(), setLoggedIn()
 │
 └── ui/
-    ├── auth/        LoginActivity, LoginFragment, RegisterFragment, AuthViewModel
-    ├── main/        HomeActivity (BottomNav host)
-    ├── home/        HomeFragment, HomeViewModel
-    ├── transaction/ TransactionListFragment, AddEditTransactionFragment, TransactionAdapter, TransactionViewModel
-    ├── category/    CategoryListFragment, AddEditCategoryFragment, CategoryAdapter, CategoryViewModel
-    ├── budget/      BudgetListFragment, AddEditBudgetFragment, BudgetAdapter, BudgetViewModel
-    ├── wallet/      WalletListFragment, AddEditWalletFragment, WalletAdapter, WalletViewModel
-    ├── statistics/  StatisticsFragment, StatisticsViewModel
-    ├── profile/     ProfileFragment, ProfileViewModel
-    └── settings/    SettingsFragment, SettingsViewModel
+    ├── auth/
+    │   ├── LoginActivity.java
+    │   ├── LoginFragment.java
+    │   ├── RegisterFragment.java
+    │   ├── ForgotPasswordFragment.java
+    │   └── AuthViewModel.java
+    ├── main/
+    │   └── HomeActivity.java
+    ├── home/
+    │   ├── HomeFragment.java
+    │   └── HomeViewModel.java
+    ├── transaction/
+    │   ├── TransactionListFragment.java
+    │   ├── AddEditTransactionFragment.java
+    │   ├── TransactionAdapter.java
+    │   └── TransactionViewModel.java
+    ├── category/                             ← ✅ Phase 3 hoàn thành
+    │   ├── CategoryListFragment.java         ← TabLayout, RecyclerView, FAB, Safe Args
+    │   ├── AddEditCategoryFragment.java      ← Add/Edit mode, color picker
+    │   ├── CategoryAdapter.java              ← ListAdapter + DiffUtil
+    │   └── CategoryViewModel.java            ← AndroidViewModel, switchMap filter
+    ├── budget/
+    │   ├── BudgetListFragment.java
+    │   ├── AddEditBudgetFragment.java
+    │   ├── BudgetAdapter.java
+    │   └── BudgetViewModel.java
+    ├── wallet/
+    │   ├── WalletListFragment.java
+    │   ├── AddEditWalletFragment.java
+    │   ├── WalletAdapter.java
+    │   └── WalletViewModel.java
+    ├── debt/
+    │   ├── DebtListFragment.java
+    │   ├── AddEditDebtFragment.java
+    │   └── DebtViewModel.java
+    ├── event/
+    │   ├── EventListFragment.java
+    │   ├── AddEditEventFragment.java
+    │   └── EventViewModel.java
+    ├── statistics/
+    │   ├── StatisticsFragment.java
+    │   └── StatisticsViewModel.java
+    ├── profile/
+    │   ├── ProfileFragment.java
+    │   └── ProfileViewModel.java
+    ├── settings/
+    │   ├── SettingsFragment.java             ← navigation tới tất cả destinations
+    │   └── SettingsViewModel.java
+    ├── security/
+    │   ├── PasscodeFragment.java
+    │   └── SecurityViewModel.java
+    ├── ai/
+    │   ├── AIAssistantFragment.java
+    │   ├── AIReceiptScannerFragment.java
+    │   └── AIViewModel.java
+    └── common/
+        └── BaseListAdapter.java
 ```
 
 ---
 
-## Layout XML (17 files)
+## Layout XML
 
 ```
-activity_main.xml, activity_login.xml, activity_home.xml
-fragment_login.xml, fragment_register.xml
-fragment_home.xml
-fragment_transaction_list.xml, fragment_add_edit_transaction.xml
-fragment_category_list.xml, fragment_add_edit_category.xml
-fragment_budget_list.xml, fragment_add_edit_budget.xml
-fragment_wallet_list.xml, fragment_add_edit_wallet.xml
-fragment_statistics.xml
-fragment_profile.xml
-fragment_settings.xml
-item_transaction.xml, item_category.xml, item_budget.xml, item_wallet.xml
+res/layout/
+├── activity_main.xml
+├── activity_login.xml
+├── activity_home.xml
+├── fragment_login.xml
+├── fragment_register.xml
+├── fragment_forgot_password.xml
+├── fragment_home.xml
+├── fragment_transaction_list.xml
+├── fragment_add_edit_transaction.xml
+├── fragment_category_list.xml               ← ✅ Phase 3.4
+├── fragment_add_edit_category.xml           ← ✅ Phase 3.4
+├── fragment_budget_list.xml
+├── fragment_add_edit_budget.xml
+├── fragment_wallet_list.xml
+├── fragment_add_edit_wallet.xml
+├── fragment_debt_list.xml
+├── fragment_add_edit_debt.xml
+├── fragment_event_list.xml
+├── fragment_add_edit_event.xml
+├── fragment_statistics.xml
+├── fragment_profile.xml
+├── fragment_settings.xml                    ← navigation buttons đầy đủ
+├── fragment_passcode.xml
+├── fragment_ai_assistant.xml
+├── fragment_ai_receipt_scanner.xml
+├── item_transaction.xml
+├── item_category.xml                        ← ✅ Phase 3.4
+├── item_budget.xml
+└── item_wallet.xml
+```
+
+---
+
+## Drawables
+
+```
+res/drawable/
+├── bg_circle_icon.xml                       ← ✅ mới thêm (Phase 3.4)
+├── bg_circle_color_preview.xml              ← ✅ mới thêm (Phase 3.4)
+├── ic_launcher_background.xml
+├── ic_launcher_foreground.xml
+├── outline_account_balance_24.xml
+├── outline_account_balance_wallet_24.xml
+├── outline_add_24.xml
+├── outline_arrow_back_24.xml
+├── outline_attach_money_24.xml
+├── outline_bar_chart_24.xml
+├── outline_close_24.xml
+├── outline_credit_card_24.xml
+├── outline_home_24.xml
+├── outline_more_horiz_24.xml
+├── outline_payments_24.xml
+├── outline_receipt_24.xml
+├── outline_settings_24.xml
+├── outline_visibility_24.xml
+└── outline_visibility_off_24.xml
+```
+
+---
+
+## Navigation
+
+```
+res/navigation/
+├── nav_auth.xml     ← Login → Register → ForgotPassword
+└── nav_main.xml     ← Home, Transactions, Statistics, Settings + tất cả sub-screens
 ```
 
 ---
@@ -85,12 +200,18 @@ item_transaction.xml, item_category.xml, item_budget.xml, item_wallet.xml
 
 | Thư viện | Mục đích |
 |----------|----------|
-| Room 2.6.1 | Local database |
-| Firebase Auth | Đăng nhập Email/Password |
-| Navigation 2.8.6 | Fragment navigation |
-| Lifecycle 2.8.7 | ViewModel + LiveData |
-| MPAndroidChart v3.1.0 | PieChart thống kê |
-| Material Design 3 | UI Components |
+| Room 2.8.4 | Local database (offline-first) |
+| Firebase Auth (BOM 34.10.0) | Đăng nhập Email/Password |
+| Firebase Firestore | Cloud backup & sync |
+| Navigation 2.9.7 + Safe Args | Fragment navigation |
+| Lifecycle 2.10.0 | ViewModel + LiveData |
+| MPAndroidChart v3.1.0 | PieChart, BarChart thống kê |
+| Material Design 3 (1.13.0) | UI Components |
+| Biometric 1.1.0 | Vân tay / Face ID |
+| WorkManager 2.10.1 | Background sync |
+| CameraX 1.4.2 | Camera quét hoá đơn |
+| ML Kit 16.0.1 | OCR nhận diện văn bản |
+| Gemini AI 0.9.0 | AI assistant |
 
 ---
 
@@ -98,34 +219,41 @@ item_transaction.xml, item_category.xml, item_budget.xml, item_wallet.xml
 
 ```
 MainActivity (router)
-├── Đã login → HomeActivity
+├── Có passcode → PasscodeFragment
+├── Firebase logged in → HomeActivity
 └── Chưa login → LoginActivity
-      ├── Login (email/password)
-      └── Register
+      ├── LoginFragment
+      ├── RegisterFragment
+      └── ForgotPasswordFragment
 
 HomeActivity — BottomNav 4 tabs
-├── 🏠 Home (dashboard, balance, recent transactions)
-├── 💰 Transactions (list, add, edit)
-├── 📊 Statistics (PieChart theo danh mục)
+├── 🏠 Home
+├── 💰 Transactions
+├── 📊 Statistics
 └── ⚙️ Settings
       ├── Profile
-      ├── Categories
+      ├── Security (Passcode)
+      ├── Wallets
+      ├── Categories        ← ✅ Phase 3 done
       ├── Budgets
-      └── Wallets
+      ├── Debts
+      └── Events
 ```
 
 ---
 
-## Tính năng có thể thêm sau
+## Trạng thái phát triển
 
-- Firebase Firestore sync
-- Google Sign-In
-- Passcode login
-- Giao dịch định kỳ (Recurring)
-- Nhắc nhở (Reminders)
-- Chuyển tiền giữa ví
-- Tìm kiếm & lọc
-- AI auto-fill
-- WorkManager workers
-- Glide (load ảnh avatar)
-- BarChart
+| Phase | Nội dung | Trạng thái |
+|-------|----------|------------|
+| 0 | Foundation & Scaffolding | ✅ Hoàn thành |
+| 1 | Authentication | ✅ Hoàn thành |
+| 2 | Wallet CRUD | ✅ Hoàn thành |
+| 3 | Category CRUD + seed defaults | ✅ Hoàn thành |
+| 4 | Transaction CRUD | 🔲 Chưa bắt đầu |
+| 5 | Home Dashboard | 🔲 Chưa bắt đầu |
+| 6 | Budget | 🔲 Chưa bắt đầu |
+| 7 | Statistics | 🔲 Chưa bắt đầu |
+| 8 | Profile & Settings | 🔲 Chưa bắt đầu |
+| 9 | Passcode | 🔲 Chưa bắt đầu |
+| 10 | Polish & QA | 🔲 Chưa bắt đầu |

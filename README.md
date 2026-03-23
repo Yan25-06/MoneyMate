@@ -40,8 +40,9 @@
 - Tìm kiếm & lọc giao dịch
 
 ### Danh mục
-- Danh mục hệ thống mặc định sẵn có
+- Danh mục hệ thống mặc định sẵn có (16 danh mục: 10 Chi + 6 Thu)
 - Tạo danh mục tùy chỉnh (Thu / Chi) với màu sắc riêng
+- Không thể xóa danh mục mặc định
 
 ### Ngân sách
 - Đặt hạn mức chi tiêu theo tháng / theo danh mục
@@ -51,7 +52,7 @@
 ### Nợ / Mượn
 - Ghi nhận các khoản cho vay (LEND) và đi vay (BORROW)
 - Theo dõi số tiền còn lại (`remaining_amount`)
-- Trạng thái: Đang nợ (ONGOING) / Đã thanh toán (SETTLED)
+- Trạng thái: Đang nợ (ACTIVE) / Đã thanh toán (SETTLED)
 
 ### Sự kiện tài chính
 - Tạo sự kiện có ngân sách riêng (sinh nhật, du lịch, ...)
@@ -132,77 +133,7 @@ Dự án sử dụng **MVVM + Repository Pattern + Manual DI**:
 
 ## Cấu trúc dự án
 
-```
-app/src/main/java/com/group10/moneymate/
-│
-├── MainActivity.java              ← Router: Login hoặc Home
-│
-├── models/
-│   ├── TransactionType.java       (INCOME / EXPENSE / TRANSFER)
-│   ├── WalletType.java            (CASH / BANK / E_WALLET)
-│   ├── CategoryType.java          (INCOME / EXPENSE)
-│   ├── DebtType.java              (LEND / BORROW)
-│   ├── DebtStatus.java            (ONGOING / SETTLED)
-│   └── SyncStatus.java            (SYNCED / PENDING_UPLOAD / PENDING_DELETE)
-│
-├── data/
-│   ├── local/
-│   │   ├── AppDatabase.java       ← Room singleton (version 3)
-│   │   ├── Converters.java        ← TypeConverters: Enum↔String, Date↔Long
-│   │   ├── entity/
-│   │   │   ├── UserEntity.java
-│   │   │   ├── WalletEntity.java
-│   │   │   ├── CategoryEntity.java
-│   │   │   ├── TransactionEntity.java
-│   │   │   ├── BudgetEntity.java
-│   │   │   ├── DebtEntity.java
-│   │   │   └── EventEntity.java
-│   │   └── dao/
-│   │       ├── UserDao.java
-│   │       ├── WalletDao.java
-│   │       ├── CategoryDao.java
-│   │       ├── TransactionDao.java
-│   │       ├── BudgetDao.java
-│   │       ├── DebtDao.java
-│   │       └── EventDao.java
-│   ├── remote/
-│   │   └── FirebaseAuthHelper.java
-│   └── repository/
-│       ├── AuthRepository.java
-│       ├── UserRepository.java
-│       ├── WalletRepository.java
-│       ├── CategoryRepository.java
-│       ├── TransactionRepository.java
-│       ├── BudgetRepository.java
-│       ├── DebtRepository.java
-│       └── EventRepository.java
-│
-├── di/
-│   ├── MoneyMateApplication.java  ← Application class
-│   └── AppContainer.java          ← Manual DI (8 repositories)
-│
-├── utils/
-│   ├── Constants.java
-│   ├── PrefsManager.java
-│   ├── CurrencyFormatter.java
-│   └── DateUtils.java
-│
-└── ui/
-    ├── auth/       LoginActivity, Login/RegisterFragment, AuthViewModel
-    ├── main/       HomeActivity (BottomNavigationView host)
-    ├── home/       HomeFragment, HomeViewModel
-    ├── wallet/     WalletListFragment, AddEditWalletFragment, WalletAdapter, WalletViewModel
-    ├── category/   AddEditCategoryFragment
-    ├── transaction/ (scaffolded)
-    ├── budget/     BudgetListFragment, AddEditBudgetFragment, BudgetAdapter, BudgetViewModel
-    ├── debt/       DebtListFragment, AddEditDebtFragment, DebtViewModel
-    ├── event/      EventListFragment, AddEditEventFragment, EventViewModel
-    ├── statistics/ StatisticsFragment
-    ├── profile/    ProfileFragment
-    ├── settings/   SettingsFragment
-    ├── ai/         AIAssistantFragment, AIReceiptScannerFragment, AIViewModel
-    └── security/   PasscodeFragment, SecurityViewModel
-```
+[project-structure.md](docs/project-structure.md)
 
 ---
 
@@ -245,8 +176,6 @@ cd MoneyMate
 
 ### 2. Cấu hình `local.properties`
 
-Tạo file `local.properties` ở thư mục gốc (nếu chưa có):
-
 ```properties
 sdk.dir=C\:\\Users\\<your-username>\\AppData\\Local\\Android\\Sdk
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -258,7 +187,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 2. Tạo project → Thêm ứng dụng Android
 3. Package name: `com.group10.moneymate`
 4. Tải file `google-services.json` → đặt vào thư mục `app/`
-5. Bật **Authentication** (Email/Password) và **Firestore Database**
+5. Bật **Authentication** (Email/Password, Anonymous) và **Firestore Database**
 
 ### 4. Build & Run
 
@@ -284,23 +213,60 @@ Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 | AndroidManifest (CAMERA, BIOMETRIC, NETWORK permissions) | ✅ |
 | Room DB v3: 7 entities, 7 DAOs, Converters | ✅ |
 | FK + Index đầy đủ trên tất cả entities | ✅ |
-| Nullability (@Nullable) chính xác theo spec | ✅ |
 | 8 Repositories + AppContainer (Manual DI) | ✅ |
-| UI Scaffolding: 14 packages, tất cả Fragment/ViewModel shells | ✅ |
-| Navigation graph (nav_main.xml) với 7 fragments mới | ✅ |
+| UI Scaffolding: tất cả Fragment/ViewModel shells | ✅ |
+| Navigation graph (nav_main.xml, nav_auth.xml) | ✅ |
 | BUILD SUCCESSFUL | ✅ |
 
-### Phase 1-3 — Feature Development
+### Phase 1 — Authentication ✅ Hoàn thành
+
+| Mục | Trạng thái |
+|---|---|
+| `FirebaseAuthHelper` — signUp, signIn, signInAnonymously, resetPassword, updateDisplayName | ✅ |
+| `AuthRepository` — login, register, loginAnonymously, sendPasswordReset, saveUid, setLoggedIn | ✅ |
+| `UserRepository` — getUser, insertUser, updateUser, deleteUser (databaseWriteExecutor) | ✅ |
+| `AuthViewModel` — AndroidViewModel, AuthState enum, login/register/anonymous/resetPassword | ✅ |
+| `MainActivity` — router Firebase auth state → HomeActivity / LoginActivity | ✅ |
+| `LoginActivity` — host nav_auth, redirect nếu đã login | ✅ |
+| `LoginFragment` — ViewBinding, loading state, seed categories sau auth | ✅ |
+| `RegisterFragment` — ViewBinding, client validation, loading state, seed categories sau auth | ✅ |
+| `ForgotPasswordFragment` — ViewBinding, email validation, success/error state | ✅ |
+| `nav_auth.xml` — Login → Register → ForgotPassword với slide animations | ✅ |
+| `fragment_login.xml` — Material3 style, til_email, til_password | ✅ |
+| `fragment_register.xml` — Material3 style, đầy đủ 4 input fields | ✅ |
+
+### Phase 3 — Category ✅ Hoàn thành
+
+| Mục | Trạng thái |
+|---|---|
+| `Constants.java` — DefaultCategory, getDefaultCategories() (16 mục) | ✅ |
+| `CategoryRepository` — seedDefaults(), soft delete, databaseWriteExecutor | ✅ |
+| `AppContainer` — seedDefaultCategoriesIfNeeded(), getAppContainer() | ✅ |
+| `MoneyMateApplication` — getAppContainer() | ✅ |
+| `PrefsManager` — getUid(), saveUid(), isLoggedIn(), setLoggedIn() | ✅ |
+| `CategoryDao` — countDefaultCategoriesByUid() | ✅ |
+| `CategoryViewModel` — AndroidViewModel, switchMap filter by type | ✅ |
+| `CategoryAdapter` — ListAdapter + DiffUtil, click/delete listeners | ✅ |
+| `CategoryListFragment` — TabLayout, RecyclerView, FAB, Safe Args | ✅ |
+| `AddEditCategoryFragment` — Add/Edit mode, color picker, validation | ✅ |
+| `fragment_category_list.xml` — CoordinatorLayout + TabLayout + FAB | ✅ |
+| `fragment_add_edit_category.xml` — form đầy đủ | ✅ |
+| `item_category.xml` — icon, tên, badge mặc định, nút xóa | ✅ |
+| `bg_circle_icon.xml`, `bg_circle_color_preview.xml` | ✅ |
+| `SettingsFragment` — navigation tới tất cả destinations | ✅ |
+| `fragment_settings.xml` — đầy đủ sections và navigation buttons | ✅ |
+
+### Các Phase còn lại
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | Authentication (Đăng ký / Đăng nhập / Passcode) | 🔲 Chưa bắt đầu |
-| 2 | Wallet + Category + Transaction + Event (Dev 1) | 🔲 Chưa bắt đầu |
-| 3 | Budget + Debt + Statistics + Cloud Sync (Dev 2) | 🔲 Chưa bắt đầu |
-| 4 | Settings + Security + AI Assistant (Dev 3) | 🔲 Chưa bắt đầu |
-| 5 | Integration, QA & Polish | 🔲 Chưa bắt đầu |
-
-> Chi tiết lịch 14 ngày cho 3 developer: [`docs/implementation-phases.md`](docs/implementation-phases.md)
+| 4 | Transaction CRUD | 🔲 Chưa bắt đầu |
+| 5 | Home Dashboard | 🔲 Chưa bắt đầu |
+| 6 | Budget | 🔲 Chưa bắt đầu |
+| 7 | Statistics | 🔲 Chưa bắt đầu |
+| 8 | Profile & Settings | 🔲 Chưa bắt đầu |
+| 9 | Passcode | 🔲 Chưa bắt đầu |
+| 10 | Polish & QA | 🔲 Chưa bắt đầu |
 
 ---
 
@@ -308,7 +274,8 @@ Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 
 | File | Mô tả |
 |---|---|
-| [`docs/project-structure.md`](docs/project-structure.md) | Cấu trúc file & kiến trúc chi tiết |
-| [`docs/implementation-phases.md`](docs/implementation-phases.md) | Kế hoạch Parallel Tracks Agile cho 3 developers / 14 ngày |
+| [project-structure.md](docs/project-structure.md) | Cấu trúc file & kiến trúc chi tiết |
+| [phases.md](docs/phases.md) | Kế hoạch triển khai 10 phases |
+| [copilot-instructions.md](.github/copilot-instructions.md) | Coding rules cho AI code generation |
 
 ---
