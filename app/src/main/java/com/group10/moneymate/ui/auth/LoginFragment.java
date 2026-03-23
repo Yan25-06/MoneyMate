@@ -14,13 +14,15 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
-import com.group10.moneymate.ui.main.HomeActivity;
 import com.group10.moneymate.databinding.FragmentLoginBinding;
+import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.ui.main.HomeActivity;
 
 /**
  * Fragment for email/password login.
  */
 public class LoginFragment extends Fragment {
+
     private FragmentLoginBinding binding;
     private AuthViewModel viewModel;
 
@@ -42,7 +44,20 @@ public class LoginFragment extends Fragment {
 
     private void observeAuthState() {
         viewModel.getAuthState().observe(getViewLifecycleOwner(), state -> {
+            if (state == null) return;
+
+            if (state == AuthViewModel.AuthState.LOADING) {
+                setLoading(true);
+                return;
+            }
+
+            setLoading(false);
+
             if (state == AuthViewModel.AuthState.AUTHENTICATED) {
+                // Seed default categories sau khi auth thành công
+                ((MoneyMateApplication) requireActivity().getApplication())
+                        .getAppContainer()
+                        .seedDefaultCategoriesIfNeeded();
                 openHomeActivity();
             }
         });
@@ -62,24 +77,33 @@ public class LoginFragment extends Fragment {
 
     private void setupListeners() {
         binding.btnLogin.setOnClickListener(v -> {
-            String email = String.valueOf(binding.etEmail.getText()).trim();
+            String email    = String.valueOf(binding.etEmail.getText()).trim();
             String password = String.valueOf(binding.etPassword.getText()).trim();
             viewModel.login(email, password);
         });
 
         binding.btnGuestLogin.setOnClickListener(v -> viewModel.loginAnonymously());
 
-        binding.tvRegister.setOnClickListener(v -> {
-            Navigation.findNavController(v).navigate
-                    (LoginFragmentDirections.actionLoginToRegister());
-        });
+        binding.tvRegister.setOnClickListener(v ->
+                Navigation.findNavController(v).navigate(
+                        LoginFragmentDirections.actionLoginToRegister()
+                )
+        );
 
-        binding.tvForgotPassword.setOnClickListener(v -> {
-            // Navigate to ForgotPasswordFragment
-            Navigation.findNavController(v).navigate
-                    (LoginFragmentDirections.actionLoginToForgotPassword());
-        });
+        binding.tvForgotPassword.setOnClickListener(v ->
+                Navigation.findNavController(v).navigate(
+                        LoginFragmentDirections.actionLoginToForgotPassword()
+                )
+        );
     }
+
+    private void setLoading(boolean isLoading) {
+        binding.btnLogin.setEnabled(!isLoading);
+        binding.btnGuestLogin.setEnabled(!isLoading);
+        binding.etEmail.setEnabled(!isLoading);
+        binding.etPassword.setEnabled(!isLoading);
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
