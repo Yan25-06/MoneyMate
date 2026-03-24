@@ -36,7 +36,8 @@ public class AppContainer {
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());
         categoryRepository    = new CategoryRepository(database.categoryDao());
-        transactionRepository = new TransactionRepository(database.transactionDao());
+        // TransactionRepository cần walletDao để cập nhật số dư ví
+        transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao());
         budgetRepository      = new BudgetRepository(database.budgetDao());
         debtRepository        = new DebtRepository(database.debtDao());
         eventRepository       = new EventRepository(database.eventDao());
@@ -44,14 +45,7 @@ public class AppContainer {
 
     /**
      * Seed danh mục mặc định nếu chưa có.
-     * Delegate xuống {@link CategoryRepository#seedDefaults()} — chạy trên
-     * {@link AppDatabase#databaseWriteExecutor}, không block UI.
-     * <p>
-     * Gọi sau khi đăng ký hoặc đăng nhập thành công:
-     * <pre>
-     *   MoneyMateApplication app = (MoneyMateApplication) requireActivity().getApplication();
-     *   app.getAppContainer().seedDefaultCategoriesIfNeeded();
-     * </pre>
+     * Gọi sau khi đăng ký hoặc đăng nhập thành công.
      */
     public void seedDefaultCategoriesIfNeeded() {
         categoryRepository.seedDefaults();
