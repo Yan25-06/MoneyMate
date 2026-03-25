@@ -34,10 +34,11 @@
 
 ### Giao dịch Thu – Chi
 - Thêm / Sửa / Xóa giao dịch (Thu nhập / Chi tiêu / Chuyển khoản)
-- Gán danh mục, chọn ví, đính kèm ghi chú và ảnh
+- Gán danh mục, chọn ví, đính kèm ghi chú
+- Tìm kiếm & lọc giao dịch theo loại
+- Số dư ví **tự động cập nhật** khi thêm / sửa / xóa giao dịch
 - Liên kết giao dịch với khoản nợ hoặc sự kiện
 - Quét hoá đơn tự động bằng camera (ML Kit + Gemini AI)
-- Tìm kiếm & lọc giao dịch
 
 ### Danh mục
 - Danh mục hệ thống mặc định sẵn có (16 danh mục: 10 Chi + 6 Thu)
@@ -256,11 +257,25 @@ Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 | `SettingsFragment` — navigation tới tất cả destinations | ✅ |
 | `fragment_settings.xml` — đầy đủ sections và navigation buttons | ✅ |
 
+### Phase 4 — Transaction CRUD ✅ Hoàn thành
+
+| Mục | Trạng thái |
+|---|---|
+| `TransactionRepository` — databaseWriteExecutor, soft delete, applyBalanceChange() tự động cập nhật số dư ví | ✅ |
+| `AppContainer` — cập nhật TransactionRepository nhận thêm WalletDao | ✅ |
+| `TransactionViewModel` — AndroidViewModel, filter by type (switchMap), search, CRUD | ✅ |
+| `TransactionAdapter` — ListAdapter + DiffUtil, màu amount (xanh/đỏ/xanh dương), static ViewHolder | ✅ |
+| `TransactionListFragment` — RecyclerView, FAB, empty state, long-click confirm delete | ✅ |
+| `AddEditTransactionFragment` — Add/Edit mode, category chip picker, wallet dropdown, DatePicker, validation | ✅ |
+| `fragment_transaction_list.xml` — empty state TextView, paddingTop tránh che status bar | ✅ |
+| `fragment_add_edit_transaction.xml` — type toggle, chip group, wallet dropdown, date field | ✅ |
+| `item_transaction.xml` — MaterialCardView, amount + màu, date, type badge | ✅ |
+| `nav_main.xml` — thêm argument `transactionId` (nullable) cho addEditTransactionFragment | ✅ |
+
 ### Các Phase còn lại
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
-| 4 | Transaction CRUD | 🔲 Chưa bắt đầu |
 | 5 | Home Dashboard | 🔲 Chưa bắt đầu |
 | 6 | Budget | 🔲 Chưa bắt đầu |
 | 7 | Statistics | 🔲 Chưa bắt đầu |
