@@ -4,6 +4,7 @@ import android.app.Application;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.group10.moneymate.data.repository.AuthRepository;
@@ -12,7 +13,7 @@ import com.group10.moneymate.di.MoneyMateApplication;
 
 public class SettingsViewModel extends AndroidViewModel {
     private final AuthRepository authRepository;
-    private final MutableLiveData<Boolean> logoutSuccess = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> logoutSuccess = new MutableLiveData<>(false);
 
     public SettingsViewModel(@NonNull Application application) {
         super(application);
@@ -21,7 +22,7 @@ public class SettingsViewModel extends AndroidViewModel {
         authRepository = container.authRepository;
     }
 
-    public MutableLiveData<Boolean> getLogoutSuccess() {
+    public LiveData<Boolean> getLogoutSuccess() {
         return logoutSuccess;
     }
 

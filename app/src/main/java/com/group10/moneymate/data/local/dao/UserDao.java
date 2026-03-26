@@ -11,7 +11,7 @@ import com.group10.moneymate.data.local.entity.UserEntity;
 
 @Dao
 public interface UserDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertUser(UserEntity user);
 
     @Update

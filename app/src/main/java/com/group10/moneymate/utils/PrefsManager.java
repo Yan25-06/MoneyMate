@@ -3,6 +3,8 @@ package com.group10.moneymate.utils;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.UUID;
+
 /**
  * SharedPreferences wrapper for app settings.
  */
@@ -10,6 +12,7 @@ public class PrefsManager {
 
     private static final String KEY_UID = "uid";
     private static final String KEY_LOGGED_IN = "is_logged_in";
+    private static final String KEY_GUEST_UID = "guest_local_uid";
 
     private final SharedPreferences prefs;
 
@@ -25,6 +28,17 @@ public class PrefsManager {
 
     public void saveUid(String uid) {
         prefs.edit().putString(KEY_UID, uid).apply();
+    }
+
+    public String getOrCreateGuestUid() {
+        String guestUid = prefs.getString(KEY_GUEST_UID, null);
+        if (guestUid != null && !guestUid.trim().isEmpty()) {
+            return guestUid;
+        }
+
+        guestUid = "guest_" + UUID.randomUUID().toString();
+        prefs.edit().putString(KEY_GUEST_UID, guestUid).apply();
+        return guestUid;
     }
 
     public boolean isLoggedIn() {

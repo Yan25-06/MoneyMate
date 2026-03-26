@@ -25,6 +25,7 @@
     <string name="error_password_required">Vui lòng nhập mật khẩu</string>
     <string name="error_confirm_password_required">Vui lòng xác nhận mật khẩu</string>
     <string name="error_passwords_do_not_match">Mật khẩu xác nhận không khớp</string>
+    <string name="error_auth_required">Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại</string>
 
     <!-- Navigation -->
     <string name="home">Trang chủ</string>
