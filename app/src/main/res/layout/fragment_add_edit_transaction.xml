@@ -2,6 +2,7 @@
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
@@ -31,6 +32,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/income"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_transfer"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/transfer"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -62,32 +70,77 @@
                 android:inputType="textMultiLine" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Category Section -->
+        <LinearLayout
+            android:id="@+id/layout_category_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-        <!-- Category Picker -->
+            <!-- Category Picker -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:labelFor="@id/chip_group_category"
+                android:text="@string/category"
+                android:textStyle="bold" />
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_category"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                app:singleSelection="true" />
+        </LinearLayout>
+
+        <!-- Wallet Label -->
         <TextView
+            android:id="@+id/tv_wallet_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="@string/category"
+            android:labelFor="@id/dropdown_wallet"
+            android:text="@string/wallet"
             android:textStyle="bold" />
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_category"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            app:singleSelection="true" />
 
         <!-- Wallet Picker -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
             android:hint="@string/wallet"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
-            <AutoCompleteTextView
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/dropdown_wallet"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:hint="@string/wallet"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- To Wallet Label (Transfer only) -->
+        <TextView
+            android:id="@+id/tv_to_wallet_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:labelFor="@id/dropdown_to_wallet"
+            android:text="@string/to_wallet"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- To Wallet (Transfer only) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_to_wallet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/to_wallet"
+            android:visibility="gone"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/dropdown_to_wallet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/to_wallet"
                 android:inputType="none" />
         </com.google.android.material.textfield.TextInputLayout>
 

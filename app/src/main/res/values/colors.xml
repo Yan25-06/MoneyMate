@@ -3,4 +3,7 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="md_theme_primary">#6750A4</color>
+    <color name="income_color">#2E7D32</color>
+    <color name="expense_color">#C62828</color>
+    <color name="transfer_color">#1565C0</color>
 </resources>

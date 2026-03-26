@@ -41,8 +41,10 @@ public class AddEditTransactionFragment extends Fragment {
     // State
     private String currentType = "EXPENSE";
     private String selectedCategoryId = null;
+    private String selectedToWalletId = null;
     private long selectedTimestamp = System.currentTimeMillis();
     private List<WalletEntity> walletList = new ArrayList<>();
+    private List<WalletEntity> toWalletList = new ArrayList<>();
     private List<CategoryEntity> currentCategoryList = new ArrayList<>();
 
     // Edit mode
@@ -80,6 +82,7 @@ public class AddEditTransactionFragment extends Fragment {
             binding.toggleType.check(R.id.btn_expense);
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
             observeCategories("EXPENSE");
+            updateTypeUi();
         }
     }
 
@@ -92,10 +95,26 @@ public class AddEditTransactionFragment extends Fragment {
                 currentType = "EXPENSE";
             } else if (checkedId == R.id.btn_income) {
                 currentType = "INCOME";
+            } else if (checkedId == R.id.btn_transfer) {
+                currentType = "TRANSFER";
             }
             selectedCategoryId = null;
+            selectedToWalletId = null;
             observeCategories(currentType);
+            updateTypeUi();
         });
+    }
+
+    private void updateTypeUi() {
+        boolean isTransfer = "TRANSFER".equals(currentType);
+        binding.layoutCategorySection.setVisibility(isTransfer ? View.GONE : View.VISIBLE);
+        binding.tilToWallet.setVisibility(isTransfer ? View.VISIBLE : View.GONE);
+        binding.tvToWalletLabel.setVisibility(isTransfer ? View.VISIBLE : View.GONE);
+        if (isTransfer) {
+            binding.chipGroupCategory.clearCheck();
+        } else {
+            binding.dropdownToWallet.setText("", false);
+        }
     }
 
     // ─── Date Picker ──────────────────────────────────────────────────────────
@@ -123,13 +142,25 @@ public class AddEditTransactionFragment extends Fragment {
     private void observeWallets() {
         viewModel.getWallets().observe(getViewLifecycleOwner(), wallets -> {
             walletList = wallets != null ? wallets : new ArrayList<>();
+            toWalletList = wallets != null ? wallets : new ArrayList<>();
             List<String> walletNames = new ArrayList<>();
             for (WalletEntity w : walletList) walletNames.add(w.getName());
+
             ArrayAdapter<String> adapter = new ArrayAdapter<>(
                     requireContext(),
                     android.R.layout.simple_dropdown_item_1line,
                     walletNames);
             binding.dropdownWallet.setAdapter(adapter);
+            binding.dropdownToWallet.setAdapter(adapter);
+
+            if (selectedToWalletId != null) {
+                for (WalletEntity w : toWalletList) {
+                    if (w.getId().equals(selectedToWalletId)) {
+                        binding.dropdownToWallet.setText(w.getName(), false);
+                        break;
+                    }
+                }
+            }
         });
     }
 
@@ -138,6 +169,11 @@ public class AddEditTransactionFragment extends Fragment {
     private void observeCategories(String type) {
         // Xóa chips cũ
         binding.chipGroupCategory.removeAllViews();
+
+        if ("TRANSFER".equals(type)) {
+            currentCategoryList = new ArrayList<>();
+            return;
+        }
 
         LiveData<List<CategoryEntity>> source = "INCOME".equals(type)
                 ? viewModel.getIncomeCategories()
@@ -176,10 +212,13 @@ public class AddEditTransactionFragment extends Fragment {
             selectedTimestamp = transaction.getTimestamp();
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
             selectedCategoryId = transaction.getCategoryId();
+            selectedToWalletId = transaction.getToWalletId();
             currentType = transaction.getType();
 
             if ("INCOME".equals(currentType)) {
                 binding.toggleType.check(R.id.btn_income);
+            } else if ("TRANSFER".equals(currentType)) {
+                binding.toggleType.check(R.id.btn_transfer);
             } else {
                 binding.toggleType.check(R.id.btn_expense);
             }
@@ -193,6 +232,7 @@ public class AddEditTransactionFragment extends Fragment {
             }
 
             observeCategories(currentType);
+            updateTypeUi();
         });
     }
 
@@ -216,9 +256,20 @@ public class AddEditTransactionFragment extends Fragment {
                 }
             }
 
+            // Tìm toWalletId từ tên đã chọn
+            String toWalletName = binding.dropdownToWallet.getText().toString().trim();
+            String toWalletId = null;
+            for (WalletEntity w : toWalletList) {
+                if (w.getName().equals(toWalletName)) {
+                    toWalletId = w.getId();
+                    break;
+                }
+            }
+
             PrefsManager prefs = ((MoneyMateApplication) requireActivity().getApplication())
                     .getAppContainer().prefsManager;
             String uid = prefs.getUid();
+            long now = System.currentTimeMillis();
 
             if (originalTransaction != null) {
                 // Edit mode
@@ -226,13 +277,16 @@ public class AddEditTransactionFragment extends Fragment {
                 updated.setId(originalTransaction.getId());
                 updated.setUserId(uid);
                 updated.setWalletId(walletId);
-                updated.setCategoryId(selectedCategoryId);
+                updated.setCategoryId("TRANSFER".equals(currentType) ? null : selectedCategoryId);
+                updated.setToWalletId("TRANSFER".equals(currentType) ? toWalletId : null);
                 updated.setAmount(amount);
                 updated.setType(currentType);
                 updated.setNote(note);
                 updated.setTimestamp(selectedTimestamp);
+                updated.setCreatedAt(originalTransaction.getCreatedAt());
                 updated.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-                updated.setUpdatedAt(System.currentTimeMillis());
+                updated.setUpdatedAt(now);
+                updated.setDeleted(false);
                 viewModel.updateTransaction(originalTransaction, updated);
             } else {
                 // Add mode
@@ -240,13 +294,16 @@ public class AddEditTransactionFragment extends Fragment {
                 transaction.setId(UUID.randomUUID().toString());
                 transaction.setUserId(uid);
                 transaction.setWalletId(walletId);
-                transaction.setCategoryId(selectedCategoryId);
+                transaction.setCategoryId("TRANSFER".equals(currentType) ? null : selectedCategoryId);
+                transaction.setToWalletId("TRANSFER".equals(currentType) ? toWalletId : null);
                 transaction.setAmount(amount);
                 transaction.setType(currentType);
                 transaction.setNote(note);
                 transaction.setTimestamp(selectedTimestamp);
+                transaction.setCreatedAt(now);
                 transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-                transaction.setUpdatedAt(System.currentTimeMillis());
+                transaction.setUpdatedAt(now);
+                transaction.setDeleted(false);
                 viewModel.insertTransaction(transaction);
             }
 
@@ -278,7 +335,7 @@ public class AddEditTransactionFragment extends Fragment {
             return false;
         }
 
-        if (selectedCategoryId == null) {
+        if (selectedCategoryId == null && !"TRANSFER".equals(currentType)) {
             Toast.makeText(requireContext(), R.string.error_category_required, Toast.LENGTH_SHORT).show();
             return false;
         }
@@ -288,6 +345,19 @@ public class AddEditTransactionFragment extends Fragment {
         if (TextUtils.isEmpty(walletName)) {
             Toast.makeText(requireContext(), R.string.error_wallet_required, Toast.LENGTH_SHORT).show();
             return false;
+        }
+
+        if ("TRANSFER".equals(currentType)) {
+            String toWalletName = binding.dropdownToWallet.getText() != null
+                    ? binding.dropdownToWallet.getText().toString().trim() : "";
+            if (TextUtils.isEmpty(toWalletName)) {
+                Toast.makeText(requireContext(), R.string.error_to_wallet_required, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            if (walletName.equals(toWalletName)) {
+                Toast.makeText(requireContext(), R.string.error_transfer_same_wallet, Toast.LENGTH_SHORT).show();
+                return false;
+            }
         }
 
         return true;

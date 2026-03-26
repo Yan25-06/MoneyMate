@@ -41,7 +41,7 @@ public interface CategoryDao {
     @Query("SELECT COUNT(*) FROM categories WHERE is_default = 1")
     int getDefaultCategoryCount();
 
-    @Query("UPDATE categories SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    @Query("UPDATE categories SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 
     @Query("SELECT * FROM categories WHERE user_id = :userId AND sync_status != 0")

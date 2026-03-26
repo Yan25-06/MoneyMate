@@ -10,6 +10,7 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.models.SyncStatus;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Repository for transaction data.
@@ -20,10 +21,16 @@ public class TransactionRepository {
 
     private final TransactionDao transactionDao;
     private final WalletDao walletDao;
+    private final Executor writeExecutor;
 
     public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
+        this(transactionDao, walletDao, AppDatabase.databaseWriteExecutor);
+    }
+
+    public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao, Executor writeExecutor) {
         this.transactionDao = transactionDao;
         this.walletDao = walletDao;
+        this.writeExecutor = writeExecutor;
     }
 
     // ─── Read ─────────────────────────────────────────────────────────────────
@@ -74,7 +81,7 @@ public class TransactionRepository {
      * Thêm giao dịch mới và cập nhật số dư ví tương ứng.
      */
     public void insertTransaction(TransactionEntity transaction) {
-        AppDatabase.databaseWriteExecutor.execute(() -> {
+        writeExecutor.execute(() -> {
             transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
             transaction.setUpdatedAt(System.currentTimeMillis());
             transactionDao.insertTransaction(transaction);
@@ -89,7 +96,7 @@ public class TransactionRepository {
      * @param newTransaction bản ghi mới
      */
     public void updateTransaction(TransactionEntity oldTransaction, TransactionEntity newTransaction) {
-        AppDatabase.databaseWriteExecutor.execute(() -> {
+        writeExecutor.execute(() -> {
             newTransaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
             newTransaction.setUpdatedAt(System.currentTimeMillis());
             // Hoàn tác số dư của giao dịch cũ
@@ -104,7 +111,7 @@ public class TransactionRepository {
      * Soft delete giao dịch và hoàn tác số dư ví.
      */
     public void softDeleteTransaction(TransactionEntity transaction) {
-        AppDatabase.databaseWriteExecutor.execute(() -> {
+        writeExecutor.execute(() -> {
             applyBalanceChange(transaction, true);
             transactionDao.softDelete(transaction.getId(), System.currentTimeMillis());
         });

@@ -10,6 +10,7 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.group10.moneymate.R;
+import com.group10.moneymate.databinding.ActivityHomeBinding;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 /**
@@ -17,19 +18,26 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
  */
 public class HomeActivity extends AppCompatActivity {
 
+    private ActivityHomeBinding binding;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home);
+        binding = ActivityHomeBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.nav_host_main);
+                .findFragmentById(binding.navHostMain.getId());
 
         if (navHostFragment != null) {
             NavController navController = navHostFragment.getNavController();
-            setupBottomNavigation(bottomNav, navController);
+            setupBottomNavigation(binding.bottomNavigation, navController);
         }
+    }
+
+    public void setBottomNavigationVisible(boolean visible) {
+        if (binding == null) return;
+        binding.bottomNavigation.setVisibility(visible ? android.view.View.VISIBLE : android.view.View.GONE);
     }
 
     private void setupBottomNavigation(BottomNavigationView bottomNav, NavController navController) {

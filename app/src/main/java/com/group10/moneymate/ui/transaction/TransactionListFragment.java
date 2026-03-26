@@ -48,10 +48,10 @@ public class TransactionListFragment extends Fragment {
 
         // Click → Edit
         adapter.setOnTransactionClickListener(transaction -> {
-            Bundle args = new Bundle();
-            args.putString("transactionId", transaction.getId());
-            Navigation.findNavController(requireView())
-                    .navigate(R.id.action_transactionList_to_addEdit, args);
+            TransactionListFragmentDirections.ActionTransactionListToAddEdit action =
+                    TransactionListFragmentDirections.actionTransactionListToAddEdit();
+            action.setTransactionId(transaction.getId());
+            Navigation.findNavController(requireView()).navigate(action);
         });
 
         // Long click → Delete confirm

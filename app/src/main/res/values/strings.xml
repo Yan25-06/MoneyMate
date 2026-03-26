@@ -55,6 +55,9 @@
     <string name="empty_transactions">Chưa có giao dịch nào.\nNhấn + để thêm mới.</string>
     <string name="delete_transaction">Xóa giao dịch</string>
     <string name="delete_transaction_confirm">Bạn có chắc muốn xóa giao dịch này không?</string>
+    <string name="transfer">Chuyển khoản</string>
+    <string name="to_wallet">Ví nhận</string>
+    <string name="note_empty">Không có ghi chú</string>
 
     <!-- Validation errors -->
     <string name="error_amount_required">Vui lòng nhập số tiền</string>
@@ -62,6 +65,8 @@
     <string name="error_amount_positive">Số tiền phải lớn hơn 0</string>
     <string name="error_category_required">Vui lòng chọn danh mục</string>
     <string name="error_wallet_required">Vui lòng chọn ví</string>
+    <string name="error_to_wallet_required">Vui lòng chọn ví nhận</string>
+    <string name="error_transfer_same_wallet">Ví nhận phải khác ví nguồn</string>
 
     <!-- Category -->
     <string name="categories">Danh mục</string>

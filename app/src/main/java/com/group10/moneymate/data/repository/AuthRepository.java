@@ -39,6 +39,10 @@ public class AuthRepository {
     }
 
     public boolean isLoggedIn() {
+        String localUid = prefsManager.getUid();
+        if (prefsManager.isLoggedIn() && !TextUtils.isEmpty(localUid)) {
+            return true;
+        }
         return firebaseAuthHelper.isLoggedIn();
     }
 

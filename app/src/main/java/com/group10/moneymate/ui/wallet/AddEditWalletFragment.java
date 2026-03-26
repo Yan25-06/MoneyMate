@@ -15,11 +15,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentAddEditWalletBinding;
 import com.group10.moneymate.models.WalletType;
+import com.group10.moneymate.ui.main.HomeActivity;
 
 import java.util.Locale;
 
@@ -29,7 +29,7 @@ public class AddEditWalletFragment extends Fragment {
     private WalletViewModel viewModel;
     private String walletId;
     private WalletEntity editingWallet;
-    private BottomNavigationView bottomNavigationView;
+    private HomeActivity homeActivity;
 
     @Nullable
     @Override
@@ -43,9 +43,10 @@ public class AddEditWalletFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(WalletViewModel.class);
-        bottomNavigationView = requireActivity().findViewById(R.id.bottom_navigation);
-        if (bottomNavigationView != null) {
-            bottomNavigationView.setVisibility(View.GONE);
+
+        if (requireActivity() instanceof HomeActivity) {
+            homeActivity = (HomeActivity) requireActivity();
+            homeActivity.setBottomNavigationVisible(false);
         }
 
         setupTypeDropdown();
@@ -146,9 +147,9 @@ public class AddEditWalletFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        if (bottomNavigationView != null) {
-            bottomNavigationView.setVisibility(View.VISIBLE);
-            bottomNavigationView = null;
+        if (homeActivity != null) {
+            homeActivity.setBottomNavigationVisible(true);
+            homeActivity = null;
         }
         super.onDestroyView();
         binding = null;

@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData;
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.CategoryDao;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
 
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ public class CategoryRepository {
     public void addCategory(CategoryEntity category) {
         category.setId(UUID.randomUUID().toString());
         category.setUpdatedAt(System.currentTimeMillis());
-        category.setSyncStatus(1); // PENDING_UPLOAD
+        category.setSyncStatus(SyncStatus.PENDING_UPLOAD);
         category.setDeleted(false);
         AppDatabase.databaseWriteExecutor.execute(() ->
                 categoryDao.insertCategory(category)
@@ -51,7 +52,7 @@ public class CategoryRepository {
 
     public void updateCategory(CategoryEntity category) {
         category.setUpdatedAt(System.currentTimeMillis());
-        category.setSyncStatus(1); // PENDING_UPLOAD
+        category.setSyncStatus(SyncStatus.PENDING_UPLOAD);
         AppDatabase.databaseWriteExecutor.execute(() ->
                 categoryDao.updateCategory(category)
         );
@@ -64,7 +65,7 @@ public class CategoryRepository {
     public void deleteCategory(CategoryEntity category) {
         if (category.isDefault()) return;
         category.setDeleted(true);
-        category.setSyncStatus(2); // PENDING_DELETE
+        category.setSyncStatus(SyncStatus.PENDING_DELETE);
         category.setUpdatedAt(System.currentTimeMillis());
         AppDatabase.databaseWriteExecutor.execute(() ->
                 categoryDao.updateCategory(category)
@@ -98,7 +99,7 @@ public class CategoryRepository {
                 entity.setType(dc.type);
                 entity.setDefault(true);
                 entity.setUpdatedAt(now);
-                entity.setSyncStatus(0);       // SYNCED — default categories không cần sync
+                entity.setSyncStatus(SyncStatus.SYNCED);
                 entity.setDeleted(false);
                 entities.add(entity);
             }

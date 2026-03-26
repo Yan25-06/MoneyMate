@@ -3,6 +3,7 @@ package com.group10.moneymate.ui.auth;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
+import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.FragmentLoginBinding;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.ui.main.HomeActivity;
@@ -77,8 +79,12 @@ public class LoginFragment extends Fragment {
 
     private void setupListeners() {
         binding.btnLogin.setOnClickListener(v -> {
-            String email    = String.valueOf(binding.etEmail.getText()).trim();
+            clearInputErrors();
+            String email = String.valueOf(binding.etEmail.getText()).trim();
             String password = String.valueOf(binding.etPassword.getText()).trim();
+            if (!validateInputs(email, password)) {
+                return;
+            }
             viewModel.login(email, password);
         });
 
@@ -95,6 +101,27 @@ public class LoginFragment extends Fragment {
                         LoginFragmentDirections.actionLoginToForgotPassword()
                 )
         );
+    }
+
+    private boolean validateInputs(String email, String password) {
+        if (TextUtils.isEmpty(email)) {
+            binding.tilEmail.setError(getString(R.string.error_email_required));
+            return false;
+        }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.tilEmail.setError(getString(R.string.error_email_invalid));
+            return false;
+        }
+        if (TextUtils.isEmpty(password)) {
+            binding.tilPassword.setError(getString(R.string.error_password_required));
+            return false;
+        }
+        return true;
+    }
+
+    private void clearInputErrors() {
+        binding.tilEmail.setError(null);
+        binding.tilPassword.setError(null);
     }
 
     private void setLoading(boolean isLoading) {

@@ -105,6 +105,9 @@ public class TransactionEntity {
     @ColumnInfo(name = "user_id")
     private String userId;
 
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
+
     public TransactionEntity() {
         this.id = "";
     }
@@ -154,4 +157,7 @@ public class TransactionEntity {
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 }
