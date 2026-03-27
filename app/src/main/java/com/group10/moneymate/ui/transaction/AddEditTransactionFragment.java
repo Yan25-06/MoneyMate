@@ -24,7 +24,6 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentAddEditTransactionBinding;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.DateUtils;
-import com.group10.moneymate.utils.PrefsManager;
 import com.group10.moneymate.di.MoneyMateApplication;
 
 import java.util.ArrayList;
@@ -216,9 +215,12 @@ public class AddEditTransactionFragment extends Fragment {
                 }
             }
 
-            PrefsManager prefs = ((MoneyMateApplication) requireActivity().getApplication())
-                    .getAppContainer().prefsManager;
-            String uid = prefs.getUid();
+            MoneyMateApplication app = (MoneyMateApplication) requireActivity().getApplication();
+            String uid = app.getAppContainer().authRepository.getCurrentUserId();
+            if (TextUtils.isEmpty(uid)) {
+                Toast.makeText(requireContext(), R.string.error_auth_required, Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             if (originalTransaction != null) {
                 // Edit mode

@@ -78,6 +78,11 @@ public class RegisterFragment extends Fragment {
     }
 
     private void setupListeners() {
+        // Set navigation listener cho MaterialToolbar back button
+        binding.topAppBar.setNavigationOnClickListener(v ->
+                Navigation.findNavController(v).navigateUp()
+        );
+
         binding.btnRegister.setOnClickListener(v -> submitRegistration());
 
         binding.tvLogin.setOnClickListener(v ->
@@ -143,6 +148,7 @@ public class RegisterFragment extends Fragment {
         binding.etPassword.setEnabled(!isLoading);
         binding.etConfirmPassword.setEnabled(!isLoading);
     }
+
 
     @Override
     public void onDestroyView() {

@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp">
+    android:fillViewport="true"
+    android:background="?attr/colorSurface">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:gravity="center_horizontal"
+        android:padding="24dp">
 
+        <!-- App Icon -->
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
@@ -19,15 +21,16 @@
             android:src="@drawable/ic_launcher_foreground"
             android:contentDescription="@string/app_name" />
 
+        <!-- App Name -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/app_name"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnBackground" />
+            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+            android:textColor="?attr/colorOnSurface" />
 
+        <!-- Email field -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_email"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -40,10 +43,13 @@
                 android:id="@+id/et_email"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textEmailAddress" />
+                android:inputType="textEmailAddress"
+                android:imeOptions="actionNext"
+                android:autofillHints="emailAddress" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Password field -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_password"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -51,16 +57,20 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:hint="@string/hint_password"
-            app:endIconMode="password_toggle">
+            app:endIconMode="password_toggle"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_password"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textPassword" />
+                android:inputType="textPassword"
+                android:imeOptions="actionDone"
+                android:autofillHints="password" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Login Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_login"
             android:layout_width="match_parent"
@@ -68,6 +78,7 @@
             android:layout_marginTop="24dp"
             android:text="@string/btn_login" />
 
+        <!-- Guest Login Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_guest_login"
             style="@style/Widget.Material3.Button.OutlinedButton"
@@ -76,18 +87,33 @@
             android:layout_marginTop="12dp"
             android:text="@string/btn_guest_login" />
 
+        <!-- Loading indicator — hiển thị khi đang xác thực -->
+        <ProgressBar
+            android:id="@+id/pb_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <!-- Forgot password link -->
         <TextView
             android:id="@+id/tv_forgot_password"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/forgot_password"
-            android:textColor="?attr/colorPrimary" />
+            android:textColor="?attr/colorPrimary"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground"
+            android:padding="4dp" />
 
+        <!-- Register link -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="32dp"
             android:orientation="horizontal">
 
             <TextView
@@ -103,7 +129,11 @@
                 android:layout_marginStart="4dp"
                 android:text="@string/btn_register"
                 android:textColor="?attr/colorPrimary"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:padding="4dp" />
 
         </LinearLayout>
 

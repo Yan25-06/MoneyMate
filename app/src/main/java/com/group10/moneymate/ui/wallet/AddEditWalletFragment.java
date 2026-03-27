@@ -62,7 +62,7 @@ public class AddEditWalletFragment extends Fragment {
             binding.topAppBar.setTitle(R.string.add_wallet);
         }
 
-        binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).popBackStack());
+        binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.btnSave.setOnClickListener(v -> saveWallet());
     }
 

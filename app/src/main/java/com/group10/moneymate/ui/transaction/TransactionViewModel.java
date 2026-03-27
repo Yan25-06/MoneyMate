@@ -15,7 +15,6 @@ import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.di.MoneyMateApplication;
-import com.group10.moneymate.utils.PrefsManager;
 
 import java.util.List;
 
@@ -52,8 +51,7 @@ public class TransactionViewModel extends AndroidViewModel {
         WalletRepository walletRepository = app.getAppContainer().walletRepository;
         CategoryRepository categoryRepository = app.getAppContainer().categoryRepository;
 
-        PrefsManager prefsManager = app.getAppContainer().prefsManager;
-        userId = prefsManager.getUid();
+        userId = app.getAppContainer().authRepository.getCurrentUserId();
 
         allTransactions = transactionRepository.getAllTransactions(userId);
 

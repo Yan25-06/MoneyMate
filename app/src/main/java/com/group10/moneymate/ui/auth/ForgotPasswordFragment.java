@@ -38,7 +38,7 @@ public class ForgotPasswordFragment extends Fragment {
     }
 
     private void setupListeners() {
-        binding.btnBack.setOnClickListener(this::navigateBackToLogin);
+        binding.btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.btnBackToLogin.setOnClickListener(this::navigateBackToLogin);
 
         binding.btnSendResetLink.setOnClickListener(v -> {
@@ -116,9 +116,7 @@ public class ForgotPasswordFragment extends Fragment {
     }
 
     private void navigateBackToLogin(@NonNull View view) {
-        Navigation.findNavController(view).navigate(
-                ForgotPasswordFragmentDirections.actionForgotPasswordBackToLogin()
-        );
+        Navigation.findNavController(view).navigate(R.id.action_forgotPassword_back_to_login);
     }
 
     @Override
