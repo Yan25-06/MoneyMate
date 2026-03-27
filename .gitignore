@@ -61,3 +61,6 @@ $RECYCLE.BIN/
 test-results/
 lint-results*
 *.hprof
+
+AGENT.md
+.codex/
