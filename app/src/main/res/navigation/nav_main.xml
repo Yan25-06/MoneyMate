@@ -33,7 +33,14 @@
         android:id="@+id/addEditTransactionFragment"
         android:name="com.group10.moneymate.ui.transaction.AddEditTransactionFragment"
         android:label="@string/add_transaction"
-        tools:layout="@layout/fragment_add_edit_transaction" />
+        tools:layout="@layout/fragment_add_edit_transaction">
+        <!-- null = Add mode, non-null = Edit mode -->
+        <argument
+            android:name="transactionId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+    </fragment>
 
     <!-- Statistics -->
     <fragment
@@ -86,7 +93,6 @@
         android:name="com.group10.moneymate.ui.category.AddEditCategoryFragment"
         android:label="@string/add_category"
         tools:layout="@layout/fragment_add_edit_category">
-        <!-- null = Add mode, non-null = Edit mode -->
         <argument
             android:name="categoryId"
             app:argType="string"

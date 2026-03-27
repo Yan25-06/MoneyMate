@@ -33,8 +33,8 @@ com.group10.moneymate/
 │   │   └── dao/
 │   │       ├── UserDao.java
 │   │       ├── WalletDao.java
-│   │       ├── CategoryDao.java             ← thêm countDefaultCategoriesByUid()
-│   │       ├── TransactionDao.java
+│   │       ├── CategoryDao.java             ← countDefaultCategoriesByUid(), getCategoriesByType()
+│   │       ├── TransactionDao.java          ← ✅ Phase 4: softDelete(), searchTransactions(), getTotalIncome/Expense()
 │   │       ├── BudgetDao.java
 │   │       ├── DebtDao.java
 │   │       └── EventDao.java
@@ -45,13 +45,14 @@ com.group10.moneymate/
 │       ├── UserRepository.java
 │       ├── WalletRepository.java
 │       ├── CategoryRepository.java          ← seedDefaults(), soft delete, background executor
-│       ├── TransactionRepository.java
+│       ├── TransactionRepository.java       ← ✅ Phase 4: databaseWriteExecutor, applyBalanceChange(), soft delete
 │       ├── BudgetRepository.java
 │       ├── DebtRepository.java
 │       └── EventRepository.java
 │
 ├── di/
 │   ├── AppContainer.java                    ← Manual DI + seedDefaultCategoriesIfNeeded()
+│   │                                           TransactionRepository nhận thêm WalletDao
 │   └── MoneyMateApplication.java            ← getAppContainer()
 │
 ├── utils/
@@ -72,11 +73,11 @@ com.group10.moneymate/
     ├── home/
     │   ├── HomeFragment.java
     │   └── HomeViewModel.java
-    ├── transaction/
-    │   ├── TransactionListFragment.java
-    │   ├── AddEditTransactionFragment.java
-    │   ├── TransactionAdapter.java
-    │   └── TransactionViewModel.java
+    ├── transaction/                          ← ✅ Phase 4 hoàn thành
+    │   ├── TransactionListFragment.java      ← RecyclerView, FAB, empty state, long-click delete
+    │   ├── AddEditTransactionFragment.java   ← Add/Edit mode, chip picker, wallet dropdown, date picker
+    │   ├── TransactionAdapter.java           ← ListAdapter + DiffUtil, màu amount theo loại
+    │   └── TransactionViewModel.java         ← AndroidViewModel, filter type, search, CRUD
     ├── category/                             ← ✅ Phase 3 hoàn thành
     │   ├── CategoryListFragment.java         ← TabLayout, RecyclerView, FAB, Safe Args
     │   ├── AddEditCategoryFragment.java      ← Add/Edit mode, color picker
@@ -133,8 +134,8 @@ res/layout/
 ├── fragment_register.xml
 ├── fragment_forgot_password.xml
 ├── fragment_home.xml
-├── fragment_transaction_list.xml
-├── fragment_add_edit_transaction.xml
+├── fragment_transaction_list.xml            ← ✅ Phase 4: empty state, paddingTop
+├── fragment_add_edit_transaction.xml        ← ✅ Phase 4: type toggle, chip group, wallet dropdown, date picker
 ├── fragment_category_list.xml               ← ✅ Phase 3.4
 ├── fragment_add_edit_category.xml           ← ✅ Phase 3.4
 ├── fragment_budget_list.xml
@@ -151,7 +152,7 @@ res/layout/
 ├── fragment_passcode.xml
 ├── fragment_ai_assistant.xml
 ├── fragment_ai_receipt_scanner.xml
-├── item_transaction.xml
+├── item_transaction.xml                     ← ✅ Phase 4: MaterialCardView, amount + màu, date, type badge
 ├── item_category.xml                        ← ✅ Phase 3.4
 ├── item_budget.xml
 └── item_wallet.xml
@@ -192,6 +193,7 @@ res/drawable/
 res/navigation/
 ├── nav_auth.xml     ← Login → Register → ForgotPassword
 └── nav_main.xml     ← Home, Transactions, Statistics, Settings + tất cả sub-screens
+                        ✅ Phase 4: thêm argument transactionId (nullable) cho addEditTransactionFragment
 ```
 
 ---
@@ -228,7 +230,9 @@ MainActivity (router)
 
 HomeActivity — BottomNav 4 tabs
 ├── 🏠 Home
-├── 💰 Transactions
+├── 💰 Transactions        ← ✅ Phase 4 done
+│     ├── TransactionListFragment (danh sách, filter, delete)
+│     └── AddEditTransactionFragment (thêm / sửa)
 ├── 📊 Statistics
 └── ⚙️ Settings
       ├── Profile
@@ -250,7 +254,7 @@ HomeActivity — BottomNav 4 tabs
 | 1 | Authentication | ✅ Hoàn thành |
 | 2 | Wallet CRUD | ✅ Hoàn thành |
 | 3 | Category CRUD + seed defaults | ✅ Hoàn thành |
-| 4 | Transaction CRUD | 🔲 Chưa bắt đầu |
+| 4 | Transaction CRUD | ✅ Hoàn thành |
 | 5 | Home Dashboard | 🔲 Chưa bắt đầu |
 | 6 | Budget | 🔲 Chưa bắt đầu |
 | 7 | Statistics | 🔲 Chưa bắt đầu |

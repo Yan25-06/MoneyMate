@@ -1,7 +1,141 @@
 package com.group10.moneymate.ui.transaction;
 
-import androidx.lifecycle.ViewModel;
+import android.app.Application;
 
-public class TransactionViewModel extends ViewModel {
-    // TODO: Add LiveData for transactions, CRUD methods
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
+
+import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.TransactionEntity;
+import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.repository.CategoryRepository;
+import com.group10.moneymate.data.repository.TransactionRepository;
+import com.group10.moneymate.data.repository.WalletRepository;
+import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.utils.PrefsManager;
+
+import java.util.List;
+
+public class TransactionViewModel extends AndroidViewModel {
+
+    private final TransactionRepository transactionRepository;
+    private final String userId;
+
+    // ─── Transactions list ────────────────────────────────────────────────────
+    private final LiveData<List<TransactionEntity>> allTransactions;
+
+    // ─── Filter state ─────────────────────────────────────────────────────────
+    /** null = show all, "INCOME"/"EXPENSE" = filter by type */
+    private final MutableLiveData<String> filterType = new MutableLiveData<>(null);
+
+    private final LiveData<List<TransactionEntity>> filteredTransactions;
+
+    // ─── Search ───────────────────────────────────────────────────────────────
+    private final MutableLiveData<String> searchQuery = new MutableLiveData<>("");
+    private final LiveData<List<TransactionEntity>> searchResults;
+
+    // ─── Wallets & Categories (cho picker) ───────────────────────────────────
+    private final LiveData<List<WalletEntity>> wallets;
+    private final LiveData<List<CategoryEntity>> expenseCategories;
+    private final LiveData<List<CategoryEntity>> incomeCategories;
+
+    // ─── Giao dịch đang edit ─────────────────────────────────────────────────
+    private final MutableLiveData<TransactionEntity> selectedTransaction = new MutableLiveData<>();
+
+    public TransactionViewModel(@NonNull Application application) {
+        super(application);
+        MoneyMateApplication app = (MoneyMateApplication) application;
+        transactionRepository = app.getAppContainer().transactionRepository;
+        WalletRepository walletRepository = app.getAppContainer().walletRepository;
+        CategoryRepository categoryRepository = app.getAppContainer().categoryRepository;
+
+        PrefsManager prefsManager = app.getAppContainer().prefsManager;
+        userId = prefsManager.getUid();
+
+        allTransactions = transactionRepository.getAllTransactions(userId);
+
+        // Filter theo type (switchMap: khi filterType thay đổi → query lại)
+        filteredTransactions = Transformations.switchMap(filterType, type -> {
+            if (type == null || type.isEmpty()) {
+                return transactionRepository.getAllTransactions(userId);
+            } else {
+                return transactionRepository.getTransactionsByType(userId, type);
+            }
+        });
+
+        // Search
+        searchResults = Transformations.switchMap(searchQuery, query -> {
+            if (query == null || query.trim().isEmpty()) {
+                return transactionRepository.getAllTransactions(userId);
+            }
+            return transactionRepository.searchTransactions(userId, query.trim());
+        });
+
+        wallets = walletRepository.getAllByUser(userId);
+        expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
+        incomeCategories  = categoryRepository.getCategoriesByType(userId, "INCOME");
+    }
+
+    // ─── Expose LiveData ──────────────────────────────────────────────────────
+
+    public LiveData<List<TransactionEntity>> getAllTransactions() {
+        return allTransactions;
+    }
+
+    public LiveData<List<TransactionEntity>> getFilteredTransactions() {
+        return filteredTransactions;
+    }
+
+    public LiveData<List<TransactionEntity>> getSearchResults() {
+        return searchResults;
+    }
+
+    public LiveData<List<WalletEntity>> getWallets() {
+        return wallets;
+    }
+
+    public LiveData<List<CategoryEntity>> getExpenseCategories() {
+        return expenseCategories;
+    }
+
+    public LiveData<List<CategoryEntity>> getIncomeCategories() {
+        return incomeCategories;
+    }
+
+    public LiveData<TransactionEntity> getSelectedTransaction() {
+        return selectedTransaction;
+    }
+
+    // ─── Filter & Search ──────────────────────────────────────────────────────
+
+    public void setFilterType(String type) {
+        filterType.setValue(type);
+    }
+
+    public void setSearchQuery(String query) {
+        searchQuery.setValue(query);
+    }
+
+    // ─── Load transaction by id (cho Edit mode) ───────────────────────────────
+
+    public LiveData<TransactionEntity> getTransactionById(String id) {
+        return transactionRepository.getTransactionById(id);
+    }
+
+    // ─── CRUD ─────────────────────────────────────────────────────────────────
+
+    public void insertTransaction(TransactionEntity transaction) {
+        transactionRepository.insertTransaction(transaction);
+    }
+
+    public void updateTransaction(TransactionEntity oldTransaction, TransactionEntity newTransaction) {
+        transactionRepository.updateTransaction(oldTransaction, newTransaction);
+    }
+
+    public void deleteTransaction(TransactionEntity transaction) {
+        transactionRepository.softDeleteTransaction(transaction);
+    }
 }

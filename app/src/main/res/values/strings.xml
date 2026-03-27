@@ -51,6 +51,16 @@
     <string name="btn_save">Lưu</string>
     <string name="common_cancel">Hủy</string>
     <string name="common_back">Quay về</string>
+    <string name="empty_transactions">Chưa có giao dịch nào.\nNhấn + để thêm mới.</string>
+    <string name="delete_transaction">Xóa giao dịch</string>
+    <string name="delete_transaction_confirm">Bạn có chắc muốn xóa giao dịch này không?</string>
+
+    <!-- Validation errors -->
+    <string name="error_amount_required">Vui lòng nhập số tiền</string>
+    <string name="error_amount_invalid">Số tiền không hợp lệ</string>
+    <string name="error_amount_positive">Số tiền phải lớn hơn 0</string>
+    <string name="error_category_required">Vui lòng chọn danh mục</string>
+    <string name="error_wallet_required">Vui lòng chọn ví</string>
 
     <!-- Category -->
     <string name="categories">Danh mục</string>
