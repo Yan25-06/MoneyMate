@@ -83,6 +83,24 @@ public interface TransactionDao {
     @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0 AND sync_status != 2")
     LiveData<Double> getTotalExpense(String userId, long startDate, long endDate);
 
+    @Query("SELECT SUM(amount) FROM transactions " +
+            "WHERE user_id = :userId " +
+            "AND type = 'INCOME' " +
+            "AND timestamp BETWEEN :startDate AND :endDate " +
+            "AND is_deleted = 0 " +
+            "AND sync_status != 2 " +
+            "AND (:walletId IS NULL OR wallet_id = :walletId)")
+    LiveData<Double> getTotalIncomeFiltered(String userId, long startDate, long endDate, String walletId);
+
+    @Query("SELECT SUM(amount) FROM transactions " +
+            "WHERE user_id = :userId " +
+            "AND type = 'EXPENSE' " +
+            "AND timestamp BETWEEN :startDate AND :endDate " +
+            "AND is_deleted = 0 " +
+            "AND sync_status != 2 " +
+            "AND (:walletId IS NULL OR wallet_id = :walletId)")
+    LiveData<Double> getTotalExpenseFiltered(String userId, long startDate, long endDate, String walletId);
+
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
             ":periodLabel AS periodLabel, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END), 0.0) AS totalIncome, " +

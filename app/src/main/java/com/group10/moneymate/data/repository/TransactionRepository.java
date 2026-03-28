@@ -97,6 +97,20 @@ public class TransactionRepository {
         return transactionDao.getTotalExpense(userId, startDate, endDate);
     }
 
+    public LiveData<Double> getTotalIncomeFiltered(String userId,
+                                                   long startDate,
+                                                   long endDate,
+                                                   @Nullable String walletId) {
+        return transactionDao.getTotalIncomeFiltered(userId, startDate, endDate, walletId);
+    }
+
+    public LiveData<Double> getTotalExpenseFiltered(String userId,
+                                                    long startDate,
+                                                    long endDate,
+                                                    @Nullable String walletId) {
+        return transactionDao.getTotalExpenseFiltered(userId, startDate, endDate, walletId);
+    }
+
     public LiveData<NetIncomeDTO> getNetIncomeSummary(String userId,
                                                       long startDate,
                                                       long endDate,
