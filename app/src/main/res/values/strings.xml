@@ -184,6 +184,14 @@
     <string name="wallet_type_ewallet">Ví điện tử</string>
     <string name="wallet_saved">Đã lưu ví</string>
     <string name="wallet_total">Tổng cộng</string>
+    <string name="statistics_wallet_selector_all">Tổng cộng</string>
+    <string name="statistics_previous_period">Kỳ trước</string>
+    <string name="statistics_next_period">Kỳ sau</string>
+    <string name="statistics_period_previous">12/2025</string>
+    <string name="statistics_period_current">THÁNG NÀY</string>
+    <string name="statistics_period_next">THÁNG TRƯỚC</string>
+    <string name="statistics_overview_placeholder">Báo cáo tổng quan Phase 7</string>
+    <string name="statistics_summary_placeholder">Sticky Header và tầng data thống kê đã sẵn sàng để nối vào biểu đồ Level 1.</string>
     <string name="error_wallet_name_required">Vui lòng nhập tên ví</string>
     <string name="error_wallet_balance_required">Vui lòng nhập số dư</string>
     <string name="error_wallet_balance_invalid">Số dư không hợp lệ</string>

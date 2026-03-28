@@ -19,4 +19,18 @@
     <color name="budget_header_chip_bg">#F3F4F6</color>
     <color name="budget_tab_selected">#111827</color>
     <color name="budget_tab_unselected">#6B7280</color>
+    <color name="income_green">#4CAF50</color>
+    <color name="expense_red">#F44336</color>
+    <color name="transfer_blue">#2196F3</color>
+    <color name="statistics_surface">#111111</color>
+    <color name="statistics_header_background">#191919</color>
+    <color name="statistics_chip_background">#2A2A2A</color>
+    <color name="statistics_chip_ripple">#40FFFFFF</color>
+    <color name="statistics_icon_button_background">#232323</color>
+    <color name="statistics_period_selected_background">#1F1F1F</color>
+    <color name="statistics_wallet_icon">#8FD0FF</color>
+    <color name="statistics_text_primary">#101828</color>
+    <color name="statistics_text_secondary">#667085</color>
+    <color name="statistics_text_muted">#A0A0A0</color>
+    <color name="statistics_card_stroke">#EAECF0</color>
 </resources>

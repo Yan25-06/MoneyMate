@@ -6,6 +6,9 @@ import androidx.lifecycle.LiveData;
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.TransactionDao;
 import com.group10.moneymate.data.local.dao.WalletDao;
+import com.group10.moneymate.data.local.dto.CategorySumDTO;
+import com.group10.moneymate.data.local.dto.DailyTrendDTO;
+import com.group10.moneymate.data.local.dto.NetIncomeDTO;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.models.SyncStatus;
@@ -92,6 +95,39 @@ public class TransactionRepository {
 
     public LiveData<Double> getTotalExpense(String userId, long startDate, long endDate) {
         return transactionDao.getTotalExpense(userId, startDate, endDate);
+    }
+
+    public LiveData<NetIncomeDTO> getNetIncomeSummary(String userId,
+                                                      long startDate,
+                                                      long endDate,
+                                                      @Nullable String walletId,
+                                                      String periodLabel) {
+        return transactionDao.getNetIncomeSummary(userId, startDate, endDate, walletId, periodLabel);
+    }
+
+    public LiveData<List<NetIncomeDTO>> getNetIncomeTrend(String userId,
+                                                          long startDate,
+                                                          long endDate,
+                                                          @Nullable String walletId,
+                                                          String periodFormat) {
+        return transactionDao.getNetIncomeTrend(userId, startDate, endDate, walletId, periodFormat);
+    }
+
+    public LiveData<List<CategorySumDTO>> getCategorySums(String userId,
+                                                          String type,
+                                                          long startDate,
+                                                          long endDate,
+                                                          @Nullable String walletId) {
+        return transactionDao.getCategorySums(userId, type, startDate, endDate, walletId);
+    }
+
+    public LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
+                                                        String type,
+                                                        long startDate,
+                                                        long endDate,
+                                                        @Nullable String walletId,
+                                                        String periodFormat) {
+        return transactionDao.getAmountTrend(userId, type, startDate, endDate, walletId, periodFormat);
     }
 
     public LiveData<Double> getTotalExpenseByCategory(String userId,

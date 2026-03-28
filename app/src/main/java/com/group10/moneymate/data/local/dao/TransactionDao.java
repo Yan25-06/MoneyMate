@@ -8,6 +8,9 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
+import com.group10.moneymate.data.local.dto.CategorySumDTO;
+import com.group10.moneymate.data.local.dto.DailyTrendDTO;
+import com.group10.moneymate.data.local.dto.NetIncomeDTO;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 
 import java.util.List;
@@ -74,11 +77,95 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE user_id = :userId AND note LIKE '%' || :keyword || '%' AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> searchTransactions(String userId, String keyword);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'INCOME' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
+    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'INCOME' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0 AND sync_status != 2")
     LiveData<Double> getTotalIncome(String userId, long startDate, long endDate);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
+    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0 AND sync_status != 2")
     LiveData<Double> getTotalExpense(String userId, long startDate, long endDate);
+
+    @Query("SELECT MIN(t.timestamp) AS periodStart, " +
+            ":periodLabel AS periodLabel, " +
+            "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END), 0.0) AS totalIncome, " +
+            "COALESCE(SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END), 0.0) AS totalExpense, " +
+            "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount WHEN t.type = 'EXPENSE' THEN -t.amount ELSE 0 END), 0.0) AS netAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type != 'TRANSFER' " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId)")
+    LiveData<NetIncomeDTO> getNetIncomeSummary(String userId,
+                                               long startDate,
+                                               long endDate,
+                                               String walletId,
+                                               String periodLabel);
+
+    @Query("SELECT MIN(t.timestamp) AS periodStart, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END), 0.0) AS totalIncome, " +
+            "COALESCE(SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END), 0.0) AS totalExpense, " +
+            "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount WHEN t.type = 'EXPENSE' THEN -t.amount ELSE 0 END), 0.0) AS netAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type != 'TRANSFER' " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "ORDER BY MIN(t.timestamp) ASC")
+    LiveData<List<NetIncomeDTO>> getNetIncomeTrend(String userId,
+                                                   long startDate,
+                                                   long endDate,
+                                                   String walletId,
+                                                   String periodFormat);
+
+    @Query("SELECT t.category_id AS categoryId, " +
+            "COALESCE(c.name, 'Chưa phân loại') AS categoryName, " +
+            "COALESCE(c.icon_res_id, 'ic_category_other') AS iconResId, " +
+            "COALESCE(c.color_hex, '#9E9E9E') AS colorHex, " +
+            "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "LEFT JOIN categories c ON c.id = t.category_id " +
+            "AND c.is_deleted = 0 " +
+            "AND c.sync_status != 2 " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "GROUP BY t.category_id, c.name, c.icon_res_id, c.color_hex " +
+            "ORDER BY totalAmount DESC")
+    LiveData<List<CategorySumDTO>> getCategorySums(String userId,
+                                                   String type,
+                                                   long startDate,
+                                                   long endDate,
+                                                   String walletId);
+
+    @Query("SELECT MIN(t.timestamp) AS periodStart, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "ORDER BY MIN(t.timestamp) ASC")
+    LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
+                                                 String type,
+                                                 long startDate,
+                                                 long endDate,
+                                                 String walletId,
+                                                 String periodFormat);
 
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions " +
             "WHERE user_id = :userId " +
