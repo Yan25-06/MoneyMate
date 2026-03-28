@@ -41,7 +41,7 @@ public class HomeActivity extends AppCompatActivity {
                 int id = destination.getId();
                 if (id == R.id.homeFragment ||
                         id == R.id.transactionListFragment ||
-                        id == R.id.statisticsFragment ||
+                        id == R.id.budgetListFragment ||
                         id == R.id.settingsFragment) {
                     binding.bottomNavigation.setVisibility(View.VISIBLE);
                 } else {

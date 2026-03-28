@@ -68,6 +68,10 @@ public class TransactionRepository {
         return transactionDao.getTotalExpense(userId, startDate, endDate);
     }
 
+    public LiveData<Double> getTotalExpenseByCategory(String userId, String categoryId, long startDate, long endDate) {
+        return transactionDao.getTotalExpenseByCategory(userId, categoryId, startDate, endDate);
+    }
+
     // ─── Write ────────────────────────────────────────────────────────────────
 
     /**

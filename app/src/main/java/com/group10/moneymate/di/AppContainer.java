@@ -38,7 +38,7 @@ public class AppContainer {
         categoryRepository    = new CategoryRepository(database.categoryDao());
         // TransactionRepository cần walletDao để cập nhật số dư ví
         transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao());
-        budgetRepository      = new BudgetRepository(database.budgetDao());
+        this.budgetRepository = new BudgetRepository(database.budgetDao());
         debtRepository        = new DebtRepository(database.debtDao());
         eventRepository       = new EventRepository(database.eventDao());
     }

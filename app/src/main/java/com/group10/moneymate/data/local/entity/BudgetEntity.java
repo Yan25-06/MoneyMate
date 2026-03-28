@@ -1,33 +1,25 @@
 package com.group10.moneymate.data.local.entity;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import com.group10.moneymate.models.SyncStatus;
+
+import java.util.UUID;
+
 @Entity(
     tableName = "budgets",
-    foreignKeys = {
-        @ForeignKey(
-            entity = UserEntity.class,
-            parentColumns = "id",
-            childColumns = "user_id",
-            onDelete = ForeignKey.CASCADE
-        ),
-        @ForeignKey(
-            entity = CategoryEntity.class,
-            parentColumns = "id",
-            childColumns = "category_id",
-            onDelete = ForeignKey.SET_NULL
-        )
-    },
-    indices = {
-        @Index("user_id"),
-        @Index("category_id")
-    }
+    foreignKeys = @ForeignKey(
+        entity = CategoryEntity.class,
+        parentColumns = "id",
+        childColumns = "category_id",
+        onDelete = ForeignKey.NO_ACTION
+    ),
+    indices = {@Index("category_id")}
 )
 public class BudgetEntity {
 
@@ -36,66 +28,110 @@ public class BudgetEntity {
     @ColumnInfo(name = "id")
     private String id;
 
-    @ColumnInfo(name = "user_id")
-    private String userId;
-
-    @Nullable
+    @NonNull
     @ColumnInfo(name = "category_id")
     private String categoryId;
 
-    @ColumnInfo(name = "limit_amount")
-    private double limitAmount;
+    @ColumnInfo(name = "amount")
+    private double amount;
 
-    @ColumnInfo(name = "alert_threshold")
-    private float alertThreshold;
+    @ColumnInfo(name = "start_date")
+    private long startDate;
 
-    @ColumnInfo(name = "month")
-    private int month;
+    @ColumnInfo(name = "end_date")
+    private long endDate;
 
-    @ColumnInfo(name = "year")
-    private int year;
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
 
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
 
-    @ColumnInfo(name = "sync_status")
-    private int syncStatus;
-
     @ColumnInfo(name = "is_deleted")
     private boolean isDeleted;
 
+    @ColumnInfo(name = "sync_status")
+    private int syncStatus;
+
     public BudgetEntity() {
-        this.id = "";
+        this.id = UUID.randomUUID().toString();
+        this.categoryId = "";
+        this.createdAt = System.currentTimeMillis();
+        this.updatedAt = this.createdAt;
+        this.isDeleted = false;
+        this.syncStatus = SyncStatus.PENDING_UPLOAD;
     }
 
     @NonNull
-    public String getId() { return id; }
-    public void setId(@NonNull String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
+    public void setId(@NonNull String id) {
+        this.id = id;
+    }
 
-    @Nullable public String getCategoryId() { return categoryId; }
-    public void setCategoryId(@Nullable String categoryId) { this.categoryId = categoryId; }
+    public String getCategoryId() {
+        return categoryId;
+    }
 
-    public double getLimitAmount() { return limitAmount; }
-    public void setLimitAmount(double limitAmount) { this.limitAmount = limitAmount; }
+    public void setCategoryId(@NonNull String categoryId) {
+        this.categoryId = categoryId;
+    }
 
-    public float getAlertThreshold() { return alertThreshold; }
-    public void setAlertThreshold(float alertThreshold) { this.alertThreshold = alertThreshold; }
+    public double getAmount() {
+        return amount;
+    }
 
-    public int getMonth() { return month; }
-    public void setMonth(int month) { this.month = month; }
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
 
-    public int getYear() { return year; }
-    public void setYear(int year) { this.year = year; }
+    public long getStartDate() {
+        return startDate;
+    }
 
-    public long getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+    public void setStartDate(long startDate) {
+        this.startDate = startDate;
+    }
 
-    public int getSyncStatus() { return syncStatus; }
-    public void setSyncStatus(int syncStatus) { this.syncStatus = syncStatus; }
+    public long getEndDate() {
+        return endDate;
+    }
 
-    public boolean isDeleted() { return isDeleted; }
-    public void setDeleted(boolean deleted) { isDeleted = deleted; }
+    public void setEndDate(long endDate) {
+        this.endDate = endDate;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(long updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public int getSyncStatus() {
+        return syncStatus;
+    }
+
+    public void setSyncStatus(int syncStatus) {
+        this.syncStatus = syncStatus;
+    }
 }

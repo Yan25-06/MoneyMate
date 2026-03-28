@@ -88,6 +88,58 @@
     <string name="budgets">Ngân sách</string>
     <string name="add_budget">Thêm ngân sách</string>
     <string name="hint_budget_limit">Hạn mức chi tiêu</string>
+    <string name="budget_running_title">Ngân sách đang được áp dụng</string>
+    <string name="budget_more_actions">Tác vụ ngân sách</string>
+    <string name="budget_active_section">Đang hoạt động</string>
+    <string name="budget_finished_section">Đã kết thúc</string>
+    <string name="budget_summary_title">Tổng quan ngân sách</string>
+    <string name="budget_amount_can_spend">Số tiền bạn còn có thể chi</string>
+    <string name="budget_total_budget">Tổng ngân sách</string>
+    <string name="budget_total_spent">Tổng đã chi</string>
+    <string name="budget_end_label">Cuối tháng</string>
+    <string name="budget_this_month">Tháng này</string>
+    <string name="budget_all_categories">Tất cả danh mục</string>
+    <string name="budget_cancel_label">Hủy</string>
+    <string name="add_budget_sheet_title">Thêm ngân sách</string>
+    <string name="edit_budget_sheet_title">Sửa ngân sách</string>
+    <string name="budget_select_category">Chọn danh mục</string>
+    <string name="budget_amount_label">Số tiền</string>
+    <string name="budget_default_period">Tháng này</string>
+    <string name="budget_wallet_scope_total">Tất cả ví</string>
+    <string name="budget_repeat_title">Lặp lại ngân sách này</string>
+    <string name="budget_repeat_subtitle">Ngân sách sẽ tự động gia hạn.</string>
+    <string name="budget_create_cta">Tạo ngân sách</string>
+    <string name="budget_create_empty_cta">Tạo ngân sách</string>
+    <string name="budget_empty_title">Bạn chưa có ngân sách</string>
+    <string name="budget_empty_description">Hãy bắt đầu tiết kiệm bằng cách tạo ngân sách và chúng tôi sẽ giúp bạn bám sát kế hoạch.</string>
+    <string name="budget_left_value">Còn lại %1$s</string>
+    <string name="budget_overspent_value">Vượt %1$s</string>
+    <string name="budget_ended_label">Đã kết thúc</string>
+    <string name="budget_today">Hôm nay</string>
+    <string name="budget_view_finished">Cuộn tới ngân sách đã kết thúc</string>
+    <string name="budget_no_active">Không có ngân sách nào đang chạy hôm nay.</string>
+    <string name="budget_spent_and_time">Đã chi %1$s • %2$s</string>
+    <string name="budget_how_to_use">Cách sử dụng ngân sách?</string>
+    <string name="budget_save_success">Đã lưu ngân sách</string>
+    <string name="budget_save_failed">Không thể lưu ngân sách. Vui lòng thử lại.</string>
+    <string name="budget_category_picker_title">Chọn danh mục</string>
+    <string name="budget_amount_required">Vui lòng nhập số tiền ngân sách</string>
+    <string name="budget_amount_exceeds_wallets">Lưu ý: số tiền ngân sách này đang lớn hơn tổng số dư hiện có của tất cả ví (%1$s). Bạn vẫn có thể lưu ngân sách.</string>
+    <string name="budget_period_template">Tháng này (%1$s)</string>
+    <string name="budget_save_action">Lưu</string>
+    <string name="budget_edit_action">Sửa</string>
+    <string name="budget_delete_action">Xóa</string>
+    <string name="budget_spent_label">Đã chi</string>
+    <string name="budget_left_label">Còn lại</string>
+    <string name="budget_recommended_daily">Mức chi tiêu khuyến nghị mỗi ngày</string>
+    <string name="budget_projected_spending">Dự kiến chi tiêu</string>
+    <string name="budget_actual_daily_spending">Chi tiêu thực tế mỗi ngày</string>
+    <string name="budget_total_scope">Tất cả ví</string>
+    <string name="budget_detail_title">Xem ngân sách</string>
+    <string name="budget_breakdown_title">Thống kê theo nhóm</string>
+    <string name="budget_transactions_action">Danh sách giao dịch</string>
+    <string name="budget_delete_confirm">Bạn có chắc muốn xóa ngân sách này không?</string>
+    <string name="budget_delete_success">Đã xóa ngân sách</string>
 
     <!-- Wallet -->
     <string name="wallets">Ví</string>
@@ -160,4 +212,14 @@
     <!-- Cloud Sync -->
     <string name="sync_now">Đồng bộ ngay</string>
     <string name="last_synced">Đồng bộ lần cuối: %1$s</string>
+
+    <plurals name="budget_days_left">
+        <item quantity="one">Còn %d ngày</item>
+        <item quantity="other">Còn %d ngày</item>
+    </plurals>
+
+    <plurals name="budget_days_short">
+        <item quantity="one">%d ngày</item>
+        <item quantity="other">%d ngày</item>
+    </plurals>
 </resources>

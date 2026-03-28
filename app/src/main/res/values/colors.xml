@@ -5,4 +5,14 @@
     <color name="md_theme_primary">#6750A4</color>
     <color name="green_500">#4CAF50</color>
     <color name="red_500">#F44336</color>
+    <color name="budget_safe_green">#4CAF50</color>
+    <color name="budget_warning_orange">#FB8C00</color>
+    <color name="budget_danger_red">#F44336</color>
+    <color name="budget_track_gray">#E5E7EB</color>
+    <color name="budget_muted_gray">#C9CDD5</color>
+    <color name="budget_text_secondary">#8A8F98</color>
+    <color name="budget_screen_divider">#F5F6FA</color>
+    <color name="budget_card_stroke">#EEF0F4</color>
+    <color name="budget_divider">#E1E4EA</color>
+    <color name="budget_marker_gray">#D0D5DD</color>
 </resources>

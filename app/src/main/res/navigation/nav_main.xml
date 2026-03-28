@@ -107,13 +107,38 @@
         android:label="@string/budgets"
         tools:layout="@layout/fragment_budget_list">
         <action android:id="@+id/action_budgetList_to_addEdit" app:destination="@id/addEditBudgetFragment" />
+        <action android:id="@+id/action_budgetList_to_detail" app:destination="@id/budgetDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/budgetDetailFragment"
+        android:name="com.group10.moneymate.ui.budget.BudgetDetailFragment"
+        android:label="@string/budget_running_title"
+        tools:layout="@layout/fragment_budget_detail">
+        <argument
+            android:name="budgetId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="isAggregate"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <action android:id="@+id/action_budgetDetail_to_addEdit" app:destination="@id/addEditBudgetFragment" />
+        <action android:id="@+id/action_budgetDetail_to_budgetDetail" app:destination="@id/budgetDetailFragment" />
     </fragment>
 
     <fragment
         android:id="@+id/addEditBudgetFragment"
         android:name="com.group10.moneymate.ui.budget.AddEditBudgetFragment"
         android:label="@string/add_budget"
-        tools:layout="@layout/fragment_add_edit_budget" />
+        tools:layout="@layout/fragment_add_edit_budget">
+        <argument
+            android:name="budgetId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+    </fragment>
 
     <!-- Wallets -->
     <fragment

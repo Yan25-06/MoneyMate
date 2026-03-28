@@ -56,6 +56,14 @@ public interface TransactionDao {
     @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
     LiveData<Double> getTotalExpense(String userId, long startDate, long endDate);
 
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions " +
+            "WHERE user_id = :userId " +
+            "AND category_id = :categoryId " +
+            "AND type = 'EXPENSE' " +
+            "AND is_deleted = 0 " +
+            "AND timestamp BETWEEN :startDate AND :endDate")
+    LiveData<Double> getTotalExpenseByCategory(String userId, String categoryId, long startDate, long endDate);
+
     @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND category_id = :categoryId AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
     double getTotalExpenseByCategorySync(String userId, String categoryId, long startDate, long endDate);
 
