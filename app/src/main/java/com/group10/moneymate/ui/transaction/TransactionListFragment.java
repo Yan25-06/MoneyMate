@@ -91,6 +91,9 @@ public class TransactionListFragment extends Fragment {
             if (!aggregateFilters.isEmpty()) {
                 displayTransactions = filterTransactionsForAggregateBudget(transactions, aggregateFilters);
             }
+            if (shouldUseStatisticsFilter(args)) {
+                displayTransactions = filterTransactionsForStatistics(displayTransactions, args);
+            }
 
             adapter.submitList(displayTransactions);
             // Empty state
@@ -118,6 +121,11 @@ public class TransactionListFragment extends Fragment {
                 && args.getBudgetEndDate() > 0L;
     }
 
+    private boolean shouldUseStatisticsFilter(@NonNull TransactionListFragmentArgs args) {
+        return args.getStatisticsStartDate() > 0L
+                && args.getStatisticsEndDate() > 0L;
+    }
+
     @NonNull
     private LiveData<List<TransactionEntity>> resolveTransactionSource(
             @NonNull TransactionListFragmentArgs args
@@ -135,6 +143,9 @@ public class TransactionListFragment extends Fragment {
                     args.getBudgetStartDate(),
                     args.getBudgetEndDate()
             );
+        }
+        if (shouldUseStatisticsFilter(args)) {
+            return viewModel.getAllTransactions();
         }
         return viewModel.getFilteredTransactions();
     }
@@ -203,6 +214,41 @@ public class TransactionListFragment extends Fragment {
             }
         }
         return false;
+    }
+
+    @NonNull
+    private List<TransactionEntity> filterTransactionsForStatistics(
+            @Nullable List<TransactionEntity> transactions,
+            @NonNull TransactionListFragmentArgs args
+    ) {
+        if (transactions == null || transactions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<TransactionEntity> matches = new ArrayList<>();
+        for (TransactionEntity transaction : transactions) {
+            if (matchesStatisticsFilter(transaction, args)) {
+                matches.add(transaction);
+            }
+        }
+        return matches;
+    }
+
+    private boolean matchesStatisticsFilter(@NonNull TransactionEntity transaction,
+                                            @NonNull TransactionListFragmentArgs args) {
+        long timestamp = transaction.getTimestamp();
+        if (timestamp < args.getStatisticsStartDate() || timestamp > args.getStatisticsEndDate()) {
+            return false;
+        }
+        String walletId = args.getStatisticsWalletId();
+        if (walletId != null && !walletId.equals(transaction.getWalletId())) {
+            return false;
+        }
+        String transactionType = args.getStatisticsTransactionType();
+        if (transactionType != null && !transactionType.equals(transaction.getType())) {
+            return false;
+        }
+        String categoryId = args.getStatisticsCategoryId();
+        return categoryId == null || categoryId.equals(transaction.getCategoryId());
     }
 
     private static class AggregateBudgetFilter {

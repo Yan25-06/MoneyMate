@@ -4,6 +4,7 @@ import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
@@ -102,10 +104,10 @@ public class StatisticsOverviewFragment extends Fragment {
     }
 
     private void bindActions() {
-        binding.cardNetIncomeAction.setOnClickListener(v -> openLevelTwoDetail(null));
-        binding.cardReportIncome.setOnClickListener(v -> openLevelTwoDetail(TransactionType.INCOME));
-        binding.cardReportExpense.setOnClickListener(v -> openLevelTwoDetail(TransactionType.EXPENSE));
-        binding.layoutGroupReportAction.setOnClickListener(v -> openLevelTwoDetail(TransactionType.EXPENSE));
+        binding.cardNetIncomeAction.setOnClickListener(v -> openLevelTwoDetail("NET"));
+        binding.cardReportIncome.setOnClickListener(v -> openLevelTwoDetail(TransactionType.INCOME.name()));
+        binding.cardReportExpense.setOnClickListener(v -> openLevelTwoDetail(TransactionType.EXPENSE.name()));
+        binding.layoutGroupReportAction.setOnClickListener(v -> openLevelTwoDetail(TransactionType.EXPENSE.name()));
         binding.statisticsHeader.btnHeaderBack.setOnClickListener(v ->
                 Navigation.findNavController(v).navigateUp());
         binding.statisticsHeader.btnPreviousPeriod.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
@@ -158,11 +160,22 @@ public class StatisticsOverviewFragment extends Fragment {
     }
 
     private void renderNetIncomeCard(double totalIncome, double totalExpense, double netAmount) {
-        binding.tvNetIncomeValue.setText(formatCurrency(netAmount));
-        binding.tvNetIncomeValue.setTextColor(ContextCompat.getColor(
+        binding.tvNetIncomeValue.setText(formatCurrency(Math.abs(netAmount)));
+        int netColor = ContextCompat.getColor(
                 requireContext(),
-                netAmount >= 0 ? R.color.income_green : R.color.expense_red
-        ));
+                netAmount >= 0 ? R.color.income_green : R.color.statistics_text_muted
+        );
+        binding.tvNetIncomeValue.setTextColor(netColor);
+        Drawable signDrawable = ContextCompat.getDrawable(
+                requireContext(),
+                netAmount >= 0 ? R.drawable.outline_add_24 : R.drawable.outline_remove_24
+        );
+        if (signDrawable != null) {
+            signDrawable = signDrawable.mutate();
+            DrawableCompat.setTint(signDrawable, netColor);
+        }
+        binding.tvNetIncomeValue.setCompoundDrawablesRelativeWithIntrinsicBounds(signDrawable, null, null, null);
+        binding.tvNetIncomeValue.setCompoundDrawablePadding((int) (requireContext().getResources().getDisplayMetrics().density * 6));
         binding.tvIncomeAmount.setText(formatCurrency(totalIncome));
         binding.tvExpenseAmount.setText(formatCurrency(totalExpense));
 
@@ -172,7 +185,7 @@ public class StatisticsOverviewFragment extends Fragment {
 
         BarDataSet dataSet = new BarDataSet(entries, getString(R.string.statistics_net_income_title));
         dataSet.setColors(
-                ContextCompat.getColor(requireContext(), R.color.income_green),
+                ContextCompat.getColor(requireContext(), R.color.transfer_blue),
                 ContextCompat.getColor(requireContext(), R.color.expense_red)
         );
         dataSet.setValueFormatter(moneyChartValueFormatter);
@@ -242,14 +255,14 @@ public class StatisticsOverviewFragment extends Fragment {
         chart.getAxisRight().setEnabled(false);
     }
 
-    private void openLevelTwoDetail(@Nullable TransactionType transactionType) {
+    private void openLevelTwoDetail(@Nullable String transactionTypeValue) {
         StatisticsOverviewFragmentDirections.ActionStatisticsFragmentToStatisticsDetailFragment action =
                 StatisticsOverviewFragmentDirections.actionStatisticsFragmentToStatisticsDetailFragment();
         StatisticsViewModel.FilterState filterState = viewModel.getCurrentFilterState();
         action.setWalletId(filterState.getWalletId());
         action.setStartDate(filterState.getStartDate());
         action.setEndDate(filterState.getEndDate());
-        action.setTransactionType(transactionType != null ? transactionType.name() : "NET");
+        action.setTransactionType(transactionTypeValue != null ? transactionTypeValue : TransactionType.EXPENSE.name());
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }
 
