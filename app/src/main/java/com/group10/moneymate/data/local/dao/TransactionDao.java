@@ -101,6 +101,21 @@ public interface TransactionDao {
             "AND (:walletId IS NULL OR wallet_id = :walletId)")
     LiveData<Double> getTotalExpenseFiltered(String userId, long startDate, long endDate, String walletId);
 
+    @Query("SELECT SUM(amount) FROM transactions " +
+            "WHERE user_id = :userId " +
+            "AND type = :type " +
+            "AND category_id = :categoryId " +
+            "AND timestamp BETWEEN :startDate AND :endDate " +
+            "AND is_deleted = 0 " +
+            "AND sync_status != 2 " +
+            "AND (:walletId IS NULL OR wallet_id = :walletId)")
+    LiveData<Double> getTotalAmountByCategoryFiltered(String userId,
+                                                      String type,
+                                                      String categoryId,
+                                                      long startDate,
+                                                      long endDate,
+                                                      String walletId);
+
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
             ":periodLabel AS periodLabel, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END), 0.0) AS totalIncome, " +
@@ -184,6 +199,28 @@ public interface TransactionDao {
                                                  long endDate,
                                                  String walletId,
                                                  String periodFormat);
+
+    @Query("SELECT MIN(t.timestamp) AS periodStart, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND t.category_id = :categoryId " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "ORDER BY MIN(t.timestamp) ASC")
+    LiveData<List<DailyTrendDTO>> getCategoryAmountTrend(String userId,
+                                                         String type,
+                                                         String categoryId,
+                                                         long startDate,
+                                                         long endDate,
+                                                         String walletId,
+                                                         String periodFormat);
 
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions " +
             "WHERE user_id = :userId " +

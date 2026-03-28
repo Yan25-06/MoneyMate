@@ -111,6 +111,22 @@ public class TransactionRepository {
         return transactionDao.getTotalExpenseFiltered(userId, startDate, endDate, walletId);
     }
 
+    public LiveData<Double> getTotalAmountByCategoryFiltered(String userId,
+                                                             String type,
+                                                             String categoryId,
+                                                             long startDate,
+                                                             long endDate,
+                                                             @Nullable String walletId) {
+        return transactionDao.getTotalAmountByCategoryFiltered(
+                userId,
+                type,
+                categoryId,
+                startDate,
+                endDate,
+                walletId
+        );
+    }
+
     public LiveData<NetIncomeDTO> getNetIncomeSummary(String userId,
                                                       long startDate,
                                                       long endDate,
@@ -142,6 +158,24 @@ public class TransactionRepository {
                                                         @Nullable String walletId,
                                                         String periodFormat) {
         return transactionDao.getAmountTrend(userId, type, startDate, endDate, walletId, periodFormat);
+    }
+
+    public LiveData<List<DailyTrendDTO>> getCategoryAmountTrend(String userId,
+                                                                String type,
+                                                                String categoryId,
+                                                                long startDate,
+                                                                long endDate,
+                                                                @Nullable String walletId,
+                                                                String periodFormat) {
+        return transactionDao.getCategoryAmountTrend(
+                userId,
+                type,
+                categoryId,
+                startDate,
+                endDate,
+                walletId,
+                periodFormat
+        );
     }
 
     public LiveData<Double> getTotalExpenseByCategory(String userId,

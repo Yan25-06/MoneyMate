@@ -144,9 +144,41 @@
 
     <fragment
         android:id="@+id/statisticsCategoryDetailFragment"
-        android:name="com.group10.moneymate.ui.statistics.StatisticsCategoryDetailFragment"
+        android:name="com.group10.moneymate.ui.statistics.CategoryReportFragment"
         android:label="@string/statistics"
-        tools:layout="@layout/fragment_statistics_category_detail">
+        tools:layout="@layout/fragment_category_report">
+        <argument
+            android:name="walletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="startDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="endDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="transactionType"
+            app:argType="string"
+            android:defaultValue="EXPENSE" />
+        <argument
+            android:name="categoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_statisticsCategoryDetailFragment_to_statisticsCategoryDayDetailFragment"
+            app:destination="@id/statisticsCategoryDayDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/statisticsCategoryDayDetailFragment"
+        android:name="com.group10.moneymate.ui.statistics.StatisticsCategoryDayDetailFragment"
+        android:label="@string/statistics"
+        tools:layout="@layout/fragment_statistics_category_day_detail">
         <argument
             android:name="walletId"
             app:argType="string"
