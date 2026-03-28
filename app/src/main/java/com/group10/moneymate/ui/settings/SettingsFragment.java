@@ -67,7 +67,7 @@ public class SettingsFragment extends Fragment {
 
         binding.btnBudgets.setOnClickListener(v ->
                 Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToBudgets()
+                        SettingsFragmentDirections.actionSettingsToStatistics()
                 )
         );
 
@@ -89,7 +89,7 @@ public class SettingsFragment extends Fragment {
 
     private void observeLogout() {
         viewModel.getLogoutSuccess().observe(getViewLifecycleOwner(), logoutSuccess -> {
-            if (logoutSuccess) {
+            if (Boolean.TRUE.equals(logoutSuccess)) {
                 navigateToLogin();
             }
         });

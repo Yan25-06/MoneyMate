@@ -1,6 +1,8 @@
 package com.group10.moneymate.ui.wallet;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +22,7 @@ import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentAddEditWalletBinding;
 import com.group10.moneymate.models.WalletType;
+import com.group10.moneymate.utils.CurrencyFormatter;
 
 import java.util.Locale;
 
@@ -30,6 +33,7 @@ public class AddEditWalletFragment extends Fragment {
     private String walletId;
     private WalletEntity editingWallet;
     private BottomNavigationView bottomNavigationView;
+    private boolean isFormattingBalance;
 
     @Nullable
     @Override
@@ -49,6 +53,7 @@ public class AddEditWalletFragment extends Fragment {
         }
 
         setupTypeDropdown();
+        setupBalanceInput();
 
         AddEditWalletFragmentArgs args = AddEditWalletFragmentArgs
                 .fromBundle(getArguments() == null ? new Bundle() : getArguments());
@@ -62,8 +67,38 @@ public class AddEditWalletFragment extends Fragment {
             binding.topAppBar.setTitle(R.string.add_wallet);
         }
 
-        binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).popBackStack());
+        binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.btnSave.setOnClickListener(v -> saveWallet());
+    }
+
+    private void setupBalanceInput() {
+        binding.etBalance.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // No-op: balance formatting happens after the text change is applied.
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // No-op: we only need the final text to normalize currency formatting.
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                if (isFormattingBalance) {
+                    return;
+                }
+                String digits = CurrencyFormatter.extractDigits(editable.toString());
+                if (digits.isEmpty()) {
+                    return;
+                }
+                isFormattingBalance = true;
+                String formatted = CurrencyFormatter.formatInputAmount(Long.parseLong(digits));
+                binding.etBalance.setText(formatted);
+                binding.etBalance.setSelection(formatted.length());
+                isFormattingBalance = false;
+            }
+        });
     }
 
     private void setupTypeDropdown() {
@@ -84,13 +119,15 @@ public class AddEditWalletFragment extends Fragment {
             }
             editingWallet = wallet;
             binding.etName.setText(wallet.getName());
-            binding.etBalance.setText(String.format(Locale.getDefault(), "%.0f", wallet.getBalance()));
+            binding.etBalance.setText(CurrencyFormatter.formatInputAmount((long) wallet.getBalance()));
             binding.dropdownType.setText(typeToLabel(wallet.getType()), false);
         });
     }
 
     private void saveWallet() {
-        String name = binding.etName.getText() == null ? "" : binding.etName.getText().toString().trim();
+        String name = normalizeSingleLineText(binding.etName.getText() == null
+                ? ""
+                : binding.etName.getText().toString());
         String balanceText = binding.etBalance.getText() == null ? "" : binding.etBalance.getText().toString().trim();
         String typeLabel = binding.dropdownType.getText() == null ? "" : binding.dropdownType.getText().toString();
 
@@ -105,7 +142,7 @@ public class AddEditWalletFragment extends Fragment {
 
         double balance;
         try {
-            balance = Double.parseDouble(balanceText);
+            balance = CurrencyFormatter.parseFormattedAmount(balanceText);
         } catch (NumberFormatException e) {
             binding.etBalance.setError(getString(R.string.error_wallet_balance_invalid));
             return;
@@ -142,6 +179,11 @@ public class AddEditWalletFragment extends Fragment {
             return getString(R.string.wallet_type_ewallet);
         }
         return getString(R.string.wallet_type_cash);
+    }
+
+    @NonNull
+    private String normalizeSingleLineText(@NonNull String value) {
+        return value.trim().replaceAll("\\s{2,}", " ");
     }
 
     @Override

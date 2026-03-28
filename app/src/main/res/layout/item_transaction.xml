@@ -1,68 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="8dp"
-    android:layout_marginVertical="4dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp">
+        android:padding="16dp">
 
-        <!-- Type badge -->
-        <TextView
-            android:id="@+id/tv_type"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_circle_icon"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="2dp"
-            android:textColor="@android:color/white"
-            android:textSize="11sp"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cv_category_icon_container"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Note -->
+            <ImageView
+                android:id="@+id/iv_category_icon"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                app:tint="?attr/colorOnSurfaceVariant"
+                tools:src="@drawable/ic_spending" />
+
+        </com.google.android.material.card.MaterialCardView>
+
         <TextView
             android:id="@+id/tv_note"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textSize="14sp"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@id/tv_date"
             app:layout_constraintEnd_toStartOf="@id/tv_amount"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_type" />
+            app:layout_constraintStart_toEndOf="@id/cv_category_icon_container"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:text="Ăn trưa Team" />
 
-        <!-- Date -->
         <TextView
             android:id="@+id/tv_date"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
             android:layout_marginTop="2dp"
+            android:layout_marginEnd="16dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/tv_amount"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_note" />
+            app:layout_constraintStart_toEndOf="@id/cv_category_icon_container"
+            app:layout_constraintTop_toBottomOf="@id/tv_note"
+            tools:text="26/03/2026" />
 
-        <!-- Amount -->
         <TextView
             android:id="@+id/tv_amount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="-120.000 VND" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -25,7 +25,7 @@
 - [x] `BuildConfig.GEMINI_API_KEY` lấy từ `local.properties` (không hard-code)
 - [x] 7 Room Entity: User, Wallet, Category, Transaction, Budget, Debt, Event
 - [x] 7 Room DAO với soft-delete pattern (`is_deleted`, `sync_status`)
-- [x] `AppDatabase` v2 với `fallbackToDestructiveMigration`
+- [x] `AppDatabase` hiện đã lên **v7** với `fallbackToDestructiveMigration`
 - [x] `Converters.java`: Date + 5 Enum converters
 - [x] `AppContainer.java`: Manual DI cho 8 Repository
 - [x] Tất cả Fragment shell và ViewModel shell
@@ -34,7 +34,7 @@
 
 ---
 
-## Phase 1 — Track 3: Authentication (Dev 3)
+## Phase 1 — Track 3: Authentication (Dev 3) ✅ Cơ bản hoàn thành
 **Thời gian:** Ngày 1–3  
 **Package:** `ui/auth`, `data/remote/FirebaseAuthHelper`
 
@@ -45,94 +45,91 @@
 4. `MainActivity` — routing: kiểm tra trạng thái login → điều hướng về `nav_auth` hoặc `nav_main`
 5. Xử lý lỗi: email không hợp lệ, sai mật khẩu, không có mạng
 
-### Layout cần hoàn thiện:
-- `fragment_login.xml`, `fragment_register.xml`
+### Cập nhật mới:
+- Đã có logic seed category mặc định khi vào app
+- Đã có logic tự phục hồi local user record để tránh crash sau khi Room recreate
 
 ---
 
-## Phase 2 — Track 1: Wallet CRUD (Dev 1)
+## Phase 2 — Track 1: Wallet CRUD (Dev 1) ✅ Hoàn thành
 **Thời gian:** Ngày 1–4  
 **Package:** `ui/wallet`
 
-### Nhiệm vụ:
-1. `WalletListFragment` + `WalletAdapter` — hiển thị danh sách ví (RecyclerView)
-2. `AddEditWalletFragment` — form thêm/sửa ví (tên, số dư ban đầu, loại, màu)
-3. `WalletViewModel` — LiveData list, thêm/sửa/xóa mềm
-4. Khi xóa: soft-delete (`is_deleted = 1`, `sync_status = PENDING_DELETE`)
-5. Cập nhật số dư ví khi Transaction được ghi (sẽ kết hợp với Phase 4)
-
-### Layout cần hoàn thiện:
-- `fragment_wallet_list.xml`, `fragment_add_edit_wallet.xml`, `item_wallet.xml`
+### Cập nhật mới:
+- Wallet flow đã được chuẩn hóa validate/input
+- Budget hiện dùng dữ liệu Wallet cho wallet filter, wallet picker và redirect tạo ví
 
 ---
 
-## Phase 3 — Track 1: Category CRUD (Dev 1)
+## Phase 3 — Track 1: Category CRUD (Dev 1) ✅ Hoàn thành
 **Thời gian:** Ngày 2–5  
 **Package:** `ui/category`
 
-### Nhiệm vụ:
-1. `CategoryListFragment` + `CategoryAdapter` — hiển thị danh mục (tab INCOME/EXPENSE)
-2. `AddEditCategoryFragment` — form thêm/sửa danh mục (tên, icon, màu, loại)
-3. `CategoryViewModel` — LiveData list, CRUD
-4. Seed dữ liệu mặc định: Gọi một lần khi `is_default` count = 0 (trong Application hoặc DAO)
-5. Không cho phép xóa danh mục mặc định
-
-### Layout cần hoàn thiện:
-- `fragment_category_list.xml`, `fragment_add_edit_category.xml`, `item_category.xml`
+### Cập nhật mới:
+- Đã thêm icon picker
+- Đã có đủ drawable cho default categories
+- Có category ảo riêng cho Budget: `Các mục khác`
 
 ---
 
-## Phase 4 — Track 1: Transaction CRUD (Dev 1)
+## Phase 4 — Track 1: Transaction CRUD (Dev 1) ✅ Hoàn thành
 **Thời gian:** Ngày 3–7  
 **Package:** `ui/transaction`
 
-### Nhiệm vụ:
-1. `TransactionListFragment` + `TransactionAdapter` — danh sách giao dịch, filter theo ví/danh mục/ngày
-2. `AddEditTransactionFragment` — form thêm/sửa (số tiền, loại, danh mục, ví, ghi chú, ảnh)
-3. Hỗ trợ loại TRANSFER: chọn `to_wallet_id`, trừ ví nguồn, cộng ví đích
-4. Sau khi lưu Transaction: cập nhật `WalletEntity.balance` tương ứng
-5. `TransactionViewModel` — LiveData danh sách, recent 5 giao dịch cho Home
-
-### Layout cần hoàn thiện:
-- `fragment_transaction_list.xml`, `fragment_add_edit_transaction.xml`, `item_transaction.xml`
+### Cập nhật mới:
+- Hỗ trợ ghi chú tiếng Việt
+- Format số tiền realtime lúc nhập
+- Có thêm query read-only phục vụ Budget:
+  - tổng chi theo budget
+  - transaction list theo budget
+  - query động cho `Các mục khác`
 
 ---
 
-## Phase 5 — Track 1: Event Management (Dev 1)
+## Phase 5 — Track 1: Event Management (Dev 1) 🔄 Có nền tảng
 **Thời gian:** Ngày 6–8  
 **Package:** `ui/event`
 
-### Nhiệm vụ:
-1. `EventListFragment` + Adapter — danh sách sự kiện (active/all)
-2. `AddEditEventFragment` — form thêm/sửa sự kiện (tên, ngân sách, ngày bắt đầu/kết thúc)
-3. `EventViewModel`
-4. Khi tạo Transaction, cho phép gắn `event_id` (dropdown picker)
-
-### Layout cần hoàn thiện:
-- `fragment_event_list.xml`, `fragment_add_edit_event.xml`
+### Ghi chú hiện tại:
+- package và navigation đã có
+- không phải trọng tâm của sprint hiện tại
 
 ---
 
-## Phase 6 — Track 2: Budget Management (Dev 2)
+## Phase 6 — Track 2: Budget Management (Dev 2) ✅ Hoàn thành
 **Thời gian:** Ngày 1–5  
 **Package:** `ui/budget`
 
-### Nhiệm vụ:
-1. `BudgetListFragment` + `BudgetAdapter` — hiển thị ngân sách tháng và progress bar
-2. `AddEditBudgetFragment` — form chọn danh mục, hạn mức, ngưỡng cảnh báo (%), tháng/năm
-3. `BudgetViewModel` — tính `spentAmount` bằng cách query READ-ONLY từ `TransactionDao`:
-   ```java
-   transactionDao.getTotalExpenseByCategorySync(userId, categoryId, startDate, endDate)
-   ```
-4. Hiển thị cảnh báo khi `spentAmount >= limitAmount * alertThreshold`
-5. Không được ghi vào bảng `transactions`
+### Nhiệm vụ đã hoàn tất:
+1. `BudgetListFragment` + `BudgetAdapter`
+2. `AddEditBudgetFragment`
+3. `BudgetViewModel`
+4. Query read-only từ `TransactionDao`
+5. Progress / warning / detail / finished budgets
 
-### Layout cần hoàn thiện:
-- `fragment_budget_list.xml`, `fragment_add_edit_budget.xml`, `item_budget.xml`
+### Cập nhật lớn đã hoàn thành:
+- running budgets + finished budgets
+- wallet filter cho cả 2 màn
+- wallet picker riêng
+- 3 tab `Tháng này / Tương lai / Thời gian khác`
+- budget detail + chart + statistics calculator
+- `Tất cả danh mục`
+- `Các mục khác`
+- empty state + auto redirect tạo ví
+- xóa budget không xóa transaction
+
+### File / layout đã mở rộng:
+- `fragment_budget_list.xml`
+- `fragment_budget_finished.xml`
+- `fragment_budget_detail.xml`
+- `fragment_budget_wallet_picker.xml`
+- `item_budget.xml`
+- `item_budget_breakdown.xml`
+- `item_budget_wallet_picker.xml`
 
 ---
 
-## Phase 7 — Track 2: Statistics (Dev 2)
+## Phase 7 — Track 2: Statistics (Dev 2) ⏳ Mục tiêu tiếp theo
 **Thời gian:** Ngày 3–7  
 **Package:** `ui/statistics`
 
@@ -143,96 +140,54 @@
 4. Dữ liệu: đọc từ `TransactionDao` (READ-ONLY)
 5. `StatisticsViewModel` — LiveData aggregation
 
-### Layout cần hoàn thiện:
-- `fragment_statistics.xml`
+### Lưu ý hiện tại:
+- Đây là phase ưu tiên tiếp theo
+- Có thể tái sử dụng nhiều logic từ Budget:
+  - time range
+  - format tiền
+  - empty state
+  - aggregate theo wallet/category
 
 ---
 
-## Phase 8 — Track 2: Debt Management (Dev 2)
+## Phase 8 — Track 2: Debt Management (Dev 2) 🔄 Có nền tảng
 **Thời gian:** Ngày 5–9  
 **Package:** `ui/debt`
 
-### Nhiệm vụ:
-1. `DebtListFragment` + Adapter — tab LEND / BORROW, hiển thị trạng thái và số tiền còn lại
-2. `AddEditDebtFragment` — form (tên người, loại, số tiền, hạn trả, ghi chú)
-3. `DebtViewModel` — tổng cho vay / đi vay chưa thanh toán
-4. Thanh toán một phần: cập nhật `remaining_amount`, đổi `status = SETTLED` khi `remaining_amount = 0`
-5. Link transaction với debt: khi tạo giao dịch trả nợ, gắn `debt_id` (phối hợp với Dev 1)
-
-### Layout cần hoàn thiện:
-- `fragment_debt_list.xml`, `fragment_add_edit_debt.xml`
+### Ghi chú hiện tại:
+- package và màn hình cơ bản đã có
+- chưa phải trọng tâm trước Statistics
 
 ---
 
-## Phase 9 — Track 2: Cloud Sync (Dev 2)
+## Phase 9 — Track 2: Cloud Sync (Dev 2) 🔲 Chưa ưu tiên
 **Thời gian:** Ngày 8–11  
 **Package:** `data/repository` (sync logic)
 
-### Nhiệm vụ:
-1. `SyncWorker extends Worker` — WorkManager Worker để đồng bộ ngầm
-2. Logic: Lấy các record có `sync_status != SYNCED` → upload/delete lên Firestore → cập nhật `sync_status = SYNCED`
-3. Lên lịch đồng bộ tự động (PeriodicWorkRequest, interval 15 phút)
-4. `CloudSyncRepository` — xử lý conflict resolution (server-wins hoặc client-wins theo `updated_at`)
-5. Hiển thị trạng thái sync trong Settings (last sync time)
+### Ghi chú hiện tại:
+- kiến trúc offline-first đã có nền
+- chưa phải ưu tiên bằng Statistics
 
 ---
 
-## Phase 10 — Track 3: Settings & Profile (Dev 3)
+## Phase 10 — Track 3: Settings & Profile (Dev 3) 🔄 Có nền tảng
 **Thời gian:** Ngày 3–6  
 **Package:** `ui/settings`, `ui/profile`
 
-### Nhiệm vụ:
-1. `ProfileFragment` — hiển thị/sửa tên, email, avatar, đơn vị tiền tệ, ngôn ngữ
-2. `SettingsFragment` — dark mode toggle, date format, hide balance toggle, đổi passcode, đăng xuất
-3. `SettingsViewModel`, `ProfileViewModel`
-4. Lưu cài đặt vào `UserEntity` và `PrefsManager`
-5. Dark mode: apply `AppCompatDelegate.setDefaultNightMode()`
-
-### Layout cần hoàn thiện:
-- `fragment_settings.xml`, `fragment_profile.xml`
+### Ghi chú hiện tại:
+- Settings đang là nơi điều hướng vào nhiều module chính của app
 
 ---
 
-## Phase 11 — Track 3: Security (Passcode + Biometric) (Dev 3)
+## Phase 11 — Track 3: Security (Passcode + Biometric) (Dev 3) 🔄 Có nền tảng
 **Thời gian:** Ngày 5–9  
 **Package:** `ui/security`
 
-### Nhiệm vụ:
-1. `PasscodeFragment` — màn hình nhập PIN 4-6 chữ số (keypad custom)
-2. Lưu passcode: hash SHA-256, lưu vào `UserEntity.hashedPasscode`
-3. Xác minh passcode khi mở app (nếu đã kích hoạt)
-4. `BiometricHelper` — wrap `BiometricPrompt`, hỗ trợ fingerprint/face
-5. `SecurityViewModel` — quản lý trạng thái xác thực
-6. Tùy chọn trong Settings: bật/tắt passcode, bật/tắt biometric
-
-### Layout cần hoàn thiện:
-- `fragment_passcode.xml`
-
 ---
 
-## Phase 12 — Track 3: AI Assistant (Dev 3)
+## Phase 12 — Track 3: AI Assistant (Dev 3) 🔄 Có nền tảng
 **Thời gian:** Ngày 7–12  
 **Package:** `ui/ai`
-
-### Nhiệm vụ:
-1. **AIAssistantFragment** — Chatbot với Gemini API:
-   - Giao diện chat (RecyclerView + input EditText)
-   - Gọi `GenerativeModel` từ `com.google.ai.client.generativeai`
-   - API Key lấy từ `BuildConfig.GEMINI_API_KEY`
-   - Streaming responses với coroutines/executor
-2. **AIReceiptScannerFragment** — Quét hóa đơn:
-   - CameraX Preview + ImageCapture
-   - ML Kit Text Recognition (`TextRecognizer`)
-   - Parse kết quả → tự điền form AddEditTransaction
-3. `AIViewModel` — quản lý chat history, kết quả OCR
-
-### Bảo mật:
-- `BuildConfig.GEMINI_API_KEY` lấy từ `local.properties`
-- Thêm `GEMINI_API_KEY=your_key_here` vào `local.properties` (KHÔNG commit vào Git)
-- Thêm `local.properties` vào `.gitignore`
-
-### Layout cần hoàn thiện:
-- `fragment_ai_assistant.xml`, `fragment_ai_receipt_scanner.xml`
 
 ---
 
@@ -241,29 +196,28 @@
 ```
 Phase 0 (Foundation)
     ├── Track 1 (Dev 1): Phase 2 → Phase 3 → Phase 4 → Phase 5
-    ├── Track 2 (Dev 2): Phase 6 ──(đọc Transaction)──→ Phase 7
-    │                    Phase 8 ──(link debt_id)──────→ Phase 9
+    ├── Track 2 (Dev 2): Phase 6 ✅ → Phase 7
+    │                    Phase 8 → Phase 9
     └── Track 3 (Dev 3): Phase 1 → Phase 10 → Phase 11 → Phase 12
 ```
 
-**Điểm tích hợp:**
-- Dev 2 / Phase 6 cần `TransactionDao.getTotalExpenseByCategorySync` → Dev 1 hoàn thành Phase 4 trước
-- Dev 2 / Phase 8 cần `debt_id` trong AddEditTransaction → Dev 1 hoàn thành Phase 4 trước
-- Dev 3 / Phase 12 (Scanner) cần tích hợp với `AddEditTransactionFragment` của Dev 1 → phối hợp cuối Sprint
+**Điểm tích hợp hiện tại:**
+- Budget đã làm thay đổi thêm các package shared:
+  - `data/local/dao`
+  - `data/repository`
+  - `di`
+  - `ui/transaction`
+  - `ui/wallet`
+  - `ui/category`
+  - `res/`
 
 ---
 
 ## Bảng Timeline
 
-| Ngày | Dev 1 | Dev 2 | Dev 3 |
+| Giai đoạn hiện tại | Track 1 | Track 2 | Track 3 |
 |------|-------|-------|-------|
-| 1–2 | Wallet CRUD | Budget form | Auth (Login/Register) |
-| 3–4 | Category CRUD | Budget logic + progress | Settings + Profile |
-| 5–6 | Transaction (INCOME/EXPENSE) | Statistics (Charts) | Passcode setup |
-| 7–8 | Transaction (TRANSFER + ảnh) | Debt CRUD | Biometric |
-| 9–10 | Event CRUD | Cloud Sync Worker | AI Chat (Gemini) |
-| 11–12 | Integration & polish | Sync testing | AI Receipt Scanner |
-| 13–14 | Code review / Bug fix | Code review / Bug fix | Code review / Bug fix |
+| Hiện tại | Ổn định Wallet/Category/Transaction/Event | Hoàn tất Budget, chuyển sang Statistics | Duy trì Auth/Settings/Security/AI |
 
 ---
 

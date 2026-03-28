@@ -3,6 +3,7 @@ package com.group10.moneymate.ui.transaction;
 import android.app.Application;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -15,7 +16,6 @@ import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.di.MoneyMateApplication;
-import com.group10.moneymate.utils.PrefsManager;
 
 import java.util.List;
 
@@ -52,8 +52,7 @@ public class TransactionViewModel extends AndroidViewModel {
         WalletRepository walletRepository = app.getAppContainer().walletRepository;
         CategoryRepository categoryRepository = app.getAppContainer().categoryRepository;
 
-        PrefsManager prefsManager = app.getAppContainer().prefsManager;
-        userId = prefsManager.getUid();
+        userId = app.getAppContainer().authRepository.getCurrentUserId();
 
         allTransactions = transactionRepository.getAllTransactions(userId);
 
@@ -123,6 +122,24 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<TransactionEntity> getTransactionById(String id) {
         return transactionRepository.getTransactionById(id);
+    }
+
+    public LiveData<List<TransactionEntity>> getTransactionsForBudget(@Nullable String categoryId,
+                                                                      @Nullable String walletId,
+                                                                      long startDate,
+                                                                      long endDate) {
+        return transactionRepository.getTransactionsForBudget(
+                userId,
+                categoryId,
+                walletId,
+                startDate,
+                endDate
+        );
+    }
+
+    public LiveData<List<TransactionEntity>> getExpenseTransactionsByRange(long startDate,
+                                                                           long endDate) {
+        return transactionRepository.getExpenseTransactionsByRange(userId, startDate, endDate);
     }
 
     // ─── CRUD ─────────────────────────────────────────────────────────────────

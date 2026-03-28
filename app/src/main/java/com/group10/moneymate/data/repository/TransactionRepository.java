@@ -1,5 +1,6 @@
 package com.group10.moneymate.data.repository;
 
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -8,6 +9,7 @@ import com.group10.moneymate.data.local.dao.WalletDao;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.models.SyncStatus;
+import com.group10.moneymate.utils.Constants;
 
 import java.util.List;
 
@@ -52,6 +54,30 @@ public class TransactionRepository {
         return transactionDao.getTransactionsByCategory(userId, categoryId);
     }
 
+    public LiveData<List<TransactionEntity>> getTransactionsForBudget(String userId,
+                                                                      String categoryId,
+                                                                      String walletId,
+                                                                      long startDate,
+                                                                      long endDate) {
+        if (Constants.isOtherCategoryId(categoryId)) {
+            return transactionDao.getTransactionsForOtherCategories(
+                    userId,
+                    startDate,
+                    endDate,
+                    walletId,
+                    Constants.CATEGORY_ID_OTHER,
+                    Constants.CATEGORY_ID_OTHER_LEGACY
+            );
+        }
+        return transactionDao.getTransactionsForBudget(userId, categoryId, walletId, startDate, endDate);
+    }
+
+    public LiveData<List<TransactionEntity>> getExpenseTransactionsByRange(String userId,
+                                                                           long startDate,
+                                                                           long endDate) {
+        return transactionDao.getExpenseTransactionsByRange(userId, startDate, endDate);
+    }
+
     public LiveData<List<TransactionEntity>> getTransactionsByWallet(String userId, String walletId) {
         return transactionDao.getTransactionsByWallet(userId, walletId);
     }
@@ -66,6 +92,24 @@ public class TransactionRepository {
 
     public LiveData<Double> getTotalExpense(String userId, long startDate, long endDate) {
         return transactionDao.getTotalExpense(userId, startDate, endDate);
+    }
+
+    public LiveData<Double> getTotalExpenseByCategory(String userId,
+                                                      @Nullable String categoryId,
+                                                      @Nullable String walletId,
+                                                      long startDate,
+                                                      long endDate) {
+        if (Constants.isOtherCategoryId(categoryId)) {
+            return transactionDao.getSpentForOtherCategories(
+                    userId,
+                    startDate,
+                    endDate,
+                    walletId,
+                    Constants.CATEGORY_ID_OTHER,
+                    Constants.CATEGORY_ID_OTHER_LEGACY
+            );
+        }
+        return transactionDao.getTotalExpenseByCategory(userId, categoryId, walletId, startDate, endDate);
     }
 
     // ─── Write ────────────────────────────────────────────────────────────────

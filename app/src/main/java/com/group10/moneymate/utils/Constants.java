@@ -28,6 +28,9 @@ public class Constants {
 
     // ─── Budget ───────────────────────────────────────────────────────────────
     public static final float BUDGET_WARNING_THRESHOLD = 0.8f;
+    public static final String CATEGORY_ID_OTHER = "VIRTUAL_OTHER";
+    public static final String CATEGORY_ID_OTHER_LEGACY = "VIRTUAL_OTHER_CATEGORIES";
+    public static final String CATEGORY_TYPE_VIRTUAL_BUDGET = "VIRTUAL_BUDGET";
 
     // ─── Passcode ─────────────────────────────────────────────────────────────
     public static final int PASSCODE_MAX_ATTEMPTS    = 3;
@@ -86,5 +89,10 @@ public class Constants {
 
     private Constants() {
         // Prevent instantiation
+    }
+
+    public static boolean isOtherCategoryId(String categoryId) {
+        return CATEGORY_ID_OTHER.equals(categoryId)
+                || CATEGORY_ID_OTHER_LEGACY.equals(categoryId);
     }
 }

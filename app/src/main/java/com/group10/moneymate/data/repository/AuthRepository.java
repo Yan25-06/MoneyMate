@@ -4,8 +4,6 @@ import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseUser;
 import com.group10.moneymate.data.local.AppDatabase;
@@ -45,12 +43,51 @@ public class AuthRepository {
     }
 
     public String getCurrentUserId() {
-        return firebaseAuthHelper.getCurrentUserId();
+        String localUid = prefsManager.getUid();
+        if (!TextUtils.isEmpty(localUid)) {
+            return localUid;
+        }
+
+        String firebaseUid = firebaseAuthHelper.getCurrentUserId();
+        return firebaseUid != null ? firebaseUid : "";
+    }
+
+    public void ensureLocalUserRecord() {
+        final String localUserId = getCurrentUserId();
+        if (TextUtils.isEmpty(localUserId)) {
+            return;
+        }
+
+        final FirebaseUser firebaseUser = firebaseAuthHelper.getCurrentUser();
+        final long now = System.currentTimeMillis();
+
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            UserEntity existing = userDao.getUserByIdSync(localUserId);
+            if (existing != null) {
+                return;
+            }
+
+            UserEntity entity = new UserEntity();
+            entity.setId(localUserId);
+            entity.setEmail(firebaseUser != null ? firebaseUser.getEmail() : null);
+            entity.setDisplayName(firebaseUser != null && firebaseUser.getDisplayName() != null
+                    ? firebaseUser.getDisplayName()
+                    : "");
+            entity.setAvatarUrl(null);
+            entity.setCurrency("VND");
+            entity.setLanguage("vi");
+            entity.setThemeMode("system");
+            entity.setBalanceHidden(false);
+            entity.setLastSync(0L);
+            entity.setCreatedAt(now);
+            userDao.insertUser(entity);
+        });
     }
 
     public void signOut() {
         firebaseAuthHelper.signOut();
-        prefsManager.clearAll();
+        prefsManager.setLoggedIn(false);
+        prefsManager.saveUid(null);
     }
 
     /**
@@ -172,25 +209,45 @@ public class AuthRepository {
     private void handleAuthSuccess(@NonNull FirebaseUser firebaseUser,
                                    @NonNull String displayName) {
         final long now = System.currentTimeMillis();
+        final String localUserId = resolveLocalUserId(firebaseUser);
         final String resolvedName = !TextUtils.isEmpty(displayName) ? displayName
                 : (firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
 
-        final UserEntity entity = new UserEntity();
-        entity.setId(firebaseUser.getUid());
-        entity.setEmail(firebaseUser.getEmail());
-        entity.setDisplayName(resolvedName);
-        entity.setAvatarUrl(null);
-        entity.setCurrency("VND");
-        entity.setLanguage("vi");
-        entity.setThemeMode("system");
-        entity.setBalanceHidden(false);
-        entity.setLastSync(0L);
-        entity.setCreatedAt(now);
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            UserEntity existing = userDao.getUserByIdSync(localUserId);
+            if (existing == null) {
+                UserEntity entity = new UserEntity();
+                entity.setId(localUserId);
+                entity.setEmail(firebaseUser.getEmail());
+                entity.setDisplayName(resolvedName);
+                entity.setAvatarUrl(null);
+                entity.setCurrency("VND");
+                entity.setLanguage("vi");
+                entity.setThemeMode("system");
+                entity.setBalanceHidden(false);
+                entity.setLastSync(0L);
+                entity.setCreatedAt(now);
+                userDao.insertUser(entity);
+                return;
+            }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> userDao.insertUser(entity));
+            existing.setEmail(firebaseUser.getEmail());
+            existing.setDisplayName(resolvedName);
+            if (TextUtils.isEmpty(existing.getAvatarUrl())) {
+                existing.setAvatarUrl(null);
+            }
+            userDao.updateUser(existing);
+        });
 
-        // Lưu uid và trạng thái login vào SharedPreferences
-        prefsManager.saveUid(firebaseUser.getUid());
+        // Lưu uid local ổn định để query Room nhất quán giữa các phiên.
+        prefsManager.saveUid(localUserId);
         prefsManager.setLoggedIn(true);
+    }
+
+    private String resolveLocalUserId(@NonNull FirebaseUser firebaseUser) {
+        if (firebaseUser.isAnonymous()) {
+            return prefsManager.getOrCreateGuestUid();
+        }
+        return firebaseUser.getUid();
     }
 }

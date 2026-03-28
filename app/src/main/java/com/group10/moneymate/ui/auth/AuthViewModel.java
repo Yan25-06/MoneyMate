@@ -26,6 +26,7 @@ public class AuthViewModel extends AndroidViewModel {
         IDLE,
         LOADING,
         AUTHENTICATED,
+        LOGGED_OUT,
         PASSWORD_RESET_EMAIL_SENT,
         ERROR
     }
@@ -70,6 +71,7 @@ public class AuthViewModel extends AndroidViewModel {
             }
         });
     }
+
     public void register(String email, String password, String confirmPassword, String displayName) {
         String trimmedDisplayName = displayName != null ? displayName.trim() : "";
         if (TextUtils.isEmpty(trimmedDisplayName)) {
@@ -131,6 +133,15 @@ public class AuthViewModel extends AndroidViewModel {
                 authState.postValue(AuthState.ERROR);
             }
         });
+    }
+
+    /**
+     * Đăng xuất: xóa Firebase session + PrefsManager.
+     * UI phải navigate về LoginActivity với FLAG_CLEAR_TASK sau khi observe LOGGED_OUT.
+     */
+    public void logout() {
+        authRepository.signOut();           // Firebase + prefsManager.clearAll()
+        authState.setValue(AuthState.LOGGED_OUT);
     }
 
     public boolean isLoggedIn() {

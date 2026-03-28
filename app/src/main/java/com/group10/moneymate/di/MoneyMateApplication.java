@@ -13,8 +13,8 @@ public class MoneyMateApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // Initialize dependency injection container
         appContainer = new AppContainer(this);
+        appContainer.bootstrapLocalData();
     }
 
     public AppContainer getAppContainer() {

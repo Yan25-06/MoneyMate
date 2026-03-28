@@ -9,25 +9,31 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.navigation.Navigation;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
 
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.databinding.FragmentAddEditCategoryBinding;
 import com.group10.moneymate.utils.Constants;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 public class AddEditCategoryFragment extends Fragment {
 
     private FragmentAddEditCategoryBinding binding;
     private CategoryViewModel viewModel;
+    private CategoryIconAdapter iconAdapter;
 
-    // null = Add mode, non-null = Edit mode (từ Safe Args)
     private String categoryId;
     private CategoryEntity existingCategory;
 
-    // Giá trị mặc định khi chưa chọn
     private String selectedColorHex = "#9E9E9E";
     private String selectedIconResId = "ic_other";
 
@@ -45,27 +51,40 @@ public class AddEditCategoryFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(CategoryViewModel.class);
 
-        // Lấy categoryId từ Safe Args
         categoryId = AddEditCategoryFragmentArgs.fromBundle(getArguments()).getCategoryId();
 
         setupTypeToggle();
         setupColorPreview();
+        setupIconGrid();
         setupSaveButton();
         loadExistingCategoryIfNeeded();
+        updateColorPreview();
+        updateIconPreview();
     }
 
     private void setupTypeToggle() {
-        // Mặc định chọn Chi tiêu
         binding.rgType.check(R.id.rb_expense);
     }
 
     private void setupColorPreview() {
-        // Cập nhật preview màu khi nhấn nút chọn màu
         binding.btnPickColor.setOnClickListener(v -> showColorPicker());
     }
 
+    private void setupIconGrid() {
+        iconAdapter = new CategoryIconAdapter();
+        iconAdapter.submitList(buildIconItems());
+        iconAdapter.setSelectedIconResId(selectedIconResId);
+        iconAdapter.setTintColor(parseSelectedColor());
+        iconAdapter.setOnIconClickListener(item -> {
+            selectedIconResId = item.iconResId;
+            updateIconPreview();
+        });
+        binding.rvIconOptions.setLayoutManager(new GridLayoutManager(requireContext(), 4));
+        binding.rvIconOptions.setAdapter(iconAdapter);
+        binding.rvIconOptions.setNestedScrollingEnabled(false);
+    }
+
     private void showColorPicker() {
-        // Danh sách màu gợi ý
         String[] colors = {
                 "#F44336", "#FF9800", "#FFEB3B", "#4CAF50",
                 "#2196F3", "#9C27B0", "#E91E63", "#00BCD4",
@@ -82,15 +101,41 @@ public class AddEditCategoryFragment extends Fragment {
                 .setItems(colorNames, (dialog, which) -> {
                     selectedColorHex = colors[which];
                     updateColorPreview();
+                    updateIconPreview();
                 })
                 .show();
     }
 
     private void updateColorPreview() {
+        binding.vColorPreview.setBackgroundColor(parseSelectedColor());
+        if (iconAdapter != null) {
+            iconAdapter.setTintColor(parseSelectedColor());
+        }
+    }
+
+    private void updateIconPreview() {
+        int iconResId = requireContext().getResources().getIdentifier(
+                selectedIconResId,
+                "drawable",
+                requireContext().getPackageName()
+        );
+        if (iconResId == 0) {
+            iconResId = R.drawable.ic_other;
+        }
+        binding.ivIconPreview.setImageResource(iconResId);
+        binding.ivIconPreview.setColorFilter(parseSelectedColor());
+        binding.tvIconName.setText(findIconLabel(selectedIconResId));
+        if (iconAdapter != null) {
+            iconAdapter.setSelectedIconResId(selectedIconResId);
+        }
+    }
+
+    private int parseSelectedColor() {
         try {
-            int color = android.graphics.Color.parseColor(selectedColorHex);
-            binding.vColorPreview.setBackgroundColor(color);
-        } catch (IllegalArgumentException ignored) {}
+            return android.graphics.Color.parseColor(selectedColorHex);
+        } catch (IllegalArgumentException ignored) {
+            return ContextCompat.getColor(requireContext(), R.color.md_theme_primary);
+        }
     }
 
     private void setupSaveButton() {
@@ -99,30 +144,29 @@ public class AddEditCategoryFragment extends Fragment {
 
     private void loadExistingCategoryIfNeeded() {
         if (categoryId == null) {
-            // Add mode
             binding.btnSave.setText(R.string.btn_save);
             return;
         }
 
-        // Edit mode — load category từ ViewModel
         binding.btnSave.setText(R.string.btn_update);
         viewModel.getCategoryById(categoryId).observe(getViewLifecycleOwner(), category -> {
-            if (category == null) return;
+            if (category == null) {
+                return;
+            }
             existingCategory = category;
 
             binding.etCategoryName.setText(category.getName());
-            selectedColorHex  = category.getColorHex();
+            selectedColorHex = category.getColorHex();
             selectedIconResId = category.getIconResId();
             updateColorPreview();
+            updateIconPreview();
 
-            // Set đúng radio button theo type
             if (Constants.TYPE_INCOME.equals(category.getType())) {
                 binding.rgType.check(R.id.rb_income);
             } else {
                 binding.rgType.check(R.id.rb_expense);
             }
 
-            // Không cho phép đổi type của default category
             if (category.isDefault()) {
                 binding.rgType.setEnabled(false);
                 binding.rbExpense.setEnabled(false);
@@ -133,7 +177,7 @@ public class AddEditCategoryFragment extends Fragment {
 
     private void saveCategory() {
         String name = binding.etCategoryName.getText() != null
-                ? binding.etCategoryName.getText().toString().trim()
+                ? binding.etCategoryName.getText().toString().trim().replaceAll("\\s{2,}", " ")
                 : "";
 
         if (TextUtils.isEmpty(name)) {
@@ -147,7 +191,6 @@ public class AddEditCategoryFragment extends Fragment {
                 : Constants.TYPE_EXPENSE;
 
         if (existingCategory != null) {
-            // Edit mode
             existingCategory.setName(name);
             existingCategory.setColorHex(selectedColorHex);
             existingCategory.setIconResId(selectedIconResId);
@@ -157,7 +200,6 @@ public class AddEditCategoryFragment extends Fragment {
             viewModel.updateCategory(existingCategory);
             Toast.makeText(requireContext(), R.string.category_updated, Toast.LENGTH_SHORT).show();
         } else {
-            // Add mode
             viewModel.addCategory(name, selectedIconResId, selectedColorHex, type);
             Toast.makeText(requireContext(), R.string.category_added, Toast.LENGTH_SHORT).show();
         }
@@ -165,9 +207,35 @@ public class AddEditCategoryFragment extends Fragment {
         Navigation.findNavController(requireView()).navigateUp();
     }
 
+    @NonNull
+    private List<CategoryIconAdapter.CategoryIconItem> buildIconItems() {
+        Map<String, String> uniqueItems = new LinkedHashMap<>();
+        for (Constants.DefaultCategory category : Constants.getDefaultCategories()) {
+            if (!uniqueItems.containsKey(category.iconResId)) {
+                uniqueItems.put(category.iconResId, category.name);
+            }
+        }
+
+        List<CategoryIconAdapter.CategoryIconItem> items = new ArrayList<>();
+        for (Map.Entry<String, String> entry : uniqueItems.entrySet()) {
+            items.add(new CategoryIconAdapter.CategoryIconItem(entry.getKey(), entry.getValue()));
+        }
+        return items;
+    }
+
+    @NonNull
+    private String findIconLabel(@NonNull String iconResId) {
+        for (Constants.DefaultCategory category : Constants.getDefaultCategories()) {
+            if (iconResId.equals(category.iconResId)) {
+                return category.name;
+            }
+        }
+        return getString(R.string.btn_pick_icon);
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding = null; // Prevent memory leak
+        binding = null;
     }
 }

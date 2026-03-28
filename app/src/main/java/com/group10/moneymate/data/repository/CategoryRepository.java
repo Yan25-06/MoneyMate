@@ -1,5 +1,10 @@
 package com.group10.moneymate.data.repository;
 
+import android.os.Handler;
+import android.os.Looper;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -8,7 +13,9 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.utils.Constants;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -18,6 +25,7 @@ import java.util.UUID;
 public class CategoryRepository {
 
     private final CategoryDao categoryDao;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public CategoryRepository(CategoryDao categoryDao) {
         this.categoryDao = categoryDao;
@@ -63,11 +71,9 @@ public class CategoryRepository {
      */
     public void deleteCategory(CategoryEntity category) {
         if (category.isDefault()) return;
-        category.setDeleted(true);
-        category.setSyncStatus(2); // PENDING_DELETE
-        category.setUpdatedAt(System.currentTimeMillis());
+        long updatedAt = System.currentTimeMillis();
         AppDatabase.databaseWriteExecutor.execute(() ->
-                categoryDao.updateCategory(category)
+                categoryDao.softDelete(category.getId(), updatedAt)
         );
     }
 
@@ -82,28 +88,127 @@ public class CategoryRepository {
      */
     public void seedDefaults() {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            if (categoryDao.getDefaultCategoryCount() > 0) return;
+            syncDefaultCategories();
+            ensureVirtualOtherCategoriesExistInternal();
+        });
+    }
 
-            List<Constants.DefaultCategory> defaults = Constants.getDefaultCategories();
-            List<CategoryEntity> entities = new ArrayList<>();
-            long now = System.currentTimeMillis();
+    public void ensureVirtualOtherCategoryExists() {
+        ensureVirtualOtherCategoryExists(null);
+    }
 
-            for (Constants.DefaultCategory dc : defaults) {
-                CategoryEntity entity = new CategoryEntity();
-                entity.setId(UUID.randomUUID().toString());
-                entity.setUserId(null);        // null = dùng chung cho mọi user
-                entity.setName(dc.name);
-                entity.setIconResId(dc.iconResId);
-                entity.setColorHex(dc.colorHex);
-                entity.setType(dc.type);
-                entity.setDefault(true);
-                entity.setUpdatedAt(now);
-                entity.setSyncStatus(0);       // SYNCED — default categories không cần sync
-                entity.setDeleted(false);
-                entities.add(entity);
+    public void ensureVirtualOtherCategoryExists(@Nullable Runnable onComplete) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            ensureVirtualOtherCategoriesExistInternal();
+            if (onComplete != null) {
+                mainHandler.post(onComplete);
+            }
+        });
+    }
+
+    private void ensureVirtualOtherCategoriesExistInternal() {
+        if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER) == null) {
+            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER));
+        }
+        if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER_LEGACY) == null) {
+            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER_LEGACY));
+        }
+    }
+
+    private void syncDefaultCategories() {
+        List<Constants.DefaultCategory> defaults = Constants.getDefaultCategories();
+        List<CategoryEntity> existingDefaults = categoryDao.getDefaultCategories();
+        Map<String, CategoryEntity> existingByKey = new HashMap<>();
+
+        for (CategoryEntity category : existingDefaults) {
+            existingByKey.put(buildDefaultKey(category.getName(), category.getType()), category);
+        }
+
+        List<CategoryEntity> missingDefaults = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (Constants.DefaultCategory defaultCategory : defaults) {
+            String key = buildDefaultKey(defaultCategory.name, defaultCategory.type);
+            CategoryEntity existing = existingByKey.get(key);
+            if (existing == null) {
+                missingDefaults.add(buildDefaultCategory(defaultCategory, now));
+                continue;
             }
 
-            categoryDao.insertAll(entities);
-        });
+            if (shouldRefreshDefaultCategory(existing, defaultCategory)) {
+                existing.setUserId(null);
+                existing.setName(defaultCategory.name);
+                existing.setIconResId(defaultCategory.iconResId);
+                existing.setColorHex(defaultCategory.colorHex);
+                existing.setType(defaultCategory.type);
+                existing.setDefault(true);
+                existing.setDeleted(false);
+                existing.setSyncStatus(0);
+                existing.setUpdatedAt(now);
+                categoryDao.updateCategory(existing);
+            }
+        }
+
+        if (!missingDefaults.isEmpty()) {
+            categoryDao.insertAll(missingDefaults);
+        }
+    }
+
+    @NonNull
+    private String buildDefaultKey(@Nullable String name, @Nullable String type) {
+        String safeName = name != null ? name.trim() : "";
+        String safeType = type != null ? type.trim() : "";
+        return safeName + "|" + safeType;
+    }
+
+    @NonNull
+    private CategoryEntity buildDefaultCategory(@NonNull Constants.DefaultCategory defaultCategory, long now) {
+        CategoryEntity entity = new CategoryEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setUserId(null);
+        entity.setName(defaultCategory.name);
+        entity.setIconResId(defaultCategory.iconResId);
+        entity.setColorHex(defaultCategory.colorHex);
+        entity.setType(defaultCategory.type);
+        entity.setDefault(true);
+        entity.setUpdatedAt(now);
+        entity.setSyncStatus(0);
+        entity.setDeleted(false);
+        return entity;
+    }
+
+    private boolean shouldRefreshDefaultCategory(@NonNull CategoryEntity existing,
+                                                 @NonNull Constants.DefaultCategory defaultCategory) {
+        if (existing.isDeleted()) {
+            return true;
+        }
+        if (!existing.isDefault()) {
+            return true;
+        }
+        if (existing.getUserId() != null) {
+            return true;
+        }
+        if (!defaultCategory.iconResId.equals(existing.getIconResId())) {
+            return true;
+        }
+        if (!defaultCategory.colorHex.equals(existing.getColorHex())) {
+            return true;
+        }
+        return !defaultCategory.type.equals(existing.getType());
+    }
+
+    @NonNull
+    private CategoryEntity buildOtherCategory(@NonNull String categoryId) {
+        CategoryEntity otherCategory = new CategoryEntity();
+        otherCategory.setId(categoryId);
+        otherCategory.setUserId(null);
+        otherCategory.setName("Các mục khác");
+        otherCategory.setIconResId("ic_category_other");
+        otherCategory.setColorHex("#64748B");
+        otherCategory.setType(Constants.CATEGORY_TYPE_VIRTUAL_BUDGET);
+        otherCategory.setDefault(true);
+        otherCategory.setUpdatedAt(System.currentTimeMillis());
+        otherCategory.setSyncStatus(0);
+        otherCategory.setDeleted(false);
+        return otherCategory;
     }
 }

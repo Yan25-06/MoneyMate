@@ -8,7 +8,6 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
-import com.google.firebase.auth.FirebaseAuth;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.di.AppContainer;
@@ -33,9 +32,7 @@ public class CategoryViewModel extends AndroidViewModel {
         super(application);
         AppContainer container = ((MoneyMateApplication) application).getAppContainer();
         repository = container.categoryRepository;
-        userId = FirebaseAuth.getInstance().getCurrentUser() != null
-                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
-                : "";
+        userId = container.authRepository.getCurrentUserId();
 
         // Khi selectedType thay đổi → query lại từ Room
         categories = Transformations.switchMap(selectedType, type ->

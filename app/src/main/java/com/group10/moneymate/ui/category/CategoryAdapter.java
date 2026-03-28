@@ -51,7 +51,9 @@ public class CategoryAdapter extends ListAdapter<CategoryEntity, CategoryAdapter
                                                   @NonNull CategoryEntity newItem) {
                     return oldItem.getId().equals(newItem.getId())
                             && oldItem.getName().equals(newItem.getName())
+                            && oldItem.getIconResId().equals(newItem.getIconResId())
                             && oldItem.getColorHex().equals(newItem.getColorHex())
+                            && oldItem.getType().equals(newItem.getType())
                             && oldItem.isDefault() == newItem.isDefault();
                 }
             };
@@ -80,6 +82,12 @@ public class CategoryAdapter extends ListAdapter<CategoryEntity, CategoryAdapter
 
         void bind(CategoryEntity item) {
             binding.tvCategoryName.setText(item.getName());
+            int iconResId = binding.getRoot().getContext().getResources().getIdentifier(
+                    item.getIconResId(),
+                    "drawable",
+                    binding.getRoot().getContext().getPackageName()
+            );
+            binding.ivCategoryIcon.setImageResource(iconResId != 0 ? iconResId : R.drawable.ic_other);
 
             // Badge "Mặc định" chỉ hiện với default category
             binding.tvDefaultBadge.setVisibility(item.isDefault() ? View.VISIBLE : View.GONE);
