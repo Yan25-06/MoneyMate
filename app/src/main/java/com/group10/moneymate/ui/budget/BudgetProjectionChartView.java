@@ -16,6 +16,10 @@ import androidx.core.content.ContextCompat;
 
 import com.group10.moneymate.R;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class BudgetProjectionChartView extends View {
 
     private final Paint guidelinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -31,9 +35,9 @@ public class BudgetProjectionChartView extends View {
     private double budgetAmount;
     private double spentAmount;
     private double projectedAmount;
-    private float progressFraction;
     private long startDate;
     private long endDate;
+    private List<ChartPoint> actualPoints = Collections.emptyList();
 
     public BudgetProjectionChartView(Context context) {
         this(context, null);
@@ -82,24 +86,32 @@ public class BudgetProjectionChartView extends View {
     }
 
     public void setBudgetData(double budgetAmount,
-                              double spentAmount,
                               double projectedAmount,
-                              float progressFraction,
                               long startDate,
-                              long endDate) {
+                              long endDate,
+                              @Nullable List<ChartPoint> actualPoints) {
         this.budgetAmount = Math.max(budgetAmount, 0d);
-        this.spentAmount = Math.max(spentAmount, 0d);
         this.projectedAmount = Math.max(projectedAmount, 0d);
-        this.progressFraction = Math.max(0f, Math.min(1f, progressFraction));
         this.startDate = startDate;
         this.endDate = endDate;
+        this.actualPoints = actualPoints != null
+                ? new ArrayList<>(actualPoints)
+                : Collections.emptyList();
+        if (!this.actualPoints.isEmpty()) {
+            this.spentAmount = Math.max(0d, this.actualPoints.get(this.actualPoints.size() - 1).amount);
+        } else {
+            this.spentAmount = 0d;
+        }
         invalidate();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float leftPadding = dp(56f);
+        double maxValue = getNiceMaxValue(Math.max(budgetAmount, Math.max(projectedAmount, spentAmount)));
+        float yLabelWidth = getMaxYLabelWidth(maxValue);
+        float axisLabelGap = dp(8f);
+        float leftPadding = dp(8f) + yLabelWidth + axisLabelGap;
         float rightPadding = dp(12f);
         float top = dp(14f);
         float bottomPadding = dp(28f);
@@ -112,10 +124,11 @@ public class BudgetProjectionChartView extends View {
             return;
         }
 
-        double maxValue = getNiceMaxValue(Math.max(budgetAmount, Math.max(projectedAmount, spentAmount)));
         float budgetY = valueToY(budgetAmount, maxValue, top, bottom);
-        float currentX = left + (width * progressFraction);
-        float currentY = valueToY(spentAmount, maxValue, top, bottom);
+        List<ChartPoint> points = buildRenderablePoints();
+        ChartPoint lastPoint = points.get(points.size() - 1);
+        float currentX = xForDate(lastPoint.timestamp, left, width);
+        float currentY = valueToY(lastPoint.amount, maxValue, top, bottom);
         float projectedY = valueToY(projectedAmount, maxValue, top, bottom);
 
         for (int i = 0; i <= 4; i++) {
@@ -123,7 +136,7 @@ public class BudgetProjectionChartView extends View {
             canvas.drawLine(left, y, right, y, guidelinePaint);
 
             double axisValue = maxValue - ((maxValue / 4d) * i);
-            drawYLabel(canvas, BudgetUiUtils.formatAxisMoney(axisValue), left, y);
+            drawYLabel(canvas, BudgetUiUtils.formatAxisMoney(axisValue), left, y, axisLabelGap);
         }
 
         canvas.drawLine(left, budgetY, right, budgetY, budgetLinePaint);
@@ -132,14 +145,27 @@ public class BudgetProjectionChartView extends View {
 
         Path actualFill = new Path();
         actualFill.moveTo(left, bottom);
+        for (ChartPoint point : points) {
+            actualFill.lineTo(
+                    xForDate(point.timestamp, left, width),
+                    valueToY(point.amount, maxValue, top, bottom)
+            );
+        }
         actualFill.lineTo(currentX, bottom);
-        actualFill.lineTo(currentX, currentY);
-        actualFill.close();
         canvas.drawPath(actualFill, actualFillPaint);
 
         Path actualLine = new Path();
-        actualLine.moveTo(left, bottom);
-        actualLine.lineTo(currentX, currentY);
+        actualLine.moveTo(
+                xForDate(points.get(0).timestamp, left, width),
+                valueToY(points.get(0).amount, maxValue, top, bottom)
+        );
+        for (int i = 1; i < points.size(); i++) {
+            ChartPoint point = points.get(i);
+            actualLine.lineTo(
+                    xForDate(point.timestamp, left, width),
+                    valueToY(point.amount, maxValue, top, bottom)
+            );
+        }
         canvas.drawPath(actualLine, actualLinePaint);
 
         Path projectedFill = new Path();
@@ -163,10 +189,42 @@ public class BudgetProjectionChartView extends View {
         return bottom - ((bottom - top) * fraction);
     }
 
-    private void drawYLabel(@NonNull Canvas canvas, @NonNull String text, float chartLeft, float y) {
+    private float xForDate(long timestamp, float left, float width) {
+        if (endDate <= startDate) {
+            return left + width;
+        }
+        float fraction = (float) (timestamp - startDate) / (float) (endDate - startDate);
+        fraction = Math.max(0f, Math.min(1f, fraction));
+        return left + (width * fraction);
+    }
+
+    @NonNull
+    private List<ChartPoint> buildRenderablePoints() {
+        if (actualPoints == null || actualPoints.isEmpty()) {
+            return Collections.singletonList(new ChartPoint(startDate, 0d));
+        }
+        return actualPoints;
+    }
+
+    private void drawYLabel(@NonNull Canvas canvas,
+                            @NonNull String text,
+                            float chartLeft,
+                            float y,
+                            float axisLabelGap) {
         labelPaint.getTextBounds(text, 0, text.length(), textBounds);
         float baseline = y + (textBounds.height() / 2f);
-        canvas.drawText(text, dp(4f), baseline, labelPaint);
+        float x = chartLeft - axisLabelGap - textBounds.width();
+        canvas.drawText(text, Math.max(dp(4f), x), baseline, labelPaint);
+    }
+
+    private float getMaxYLabelWidth(double maxValue) {
+        float maxWidth = 0f;
+        for (int i = 0; i <= 4; i++) {
+            double axisValue = maxValue - ((maxValue / 4d) * i);
+            String text = BudgetUiUtils.formatAxisMoney(axisValue);
+            maxWidth = Math.max(maxWidth, labelPaint.measureText(text));
+        }
+        return maxWidth;
     }
 
     private void drawXLabels(@NonNull Canvas canvas, float left, float right, float bottom) {
@@ -212,5 +270,15 @@ public class BudgetProjectionChartView extends View {
                 value,
                 getResources().getDisplayMetrics()
         );
+    }
+
+    public static class ChartPoint {
+        public final long timestamp;
+        public final double amount;
+
+        public ChartPoint(long timestamp, double amount) {
+            this.timestamp = timestamp;
+            this.amount = amount;
+        }
     }
 }

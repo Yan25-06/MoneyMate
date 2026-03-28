@@ -50,4 +50,8 @@ public class AppContainer {
     public void seedDefaultCategoriesIfNeeded() {
         categoryRepository.seedDefaults();
     }
+
+    public void ensureVirtualBudgetCategoriesIfNeeded() {
+        categoryRepository.ensureVirtualOtherCategoryExists();
+    }
 }

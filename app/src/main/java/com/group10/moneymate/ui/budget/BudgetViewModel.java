@@ -4,17 +4,24 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
+import com.group10.moneymate.utils.Constants;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -25,43 +32,74 @@ import java.util.UUID;
 
 public class BudgetViewModel extends ViewModel {
 
-    private static final String ALL_WALLETS_LABEL = "Tất cả các ví";
-    private static final String UNKNOWN_WALLET_LABEL = "Ví";
+    public enum BudgetTab {
+        THIS_MONTH,
+        FUTURE,
+        CUSTOM
+    }
 
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
     private final String userId;
+    private final String allCategoriesLabel;
+    private final String otherCategoriesLabel;
+    private final String allWalletsLabel;
+    private final String unknownWalletLabel;
+    private final String unknownCategoryLabel;
 
     private final LiveData<List<BudgetEntity>> budgetSource;
     private final LiveData<List<CategoryEntity>> expenseCategories;
-    private final MediatorLiveData<List<BudgetUIModel>> activeBudgets = new MediatorLiveData<>();
-    private final MediatorLiveData<List<BudgetUIModel>> finishedBudgets = new MediatorLiveData<>();
-    private final MediatorLiveData<BudgetSummaryUIModel> summary = new MediatorLiveData<>();
+    private final LiveData<List<WalletEntity>> wallets;
+    private final MutableLiveData<String> selectedWalletFilterId = new MutableLiveData<>(null);
+    private final MutableLiveData<BudgetTab> selectedTab = new MutableLiveData<>(BudgetTab.THIS_MONTH);
+    private final MutableLiveData<Boolean> hasAnyBudgets = new MutableLiveData<>(false);
+    private final MutableLiveData<List<BudgetUIModel>> activeBudgets = new MutableLiveData<>();
+    private final MutableLiveData<List<BudgetUIModel>> finishedBudgets = new MutableLiveData<>();
+    private final MutableLiveData<BudgetSummaryUIModel> summary = new MutableLiveData<>();
 
     private final Map<String, LiveData<CategoryEntity>> categorySources = new HashMap<>();
     private final Map<String, LiveData<WalletEntity>> walletSources = new HashMap<>();
     private final Map<String, LiveData<Double>> spentSources = new HashMap<>();
+    private final Map<String, Observer<CategoryEntity>> categoryObservers = new HashMap<>();
+    private final Map<String, Observer<WalletEntity>> walletObservers = new HashMap<>();
+    private final Map<String, Observer<Double>> spentObservers = new HashMap<>();
     private final Map<String, CategoryEntity> categoryValues = new HashMap<>();
     private final Map<String, WalletEntity> walletValues = new HashMap<>();
     private final Map<String, Double> spentValues = new HashMap<>();
     private List<BudgetEntity> currentBudgets = new ArrayList<>();
+    private final Observer<List<BudgetEntity>> budgetObserver = this::onBudgetsChanged;
+    private final Observer<String> selectedWalletObserver = ignored -> rebuildUiModels();
+    private final Observer<BudgetTab> selectedTabObserver = ignored -> rebuildUiModels();
 
     public BudgetViewModel(@NonNull BudgetRepository budgetRepository,
                            @NonNull CategoryRepository categoryRepository,
                            @NonNull TransactionRepository transactionRepository,
                            @NonNull WalletRepository walletRepository,
-                           @NonNull String userId) {
+                           @NonNull String userId,
+                           @NonNull String allCategoriesLabel,
+                           @NonNull String otherCategoriesLabel,
+                           @NonNull String allWalletsLabel,
+                           @NonNull String unknownWalletLabel,
+                           @NonNull String unknownCategoryLabel) {
         this.budgetRepository = budgetRepository;
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
         this.userId = userId;
-        this.budgetSource = budgetRepository.getAllBudgets();
+        this.allCategoriesLabel = allCategoriesLabel;
+        this.otherCategoriesLabel = otherCategoriesLabel;
+        this.allWalletsLabel = allWalletsLabel;
+        this.unknownWalletLabel = unknownWalletLabel;
+        this.unknownCategoryLabel = unknownCategoryLabel;
+        this.budgetSource = budgetRepository.getAllBudgets(userId);
         this.expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
+        this.wallets = walletRepository.getAllByUser(userId);
 
-        activeBudgets.addSource(budgetSource, this::onBudgetsChanged);
+        budgetSource.observeForever(budgetObserver);
+        selectedWalletFilterId.observeForever(selectedWalletObserver);
+        selectedTab.observeForever(selectedTabObserver);
     }
 
     public LiveData<List<BudgetUIModel>> getActiveBudgets() {
@@ -72,6 +110,10 @@ public class BudgetViewModel extends ViewModel {
         return finishedBudgets;
     }
 
+    public LiveData<BudgetTab> getSelectedTabLiveData() {
+        return selectedTab;
+    }
+
     public LiveData<BudgetSummaryUIModel> getSummary() {
         return summary;
     }
@@ -80,13 +122,58 @@ public class BudgetViewModel extends ViewModel {
         return expenseCategories;
     }
 
+    public LiveData<List<WalletEntity>> getWallets() {
+        return wallets;
+    }
+
+    public LiveData<Boolean> getHasAnyBudgets() {
+        return hasAnyBudgets;
+    }
+
+    public void setSelectedWalletFilter(@Nullable String walletId) {
+        String current = selectedWalletFilterId.getValue();
+        if (current == null ? walletId == null : current.equals(walletId)) {
+            return;
+        }
+        selectedWalletFilterId.setValue(walletId);
+    }
+
+    @Nullable
+    public String getSelectedWalletFilterId() {
+        return selectedWalletFilterId.getValue();
+    }
+
+    public void setSelectedTab(@NonNull BudgetTab budgetTab) {
+        BudgetTab current = selectedTab.getValue();
+        if (current == budgetTab) {
+            return;
+        }
+        selectedTab.setValue(budgetTab);
+    }
+
+    @NonNull
+    public BudgetTab getSelectedTab() {
+        BudgetTab current = selectedTab.getValue();
+        return current != null ? current : BudgetTab.THIS_MONTH;
+    }
+
     public LiveData<BudgetEntity> getBudgetById(@NonNull String budgetId) {
-        return budgetRepository.getBudgetById(budgetId);
+        return budgetRepository.getBudgetById(userId, budgetId);
+    }
+
+    public LiveData<List<TransactionEntity>> getBudgetTransactions(@NonNull BudgetEntity budgetEntity) {
+        return transactionRepository.getTransactionsForBudget(
+                userId,
+                budgetEntity.getCategoryId(),
+                budgetEntity.getWalletId(),
+                budgetEntity.getStartDate(),
+                budgetEntity.getEndDate()
+        );
     }
 
     public LiveData<BudgetUIModel> getBudgetUiModel(@NonNull String budgetId) {
         MediatorLiveData<BudgetUIModel> result = new MediatorLiveData<>();
-        LiveData<BudgetEntity> budgetLiveData = budgetRepository.getBudgetById(budgetId);
+        LiveData<BudgetEntity> budgetLiveData = budgetRepository.getBudgetById(userId, budgetId);
         final LiveData<CategoryEntity>[] categorySource = new LiveData[]{null};
         final LiveData<WalletEntity>[] walletSource = new LiveData[]{null};
         final LiveData<Double>[] spentSource = new LiveData[]{null};
@@ -100,13 +187,12 @@ public class BudgetViewModel extends ViewModel {
                 result.setValue(null);
                 return;
             }
-            CategoryEntity category = categoryHolder[0];
             result.setValue(new BudgetUIModel(
                     budgetHolder[0],
-                    category != null ? category.getName() : "Danh mục",
-                    category != null ? category.getIconResId() : "",
+                    resolveCategoryName(budgetHolder[0], categoryHolder[0]),
+                    resolveCategoryIcon(budgetHolder[0], categoryHolder[0]),
                     spentHolder[0],
-                    category != null ? category.getColorHex() : "",
+                    resolveCategoryColor(budgetHolder[0], categoryHolder[0]),
                     resolveWalletName(budgetHolder[0], walletHolder[0]),
                     BudgetUiUtils.isActiveToday(budgetHolder[0])
             ));
@@ -136,11 +222,13 @@ public class BudgetViewModel extends ViewModel {
                 return;
             }
 
-            categorySource[0] = categoryRepository.getCategoryById(budget.getCategoryId());
-            result.addSource(categorySource[0], category -> {
-                categoryHolder[0] = category;
-                publish.run();
-            });
+            if (budget.getCategoryId() != null) {
+                categorySource[0] = categoryRepository.getCategoryById(budget.getCategoryId());
+                result.addSource(categorySource[0], category -> {
+                    categoryHolder[0] = category;
+                    publish.run();
+                });
+            }
 
             if (budget.getWalletId() != null) {
                 walletSource[0] = walletRepository.getById(budget.getWalletId());
@@ -168,7 +256,7 @@ public class BudgetViewModel extends ViewModel {
         return result;
     }
 
-    public void addBudget(@NonNull String categoryId,
+    public void addBudget(@Nullable String categoryId,
                           @Nullable String walletId,
                           double amount,
                           long startDate,
@@ -176,7 +264,7 @@ public class BudgetViewModel extends ViewModel {
         addBudget(categoryId, walletId, amount, startDate, endDate, null);
     }
 
-    public void addBudget(@NonNull String categoryId,
+    public void addBudget(@Nullable String categoryId,
                           @Nullable String walletId,
                           double amount,
                           long startDate,
@@ -184,6 +272,7 @@ public class BudgetViewModel extends ViewModel {
                           @Nullable BudgetRepository.WriteCallback callback) {
         BudgetEntity budgetEntity = new BudgetEntity();
         budgetEntity.setId(UUID.randomUUID().toString());
+        budgetEntity.setUserId(userId);
         budgetEntity.setCategoryId(categoryId);
         budgetEntity.setWalletId(walletId);
         budgetEntity.setAmount(amount);
@@ -193,7 +282,7 @@ public class BudgetViewModel extends ViewModel {
     }
 
     public void updateBudget(@NonNull BudgetEntity budgetEntity,
-                             @NonNull String categoryId,
+                             @Nullable String categoryId,
                              @Nullable String walletId,
                              double amount,
                              long startDate,
@@ -202,13 +291,14 @@ public class BudgetViewModel extends ViewModel {
     }
 
     public void updateBudget(@NonNull BudgetEntity budgetEntity,
-                             @NonNull String categoryId,
+                             @Nullable String categoryId,
                              @Nullable String walletId,
                              double amount,
                              long startDate,
                              long endDate,
                              @Nullable BudgetRepository.WriteCallback callback) {
         budgetEntity.setCategoryId(categoryId);
+        budgetEntity.setUserId(userId);
         budgetEntity.setWalletId(walletId);
         budgetEntity.setAmount(amount);
         budgetEntity.setStartDate(startDate);
@@ -217,11 +307,12 @@ public class BudgetViewModel extends ViewModel {
     }
 
     public void deleteBudget(@NonNull BudgetEntity budgetEntity) {
-        budgetRepository.softDeleteBudget(budgetEntity.getId());
+        budgetRepository.softDeleteBudget(userId, budgetEntity.getId());
     }
 
     private void onBudgetsChanged(@Nullable List<BudgetEntity> budgets) {
         currentBudgets = budgets != null ? new ArrayList<>(budgets) : new ArrayList<>();
+        hasAnyBudgets.setValue(!currentBudgets.isEmpty());
         syncChildSources();
         rebuildUiModels();
     }
@@ -232,22 +323,28 @@ public class BudgetViewModel extends ViewModel {
         for (BudgetEntity budgetEntity : currentBudgets) {
             String budgetId = budgetEntity.getId();
 
-            LiveData<CategoryEntity> categoryLiveData =
-                    categoryRepository.getCategoryById(budgetEntity.getCategoryId());
-            categorySources.put(budgetId, categoryLiveData);
-            activeBudgets.addSource(categoryLiveData, categoryEntity -> {
-                categoryValues.put(budgetId, categoryEntity);
-                rebuildUiModels();
-            });
+            if (budgetEntity.getCategoryId() != null) {
+                LiveData<CategoryEntity> categoryLiveData =
+                        categoryRepository.getCategoryById(budgetEntity.getCategoryId());
+                Observer<CategoryEntity> categoryObserver = categoryEntity -> {
+                    categoryValues.put(budgetId, categoryEntity);
+                    rebuildUiModels();
+                };
+                categorySources.put(budgetId, categoryLiveData);
+                categoryObservers.put(budgetId, categoryObserver);
+                categoryLiveData.observeForever(categoryObserver);
+            }
 
             if (budgetEntity.getWalletId() != null) {
                 LiveData<WalletEntity> walletLiveData =
                         walletRepository.getById(budgetEntity.getWalletId());
-                walletSources.put(budgetId, walletLiveData);
-                activeBudgets.addSource(walletLiveData, walletEntity -> {
+                Observer<WalletEntity> walletObserver = walletEntity -> {
                     walletValues.put(budgetId, walletEntity);
                     rebuildUiModels();
-                });
+                };
+                walletSources.put(budgetId, walletLiveData);
+                walletObservers.put(budgetId, walletObserver);
+                walletLiveData.observeForever(walletObserver);
             }
 
             LiveData<Double> spentLiveData = transactionRepository.getTotalExpenseByCategory(
@@ -257,94 +354,210 @@ public class BudgetViewModel extends ViewModel {
                     budgetEntity.getStartDate(),
                     budgetEntity.getEndDate()
             );
-            spentSources.put(budgetId, spentLiveData);
-            activeBudgets.addSource(spentLiveData, spentAmount -> {
+            Observer<Double> spentObserver = spentAmount -> {
                 spentValues.put(budgetId, spentAmount != null ? spentAmount : 0d);
                 rebuildUiModels();
-            });
+            };
+            spentSources.put(budgetId, spentLiveData);
+            spentObservers.put(budgetId, spentObserver);
+            spentLiveData.observeForever(spentObserver);
         }
     }
 
     private void resetChildSources() {
-        for (LiveData<CategoryEntity> source : categorySources.values()) {
-            activeBudgets.removeSource(source);
+        for (Map.Entry<String, LiveData<CategoryEntity>> entry : categorySources.entrySet()) {
+            Observer<CategoryEntity> observer = categoryObservers.get(entry.getKey());
+            if (observer != null) {
+                entry.getValue().removeObserver(observer);
+            }
         }
-        for (LiveData<WalletEntity> source : walletSources.values()) {
-            activeBudgets.removeSource(source);
+        for (Map.Entry<String, LiveData<WalletEntity>> entry : walletSources.entrySet()) {
+            Observer<WalletEntity> observer = walletObservers.get(entry.getKey());
+            if (observer != null) {
+                entry.getValue().removeObserver(observer);
+            }
         }
-        for (LiveData<Double> source : spentSources.values()) {
-            activeBudgets.removeSource(source);
+        for (Map.Entry<String, LiveData<Double>> entry : spentSources.entrySet()) {
+            Observer<Double> observer = spentObservers.get(entry.getKey());
+            if (observer != null) {
+                entry.getValue().removeObserver(observer);
+            }
         }
         categorySources.clear();
         walletSources.clear();
         spentSources.clear();
+        categoryObservers.clear();
+        walletObservers.clear();
+        spentObservers.clear();
         categoryValues.clear();
         walletValues.clear();
         spentValues.clear();
     }
 
     private void rebuildUiModels() {
-        List<BudgetUIModel> activeItems = new ArrayList<>();
+        BudgetPartition thisMonth = new BudgetPartition();
+        BudgetPartition future = new BudgetPartition();
+        BudgetPartition custom = new BudgetPartition();
         List<BudgetUIModel> finishedItems = new ArrayList<>();
 
+        String selectedWalletId = selectedWalletFilterId.getValue();
+        LocalDate today = LocalDate.now();
+        LocalDate thisMonthStart = today.withDayOfMonth(1);
+        LocalDate thisMonthEnd = today.withDayOfMonth(today.lengthOfMonth());
+
         for (BudgetEntity budgetEntity : currentBudgets) {
+            if (selectedWalletId != null && !selectedWalletId.equals(budgetEntity.getWalletId())) {
+                continue;
+            }
+
             String budgetId = budgetEntity.getId();
             CategoryEntity categoryEntity = categoryValues.get(budgetId);
             WalletEntity walletEntity = walletValues.get(budgetId);
             double spentAmount = spentValues.containsKey(budgetId)
                     ? spentValues.get(budgetId)
                     : 0d;
-            boolean isActive = BudgetUiUtils.isActiveToday(budgetEntity);
 
             BudgetUIModel item = new BudgetUIModel(
                     budgetEntity,
-                    categoryEntity != null ? categoryEntity.getName() : "Danh mục",
-                    categoryEntity != null ? categoryEntity.getIconResId() : "",
+                    resolveCategoryName(budgetEntity, categoryEntity),
+                    resolveCategoryIcon(budgetEntity, categoryEntity),
                     spentAmount,
-                    categoryEntity != null ? categoryEntity.getColorHex() : "",
+                    resolveCategoryColor(budgetEntity, categoryEntity),
                     resolveWalletName(budgetEntity, walletEntity),
-                    isActive
+                    BudgetUiUtils.isActiveToday(budgetEntity)
             );
 
-            if (isActive) {
-                activeItems.add(item);
-            } else {
+            LocalDate startDate = toLocalDate(budgetEntity.getStartDate());
+            LocalDate endDate = toLocalDate(budgetEntity.getEndDate());
+
+            if (endDate.isBefore(thisMonthStart)) {
                 finishedItems.add(item);
+                continue;
             }
+
+            if (startDate.isAfter(thisMonthEnd)) {
+                future.add(item);
+                continue;
+            }
+
+            if (isWithinMonth(startDate, thisMonthStart, thisMonthEnd)
+                    && isWithinMonth(endDate, thisMonthStart, thisMonthEnd)) {
+                thisMonth.add(item);
+                continue;
+            }
+
+            custom.add(item);
         }
 
-        Collections.sort(activeItems, Comparator
-                .comparingDouble(BudgetUIModel::getPercent).reversed()
-                .thenComparing(item -> item.getBudgetEntity().getEndDate()));
+        sortBudgetItems(thisMonth.items);
+        sortBudgetItems(future.items);
+        sortBudgetItems(custom.items);
         Collections.sort(finishedItems, Comparator
                 .comparingLong((BudgetUIModel item) -> item.getBudgetEntity().getEndDate())
                 .reversed());
 
-        activeBudgets.setValue(activeItems);
+        BudgetPartition selectedPartition = getSelectedPartition(thisMonth, future, custom);
+        activeBudgets.setValue(selectedPartition.items);
         finishedBudgets.setValue(finishedItems);
-        summary.setValue(buildSummary(activeItems));
+        summary.setValue(buildSummary(selectedPartition.items, selectedPartition.allCategoriesBudget));
+    }
+
+    @NonNull
+    private BudgetPartition getSelectedPartition(@NonNull BudgetPartition thisMonth,
+                                                 @NonNull BudgetPartition future,
+                                                 @NonNull BudgetPartition custom) {
+        switch (getSelectedTab()) {
+            case FUTURE:
+                return future;
+            case CUSTOM:
+                return custom;
+            case THIS_MONTH:
+            default:
+                return thisMonth;
+        }
+    }
+
+    private void sortBudgetItems(@NonNull List<BudgetUIModel> items) {
+        Collections.sort(items, Comparator
+                .comparingDouble(BudgetUIModel::getPercent).reversed()
+                .thenComparing(item -> item.getBudgetEntity().getEndDate()));
     }
 
     @NonNull
     private String resolveWalletName(@NonNull BudgetEntity budgetEntity,
                                      @Nullable WalletEntity walletEntity) {
         if (budgetEntity.getWalletId() == null) {
-            return ALL_WALLETS_LABEL;
+            return allWalletsLabel;
         }
-        return walletEntity != null ? walletEntity.getName() : UNKNOWN_WALLET_LABEL;
+        return walletEntity != null ? walletEntity.getName() : unknownWalletLabel;
     }
 
     @NonNull
-    private BudgetSummaryUIModel buildSummary(@NonNull List<BudgetUIModel> activeItems) {
-        if (activeItems.isEmpty()) {
-            return new BudgetSummaryUIModel(0d, 0d, 0d, 0, false);
+    private String resolveCategoryName(@NonNull BudgetEntity budgetEntity,
+                                       @Nullable CategoryEntity categoryEntity) {
+        if (budgetEntity.getCategoryId() == null) {
+            return allCategoriesLabel;
+        }
+        if (Constants.isOtherCategoryId(budgetEntity.getCategoryId())) {
+            return otherCategoriesLabel;
+        }
+        return categoryEntity != null ? categoryEntity.getName() : unknownCategoryLabel;
+    }
+
+    @NonNull
+    private String resolveCategoryIcon(@NonNull BudgetEntity budgetEntity,
+                                       @Nullable CategoryEntity categoryEntity) {
+        if (Constants.isOtherCategoryId(budgetEntity.getCategoryId())) {
+            return "ic_category_other";
+        }
+        return categoryEntity != null ? categoryEntity.getIconResId() : "";
+    }
+
+    @NonNull
+    private String resolveCategoryColor(@NonNull BudgetEntity budgetEntity,
+                                        @Nullable CategoryEntity categoryEntity) {
+        if (Constants.isOtherCategoryId(budgetEntity.getCategoryId())) {
+            return "#64748B";
+        }
+        return categoryEntity != null ? categoryEntity.getColorHex() : "#4CAF50";
+    }
+
+    private boolean isWithinMonth(@NonNull LocalDate date,
+                                  @NonNull LocalDate monthStart,
+                                  @NonNull LocalDate monthEnd) {
+        return (!date.isBefore(monthStart)) && (!date.isAfter(monthEnd));
+    }
+
+    @NonNull
+    private BudgetSummaryUIModel buildSummary(@NonNull List<BudgetUIModel> visibleBudgets,
+                                              @Nullable BudgetUIModel allCategoriesBudget) {
+        if (allCategoriesBudget != null) {
+            double specificBudgetsTotal = 0d;
+            for (BudgetUIModel item : visibleBudgets) {
+                specificBudgetsTotal += item.getBudgetEntity().getAmount();
+            }
+            double shortfall = Math.max(0d, specificBudgetsTotal - allCategoriesBudget.getBudgetEntity().getAmount());
+            return new BudgetSummaryUIModel(
+                    allCategoriesBudget.getBudgetEntity().getAmount(),
+                    allCategoriesBudget.getSpentAmount(),
+                    allCategoriesBudget.getRemainingAmount(),
+                    BudgetUiUtils.getDaysLeftInclusive(allCategoriesBudget.getBudgetEntity().getEndDate()),
+                    true,
+                    allCategoriesBudget,
+                    shortfall > 0d,
+                    shortfall
+            );
+        }
+
+        if (visibleBudgets.isEmpty()) {
+            return new BudgetSummaryUIModel(0d, 0d, 0d, 0, false, null, false, 0d);
         }
 
         double totalBudget = 0d;
         double totalSpent = 0d;
         long maxEndDate = 0L;
 
-        for (BudgetUIModel item : activeItems) {
+        for (BudgetUIModel item : visibleBudgets) {
             totalBudget += item.getBudgetEntity().getAmount();
             totalSpent += item.getSpentAmount();
             maxEndDate = Math.max(maxEndDate, item.getBudgetEntity().getEndDate());
@@ -355,15 +568,44 @@ public class BudgetViewModel extends ViewModel {
                 totalSpent,
                 totalBudget - totalSpent,
                 BudgetUiUtils.getDaysLeftInclusive(maxEndDate),
-                true
+                true,
+                null,
+                false,
+                0d
         );
+    }
+
+    @NonNull
+    private LocalDate toLocalDate(long epochMillis) {
+        return Instant.ofEpochMilli(epochMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
     }
 
     @Override
     protected void onCleared() {
         super.onCleared();
-        activeBudgets.removeSource(budgetSource);
+        budgetSource.removeObserver(budgetObserver);
+        selectedWalletFilterId.removeObserver(selectedWalletObserver);
+        selectedTab.removeObserver(selectedTabObserver);
         resetChildSources();
+    }
+
+    private static final class BudgetPartition {
+        private final List<BudgetUIModel> items = new ArrayList<>();
+        @Nullable
+        private BudgetUIModel allCategoriesBudget;
+
+        private void add(@NonNull BudgetUIModel item) {
+            if (item.isAllCategories()) {
+                if (allCategoriesBudget == null
+                        || item.getBudgetEntity().getUpdatedAt() > allCategoriesBudget.getBudgetEntity().getUpdatedAt()) {
+                    allCategoriesBudget = item;
+                }
+                return;
+            }
+            items.add(item);
+        }
     }
 
     public static class BudgetSummaryUIModel {
@@ -372,17 +614,27 @@ public class BudgetViewModel extends ViewModel {
         private final double remainingAmount;
         private final int daysLeft;
         private final boolean hasActiveBudgets;
+        @Nullable
+        private final BudgetUIModel allCategoriesBudget;
+        private final boolean shouldShowGapWarning;
+        private final double shortfallAmount;
 
         public BudgetSummaryUIModel(double totalBudget,
                                     double totalSpent,
                                     double remainingAmount,
                                     int daysLeft,
-                                    boolean hasActiveBudgets) {
+                                    boolean hasActiveBudgets,
+                                    @Nullable BudgetUIModel allCategoriesBudget,
+                                    boolean shouldShowGapWarning,
+                                    double shortfallAmount) {
             this.totalBudget = totalBudget;
             this.totalSpent = totalSpent;
             this.remainingAmount = remainingAmount;
             this.daysLeft = daysLeft;
             this.hasActiveBudgets = hasActiveBudgets;
+            this.allCategoriesBudget = allCategoriesBudget;
+            this.shouldShowGapWarning = shouldShowGapWarning;
+            this.shortfallAmount = shortfallAmount;
         }
 
         public double getTotalBudget() {
@@ -405,6 +657,23 @@ public class BudgetViewModel extends ViewModel {
             return hasActiveBudgets;
         }
 
+        @Nullable
+        public BudgetUIModel getAllCategoriesBudget() {
+            return allCategoriesBudget;
+        }
+
+        public boolean hasAllCategoriesBudget() {
+            return allCategoriesBudget != null;
+        }
+
+        public boolean shouldShowGapWarning() {
+            return shouldShowGapWarning;
+        }
+
+        public double getShortfallAmount() {
+            return shortfallAmount;
+        }
+
         public float getPercent() {
             if (totalBudget <= 0d) {
                 return 0f;
@@ -419,17 +688,32 @@ public class BudgetViewModel extends ViewModel {
         private final TransactionRepository transactionRepository;
         private final WalletRepository walletRepository;
         private final String userId;
+        private final String allCategoriesLabel;
+        private final String otherCategoriesLabel;
+        private final String allWalletsLabel;
+        private final String unknownWalletLabel;
+        private final String unknownCategoryLabel;
 
         public Factory(@NonNull BudgetRepository budgetRepository,
                        @NonNull CategoryRepository categoryRepository,
                        @NonNull TransactionRepository transactionRepository,
                        @NonNull WalletRepository walletRepository,
-                       @NonNull String userId) {
+                       @NonNull String userId,
+                       @NonNull String allCategoriesLabel,
+                       @NonNull String otherCategoriesLabel,
+                       @NonNull String allWalletsLabel,
+                       @NonNull String unknownWalletLabel,
+                       @NonNull String unknownCategoryLabel) {
             this.budgetRepository = budgetRepository;
             this.categoryRepository = categoryRepository;
             this.transactionRepository = transactionRepository;
             this.walletRepository = walletRepository;
             this.userId = userId;
+            this.allCategoriesLabel = allCategoriesLabel;
+            this.otherCategoriesLabel = otherCategoriesLabel;
+            this.allWalletsLabel = allWalletsLabel;
+            this.unknownWalletLabel = unknownWalletLabel;
+            this.unknownCategoryLabel = unknownCategoryLabel;
         }
 
         @NonNull
@@ -444,7 +728,12 @@ public class BudgetViewModel extends ViewModel {
                     categoryRepository,
                     transactionRepository,
                     walletRepository,
-                    userId
+                    userId,
+                    allCategoriesLabel,
+                    otherCategoriesLabel,
+                    allWalletsLabel,
+                    unknownWalletLabel,
+                    unknownCategoryLabel
             );
         }
     }

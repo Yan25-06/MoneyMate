@@ -2,6 +2,9 @@ package com.group10.moneymate.ui.transaction;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +28,7 @@ import com.group10.moneymate.databinding.FragmentAddEditTransactionBinding;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.DateUtils;
 import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.utils.CurrencyFormatter;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -44,6 +48,7 @@ public class AddEditTransactionFragment extends Fragment {
     private List<WalletEntity> walletList = new ArrayList<>();
     private List<CategoryEntity> currentCategoryList = new ArrayList<>();
     private LiveData<List<CategoryEntity>> currentCategorySource;
+    private boolean isFormattingAmount;
 
     // Edit mode
     private String transactionId = null;
@@ -70,6 +75,7 @@ public class AddEditTransactionFragment extends Fragment {
 
         setupTypeToggle();
         setupDatePicker();
+        setupTextInputs();
         setupSaveButton();
         observeWallets();
 
@@ -115,6 +121,38 @@ public class AddEditTransactionFragment extends Fragment {
                     cal.get(Calendar.MONTH),
                     cal.get(Calendar.DAY_OF_MONTH)
             ).show();
+        });
+    }
+
+    private void setupTextInputs() {
+        binding.etNote.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
+        binding.etAmount.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                if (isFormattingAmount) {
+                    return;
+                }
+                String digits = CurrencyFormatter.extractDigits(editable.toString());
+                if (digits.isEmpty()) {
+                    return;
+                }
+                isFormattingAmount = true;
+                String formatted = CurrencyFormatter.formatInputAmount(Long.parseLong(digits));
+                binding.etAmount.setText(formatted);
+                binding.etAmount.setSelection(formatted.length());
+                isFormattingAmount = false;
+            }
         });
     }
 
@@ -172,7 +210,7 @@ public class AddEditTransactionFragment extends Fragment {
             if (originalTransaction != null) return;
             originalTransaction = transaction;
 
-            binding.etAmount.setText(String.valueOf(transaction.getAmount()));
+            binding.etAmount.setText(CurrencyFormatter.formatInputAmount((long) transaction.getAmount()));
             binding.etNote.setText(transaction.getNote());
             selectedTimestamp = transaction.getTimestamp();
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
@@ -204,8 +242,10 @@ public class AddEditTransactionFragment extends Fragment {
             if (!validateForm()) return;
 
             String amountStr = Objects.requireNonNull(binding.etAmount.getText()).toString().trim();
-            double amount = Double.parseDouble(amountStr);
-            String note = Objects.requireNonNull(binding.etNote.getText()).toString().trim();
+            double amount = CurrencyFormatter.parseFormattedAmount(amountStr);
+            String note = binding.etNote.getText() != null
+                    ? binding.etNote.getText().toString().trim()
+                    : "";
 
             // Tìm walletId từ tên đã chọn
             String walletName = binding.dropdownWallet.getText().toString().trim();
@@ -271,7 +311,7 @@ public class AddEditTransactionFragment extends Fragment {
 
         double amount;
         try {
-            amount = Double.parseDouble(amountStr);
+            amount = CurrencyFormatter.parseFormattedAmount(amountStr);
         } catch (NumberFormatException e) {
             Toast.makeText(requireContext(), R.string.error_amount_invalid, Toast.LENGTH_SHORT).show();
             return false;

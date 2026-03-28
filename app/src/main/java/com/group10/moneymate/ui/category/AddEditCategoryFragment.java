@@ -177,7 +177,7 @@ public class AddEditCategoryFragment extends Fragment {
 
     private void saveCategory() {
         String name = binding.etCategoryName.getText() != null
-                ? binding.etCategoryName.getText().toString().trim()
+                ? binding.etCategoryName.getText().toString().trim().replaceAll("\\s{2,}", " ")
                 : "";
 
         if (TextUtils.isEmpty(name)) {

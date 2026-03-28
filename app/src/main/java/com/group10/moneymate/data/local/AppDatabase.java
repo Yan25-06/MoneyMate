@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
         DebtEntity.class,
         EventEntity.class
     },
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters({Converters.class})

@@ -23,7 +23,7 @@ public class BudgetUIModel {
                          @Nullable String walletName,
                          boolean active) {
         this.budgetEntity = budgetEntity;
-        this.categoryName = categoryName != null ? categoryName : "Danh mục";
+        this.categoryName = categoryName != null ? categoryName : "";
         this.categoryIcon = categoryIcon != null ? categoryIcon : "";
         this.spentAmount = spentAmount;
         this.categoryColorHex = categoryColorHex != null ? categoryColorHex : "";
@@ -62,6 +62,10 @@ public class BudgetUIModel {
 
     public boolean isActive() {
         return active;
+    }
+
+    public boolean isAllCategories() {
+        return budgetEntity.getCategoryId() == null;
     }
 
     public double getRemainingAmount() {

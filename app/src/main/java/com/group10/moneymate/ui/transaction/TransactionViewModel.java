@@ -3,6 +3,7 @@ package com.group10.moneymate.ui.transaction;
 import android.app.Application;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -121,6 +122,24 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<TransactionEntity> getTransactionById(String id) {
         return transactionRepository.getTransactionById(id);
+    }
+
+    public LiveData<List<TransactionEntity>> getTransactionsForBudget(@Nullable String categoryId,
+                                                                      @Nullable String walletId,
+                                                                      long startDate,
+                                                                      long endDate) {
+        return transactionRepository.getTransactionsForBudget(
+                userId,
+                categoryId,
+                walletId,
+                startDate,
+                endDate
+        );
+    }
+
+    public LiveData<List<TransactionEntity>> getExpenseTransactionsByRange(long startDate,
+                                                                           long endDate) {
+        return transactionRepository.getExpenseTransactionsByRange(userId, startDate, endDate);
     }
 
     // ─── CRUD ─────────────────────────────────────────────────────────────────

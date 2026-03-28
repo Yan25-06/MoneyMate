@@ -52,6 +52,38 @@ public class AuthRepository {
         return firebaseUid != null ? firebaseUid : "";
     }
 
+    public void ensureLocalUserRecord() {
+        final String localUserId = getCurrentUserId();
+        if (TextUtils.isEmpty(localUserId)) {
+            return;
+        }
+
+        final FirebaseUser firebaseUser = firebaseAuthHelper.getCurrentUser();
+        final long now = System.currentTimeMillis();
+
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            UserEntity existing = userDao.getUserByIdSync(localUserId);
+            if (existing != null) {
+                return;
+            }
+
+            UserEntity entity = new UserEntity();
+            entity.setId(localUserId);
+            entity.setEmail(firebaseUser != null ? firebaseUser.getEmail() : null);
+            entity.setDisplayName(firebaseUser != null && firebaseUser.getDisplayName() != null
+                    ? firebaseUser.getDisplayName()
+                    : "");
+            entity.setAvatarUrl(null);
+            entity.setCurrency("VND");
+            entity.setLanguage("vi");
+            entity.setThemeMode("system");
+            entity.setBalanceHidden(false);
+            entity.setLastSync(0L);
+            entity.setCreatedAt(now);
+            userDao.insertUser(entity);
+        });
+    }
+
     public void signOut() {
         firebaseAuthHelper.signOut();
         prefsManager.setLoggedIn(false);

@@ -41,6 +41,30 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE user_id = :userId AND category_id = :categoryId AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> getTransactionsByCategory(String userId, String categoryId);
 
+    @Query("SELECT * FROM transactions " +
+            "WHERE user_id = :userId " +
+            "AND (:categoryId IS NULL OR category_id = :categoryId) " +
+            "AND type = 'EXPENSE' " +
+            "AND is_deleted = 0 " +
+            "AND (:walletId IS NULL OR wallet_id = :walletId) " +
+            "AND timestamp BETWEEN :startDate AND :endDate " +
+            "ORDER BY timestamp DESC")
+    LiveData<List<TransactionEntity>> getTransactionsForBudget(String userId,
+                                                               String categoryId,
+                                                               String walletId,
+                                                               long startDate,
+                                                               long endDate);
+
+    @Query("SELECT * FROM transactions " +
+            "WHERE user_id = :userId " +
+            "AND type = 'EXPENSE' " +
+            "AND is_deleted = 0 " +
+            "AND timestamp BETWEEN :startDate AND :endDate " +
+            "ORDER BY timestamp DESC")
+    LiveData<List<TransactionEntity>> getExpenseTransactionsByRange(String userId,
+                                                                    long startDate,
+                                                                    long endDate);
+
     @Query("SELECT * FROM transactions WHERE user_id = :userId AND wallet_id = :walletId AND is_deleted = 0 ORDER BY timestamp DESC")
     LiveData<List<TransactionEntity>> getTransactionsByWallet(String userId, String walletId);
 
@@ -58,7 +82,7 @@ public interface TransactionDao {
 
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions " +
             "WHERE user_id = :userId " +
-            "AND category_id = :categoryId " +
+            "AND (:categoryId IS NULL OR category_id = :categoryId) " +
             "AND type = 'EXPENSE' " +
             "AND is_deleted = 0 " +
             "AND (:walletId IS NULL OR wallet_id = :walletId) " +
@@ -68,6 +92,55 @@ public interface TransactionDao {
                                                String walletId,
                                                long startDate,
                                                long endDate);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0.0) FROM transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.type = 'EXPENSE' " +
+            "AND t.is_deleted = 0 " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "AND NOT EXISTS (" +
+            "    SELECT 1 FROM budgets b " +
+            "    WHERE b.user_id = :userId " +
+            "    AND b.is_deleted = 0 " +
+            "    AND b.category_id = t.category_id " +
+            "    AND b.category_id IS NOT NULL " +
+            "    AND b.category_id != :otherCategoryId " +
+            "    AND b.category_id != :legacyOtherCategoryId " +
+            "    AND t.timestamp BETWEEN b.start_date AND b.end_date " +
+            "    AND (b.wallet_id IS NULL OR b.wallet_id = t.wallet_id)" +
+            ")")
+    LiveData<Double> getSpentForOtherCategories(String userId,
+                                                long startDate,
+                                                long endDate,
+                                                String walletId,
+                                                String otherCategoryId,
+                                                String legacyOtherCategoryId);
+
+    @Query("SELECT * FROM transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.type = 'EXPENSE' " +
+            "AND t.is_deleted = 0 " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "AND NOT EXISTS (" +
+            "    SELECT 1 FROM budgets b " +
+            "    WHERE b.user_id = :userId " +
+            "    AND b.is_deleted = 0 " +
+            "    AND b.category_id = t.category_id " +
+            "    AND b.category_id IS NOT NULL " +
+            "    AND b.category_id != :otherCategoryId " +
+            "    AND b.category_id != :legacyOtherCategoryId " +
+            "    AND t.timestamp BETWEEN b.start_date AND b.end_date " +
+            "    AND (b.wallet_id IS NULL OR b.wallet_id = t.wallet_id)" +
+            ") " +
+            "ORDER BY t.timestamp DESC")
+    LiveData<List<TransactionEntity>> getTransactionsForOtherCategories(String userId,
+                                                                        long startDate,
+                                                                        long endDate,
+                                                                        String walletId,
+                                                                        String otherCategoryId,
+                                                                        String legacyOtherCategoryId);
 
     @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND category_id = :categoryId AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
     double getTotalExpenseByCategorySync(String userId, String categoryId, long startDate, long endDate);

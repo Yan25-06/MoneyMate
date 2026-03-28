@@ -31,12 +31,12 @@ public class BudgetRepository {
         this.budgetDao = budgetDao;
     }
 
-    public LiveData<List<BudgetEntity>> getAllBudgets() {
-        return budgetDao.getAllBudgets();
+    public LiveData<List<BudgetEntity>> getAllBudgets(String userId) {
+        return budgetDao.getAllBudgets(userId);
     }
 
-    public LiveData<BudgetEntity> getBudgetById(String id) {
-        return budgetDao.getBudgetById(id);
+    public LiveData<BudgetEntity> getBudgetById(String userId, String id) {
+        return budgetDao.getBudgetById(userId, id);
     }
 
     public void addBudget(BudgetEntity budget) {
@@ -81,9 +81,9 @@ public class BudgetRepository {
         });
     }
 
-    public void softDeleteBudget(String id) {
+    public void softDeleteBudget(String userId, String id) {
         AppDatabase.databaseWriteExecutor.execute(() ->
-                budgetDao.softDelete(id, System.currentTimeMillis()));
+                budgetDao.softDelete(userId, id, System.currentTimeMillis()));
     }
 
     public void insert(BudgetEntity budget) {
@@ -94,8 +94,8 @@ public class BudgetRepository {
         updateBudget(budget);
     }
 
-    public void softDelete(String id) {
-        softDeleteBudget(id);
+    public void softDelete(String userId, String id) {
+        softDeleteBudget(userId, id);
     }
 
     private void notifySuccess(@Nullable WriteCallback callback) {

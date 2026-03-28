@@ -32,23 +32,57 @@
             tools:tint="@color/budget_safe_green" />
     </FrameLayout>
 
-    <TextView
-        android:id="@+id/tvCategory"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
         android:layout_weight="1"
-        android:textColor="@android:color/black"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        tools:text="Mua sắm" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvCategory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/budget_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            tools:text="Mua sắm" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:contentDescription="@string/wallet"
+                android:src="@drawable/outline_account_balance_wallet_24"
+                android:tint="@color/budget_text_secondary" />
+
+            <TextView
+                android:id="@+id/tvWallet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/budget_text_secondary"
+                android:textSize="12sp"
+                tools:text="Ví mua sắm" />
+        </LinearLayout>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvAmount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/black"
-        android:textSize="18sp"
+        android:textColor="@color/budget_text_primary"
+        android:textSize="17sp"
         android:textStyle="bold"
         tools:text="3,290,000" />
 

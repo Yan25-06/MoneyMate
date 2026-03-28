@@ -37,16 +37,76 @@
                 android:tint="@color/budget_safe_green" />
         </FrameLayout>
 
-        <TextView
-            android:id="@+id/tv_category"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="14dp"
             android:layout_weight="1"
-            android:textColor="@android:color/black"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            tools:text="Bills &amp; Utilities" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_category"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/budget_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="Bills &amp; Utilities" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:contentDescription="@string/wallet"
+                    android:src="@drawable/outline_account_balance_wallet_24"
+                    android:tint="@color/budget_text_secondary" />
+
+                <TextView
+                    android:id="@+id/tv_wallet_scope"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/budget_text_secondary"
+                    android:textSize="12sp"
+                    tools:text="Ví gia đình" />
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="4dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_circle_icon"
+                    android:backgroundTint="@color/budget_muted_gray" />
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:contentDescription="@string/date"
+                    android:src="@drawable/outline_calendar_today_24"
+                    android:tint="@color/budget_text_secondary" />
+
+                <TextView
+                    android:id="@+id/tv_period"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/budget_text_secondary"
+                    android:textSize="12sp"
+                    tools:text="01/03 - 31/03" />
+            </LinearLayout>
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -58,8 +118,8 @@
                 android:id="@+id/tv_amount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@android:color/black"
-                android:textSize="18sp"
+                android:textColor="@color/budget_text_primary"
+                android:textSize="17sp"
                 android:textStyle="bold"
                 tools:text="4.000.000" />
 
@@ -67,9 +127,9 @@
                 android:id="@+id/tv_remaining"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="5dp"
                 android:textColor="@color/budget_text_secondary"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 tools:text="Left 500,000" />
         </LinearLayout>
     </LinearLayout>

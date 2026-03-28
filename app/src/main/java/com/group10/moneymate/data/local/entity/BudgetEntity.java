@@ -14,13 +14,21 @@ import java.util.UUID;
 
 @Entity(
     tableName = "budgets",
-    foreignKeys = @ForeignKey(
-        entity = CategoryEntity.class,
-        parentColumns = "id",
-        childColumns = "category_id",
-        onDelete = ForeignKey.NO_ACTION
-    ),
-    indices = {@Index("category_id")}
+    foreignKeys = {
+        @ForeignKey(
+            entity = UserEntity.class,
+            parentColumns = "id",
+            childColumns = "user_id",
+            onDelete = ForeignKey.CASCADE
+        ),
+        @ForeignKey(
+            entity = CategoryEntity.class,
+            parentColumns = "id",
+            childColumns = "category_id",
+            onDelete = ForeignKey.NO_ACTION
+        )
+    },
+    indices = {@Index("user_id"), @Index("category_id")}
 )
 public class BudgetEntity {
 
@@ -29,9 +37,12 @@ public class BudgetEntity {
     @ColumnInfo(name = "id")
     private String id;
 
-    @NonNull
     @ColumnInfo(name = "category_id")
     private String categoryId;
+
+    @Nullable
+    @ColumnInfo(name = "user_id")
+    private String userId;
 
     @ColumnInfo(name = "amount")
     private double amount;
@@ -60,7 +71,7 @@ public class BudgetEntity {
 
     public BudgetEntity() {
         this.id = UUID.randomUUID().toString();
-        this.categoryId = "";
+        this.categoryId = null;
         this.createdAt = System.currentTimeMillis();
         this.updatedAt = this.createdAt;
         this.isDeleted = false;
@@ -76,12 +87,22 @@ public class BudgetEntity {
         this.id = id;
     }
 
+    @Nullable
     public String getCategoryId() {
         return categoryId;
     }
 
-    public void setCategoryId(@NonNull String categoryId) {
+    public void setCategoryId(@Nullable String categoryId) {
         this.categoryId = categoryId;
+    }
+
+    @Nullable
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(@Nullable String userId) {
+        this.userId = userId;
     }
 
     public double getAmount() {

@@ -50,6 +50,7 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
                             && oldItem.getSpentAmount() == newItem.getSpentAmount()
                             && oldItem.isActive() == newItem.isActive()
                             && oldItem.getCategoryName().equals(newItem.getCategoryName())
+                            && oldItem.getWalletName().equals(newItem.getWalletName())
                             && oldItem.getCategoryIcon().equals(newItem.getCategoryIcon())
                             && oldItem.getCategoryColorHex().equals(newItem.getCategoryColorHex());
                 }
@@ -93,6 +94,11 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
             );
 
             binding.tvCategory.setText(item.getCategoryName());
+            binding.tvWalletScope.setText(item.getWalletName());
+            binding.tvPeriod.setText(BudgetUiUtils.formatDateRange(
+                    item.getBudgetEntity().getStartDate(),
+                    item.getBudgetEntity().getEndDate()
+            ));
             binding.tvAmount.setText(BudgetUiUtils.formatCurrency(item.getBudgetEntity().getAmount()));
             binding.progressBudget.setProgressCompat(progress, false);
             binding.progressBudget.setIndicatorColor(progressColor);
@@ -136,17 +142,25 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
 
         private void positionTodayMarker(@NonNull BudgetUIModel item) {
             binding.progressMarkerContainer.post(() -> {
-                int availableWidth = binding.progressMarkerContainer.getWidth();
-                if (availableWidth <= 0) {
+                int trackWidth = binding.progressBudget.getWidth();
+                if (trackWidth <= 0) {
                     return;
                 }
 
                 float fraction = BudgetUiUtils.getTimelineFraction(item.getBudgetEntity());
-                int markerX = Math.round(availableWidth * fraction);
+                int trackLeft = binding.progressBudget.getLeft();
+                int markerX = trackLeft + Math.round(trackWidth * fraction);
 
                 FrameLayout.LayoutParams markerParams =
                         (FrameLayout.LayoutParams) binding.vTodayMarker.getLayoutParams();
-                markerParams.leftMargin = Math.max(0, Math.min(availableWidth, markerX));
+                int markerWidth = binding.vTodayMarker.getWidth() > 0
+                        ? binding.vTodayMarker.getWidth()
+                        : markerParams.width;
+                int centeredMarkerLeft = markerX - (markerWidth / 2);
+                markerParams.leftMargin = Math.max(
+                        0,
+                        Math.min(binding.progressMarkerContainer.getWidth() - markerWidth, centeredMarkerLeft)
+                );
                 binding.vTodayMarker.setLayoutParams(markerParams);
 
                 binding.tvToday.measure(
@@ -156,9 +170,10 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
                 int chipWidth = binding.tvToday.getMeasuredWidth();
                 FrameLayout.LayoutParams chipParams =
                         (FrameLayout.LayoutParams) binding.tvToday.getLayoutParams();
+                int centeredChipLeft = markerX - (chipWidth / 2);
                 chipParams.leftMargin = Math.max(
                         0,
-                        Math.min(availableWidth - chipWidth, markerX - (chipWidth / 2))
+                        Math.min(binding.progressMarkerContainer.getWidth() - chipWidth, centeredChipLeft)
                 );
                 binding.tvToday.setLayoutParams(chipParams);
             });

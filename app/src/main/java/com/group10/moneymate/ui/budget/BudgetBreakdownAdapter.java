@@ -40,7 +40,8 @@ public class BudgetBreakdownAdapter extends ListAdapter<BudgetUIModel, BudgetBre
                 @Override
                 public boolean areContentsTheSame(@NonNull BudgetUIModel oldItem, @NonNull BudgetUIModel newItem) {
                     return oldItem.getSpentAmount() == newItem.getSpentAmount()
-                            && oldItem.getBudgetEntity().getAmount() == newItem.getBudgetEntity().getAmount();
+                            && oldItem.getBudgetEntity().getAmount() == newItem.getBudgetEntity().getAmount()
+                            && oldItem.getWalletName().equals(newItem.getWalletName());
                 }
             };
 
@@ -83,6 +84,7 @@ public class BudgetBreakdownAdapter extends ListAdapter<BudgetUIModel, BudgetBre
                     androidx.core.graphics.ColorUtils.setAlphaComponent(iconTint, 32)
             ));
             binding.tvCategory.setText(item.getCategoryName());
+            binding.tvWallet.setText(item.getWalletName());
             binding.tvAmount.setText(BudgetUiUtils.formatCurrency(item.getSpentAmount()));
             binding.getRoot().setOnClickListener(v -> {
                 if (clickListener != null) {

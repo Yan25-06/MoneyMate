@@ -8,43 +8,107 @@
 
     <LinearLayout
         android:id="@+id/appBarContent"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@android:color/white"
-        android:gravity="center_vertical"
-        android:minHeight="?attr/actionBarSize"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:paddingStart="16dp"
         android:paddingTop="12dp"
-        android:paddingEnd="12dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <View
-            android:layout_width="40dp"
-            android:layout_height="40dp" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_gravity="center_horizontal">
 
-        <TextView
-            android:layout_width="0dp"
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbarBudget"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:contentInsetStartWithNavigation="0dp"
+                android:contentInsetStart="0dp"
+                android:contentInsetEndWithActions="0dp"
+                android:minHeight="?attr/actionBarSize"
+                app:menu="@menu/menu_budget_toolbar"
+                app:navigationIconTint="@color/budget_text_primary"
+                app:titleCentered="false" />
+
+            <LinearLayout
+                android:id="@+id/btnWalletFilter"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_budget_wallet_filter"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingEnd="10dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@string/budget_wallet_picker_title"
+                    android:src="@drawable/outline_account_balance_wallet_24"
+                    android:tint="@color/budget_safe_green" />
+
+                <TextView
+                    android:id="@+id/tvWalletFilterLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:maxWidth="150dp"
+                    android:text="@string/budget_wallet_scope_total"
+                    android:textColor="@color/budget_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    tools:text="Ví gia đình rất dài"
+                    />
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="4dp"
+                    android:contentDescription="@string/budget_wallet_picker_title"
+                    android:rotation="-90"
+                    android:src="@drawable/outline_arrow_back_24"
+                    android:tint="@color/budget_text_secondary" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabBudgetFilter"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="@string/budget_running_title"
-            android:textColor="@android:color/black"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:layout_marginTop="16dp"
+            android:background="@android:color/transparent"
+            app:tabIndicatorAnimationMode="elastic"
+            app:tabIndicatorColor="@color/budget_safe_green"
+            app:tabIndicatorFullWidth="false"
+            app:tabIndicatorHeight="3dp"
+            app:tabMode="fixed"
+            app:tabRippleColor="@android:color/transparent"
+            app:tabTextAppearance="@style/TextAppearance.Material3.LabelLarge"
+            app:tabTextColor="@color/budget_tab_text_color">
 
-        <ImageButton
-            android:id="@+id/btnBudgetMenu"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/budget_more_actions"
-            android:padding="8dp"
-            android:src="@drawable/outline_more_horiz_24"
-            android:tint="@android:color/black" />
+            <com.google.android.material.tabs.TabItem
+                android:text="@string/budget_tab_this_month" />
+
+            <com.google.android.material.tabs.TabItem
+                android:text="@string/budget_tab_future" />
+
+            <com.google.android.material.tabs.TabItem
+                android:text="@string/budget_tab_custom" />
+        </com.google.android.material.tabs.TabLayout>
     </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -65,30 +129,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvActiveSection"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="20dp"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="12dp"
-                    android:text="@string/budget_this_month"
-                    android:textColor="@android:color/black"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="140dp"
-                    android:layout_height="3dp"
-                    android:background="@android:color/black" />
-            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
@@ -145,10 +185,30 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:contentDescription="@string/budget_all_categories"
-                        android:src="@drawable/outline_arrow_back_24"
                         android:rotation="180"
+                        android:src="@drawable/outline_arrow_back_24"
                         android:tint="@color/budget_text_secondary" />
                 </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBudgetGapWarning"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="18dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginEnd="18dp"
+                    android:insetBottom="0dp"
+                    android:insetTop="0dp"
+                    android:minHeight="40dp"
+                    android:textAllCaps="false"
+                    android:textColor="@color/budget_warning_orange"
+                    android:visibility="gone"
+                    app:backgroundTint="#FFF2E0"
+                    app:cornerRadius="999dp"
+                    app:icon="@drawable/outline_warning_amber_24"
+                    app:iconTint="@color/budget_warning_orange"
+                    tools:text="Ngân sách tổng đang thấp hơn 2.000.000 đ" />
 
                 <FrameLayout
                     android:layout_width="match_parent"
@@ -297,19 +357,39 @@
                 android:layout_height="10dp"
                 android:background="@color/budget_screen_divider" />
 
-            <TextView
-                android:id="@+id/tvActiveEmpty"
+            <LinearLayout
+                android:id="@+id/layoutContentEmpty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@android:color/white"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
                 android:paddingStart="20dp"
-                android:paddingTop="18dp"
+                android:paddingTop="24dp"
                 android:paddingEnd="20dp"
-                android:paddingBottom="18dp"
-                android:text="@string/budget_no_active"
-                android:textColor="@color/budget_text_secondary"
-                android:textSize="14sp"
-                android:visibility="gone" />
+                android:paddingBottom="28dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvContentEmpty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="@string/budget_tab_empty"
+                    android:textColor="@color/budget_text_secondary"
+                    android:textSize="15sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnContentEmptyAction"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/budget_empty_inline_action"
+                    android:textAllCaps="false"
+                    app:backgroundTint="@color/budget_safe_green"
+                    app:cornerRadius="999dp" />
+            </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvActiveBudgets"
@@ -320,46 +400,6 @@
                 android:nestedScrollingEnabled="false"
                 android:overScrollMode="never"
                 tools:listitem="@layout/item_budget" />
-
-            <LinearLayout
-                android:id="@+id/finishedSectionContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <View
-                    android:id="@+id/dividerFinished"
-                    android:layout_width="match_parent"
-                    android:layout_height="10dp"
-                    android:background="@color/budget_screen_divider"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/tvFinishedSection"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@android:color/white"
-                    android:paddingStart="20dp"
-                    android:paddingTop="14dp"
-                    android:paddingEnd="20dp"
-                    android:paddingBottom="10dp"
-                    android:text="@string/budget_finished_section"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvFinishedBudgets"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@android:color/white"
-                    android:clipToPadding="false"
-                    android:nestedScrollingEnabled="false"
-                    android:overScrollMode="never"
-                    android:visibility="gone"
-                    tools:listitem="@layout/item_budget" />
-            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
@@ -391,6 +431,7 @@
         </FrameLayout>
 
         <TextView
+            android:id="@+id/tvEmptyTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
@@ -400,6 +441,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvEmptyDescription"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"

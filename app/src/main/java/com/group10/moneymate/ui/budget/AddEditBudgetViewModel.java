@@ -19,6 +19,7 @@ import java.util.UUID;
 public class AddEditBudgetViewModel extends ViewModel {
 
     private final BudgetRepository budgetRepository;
+    private final String userId;
     private final LiveData<List<CategoryEntity>> expenseCategories;
     private final LiveData<List<WalletEntity>> wallets;
 
@@ -27,6 +28,7 @@ public class AddEditBudgetViewModel extends ViewModel {
                                   @NonNull WalletRepository walletRepository,
                                   @NonNull String userId) {
         this.budgetRepository = budgetRepository;
+        this.userId = userId;
         this.expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
         this.wallets = walletRepository.getAllByUser(userId);
     }
@@ -40,10 +42,10 @@ public class AddEditBudgetViewModel extends ViewModel {
     }
 
     public LiveData<BudgetEntity> getBudgetById(@NonNull String budgetId) {
-        return budgetRepository.getBudgetById(budgetId);
+        return budgetRepository.getBudgetById(userId, budgetId);
     }
 
-    public void addBudget(@NonNull String categoryId,
+    public void addBudget(@Nullable String categoryId,
                           @Nullable String walletId,
                           double amount,
                           long startDate,
@@ -51,6 +53,7 @@ public class AddEditBudgetViewModel extends ViewModel {
                           @Nullable BudgetRepository.WriteCallback callback) {
         BudgetEntity budgetEntity = new BudgetEntity();
         budgetEntity.setId(UUID.randomUUID().toString());
+        budgetEntity.setUserId(userId);
         budgetEntity.setCategoryId(categoryId);
         budgetEntity.setWalletId(walletId);
         budgetEntity.setAmount(amount);
@@ -60,12 +63,13 @@ public class AddEditBudgetViewModel extends ViewModel {
     }
 
     public void updateBudget(@NonNull BudgetEntity budgetEntity,
-                             @NonNull String categoryId,
+                             @Nullable String categoryId,
                              @Nullable String walletId,
                              double amount,
                              long startDate,
                              long endDate,
                              @Nullable BudgetRepository.WriteCallback callback) {
+        budgetEntity.setUserId(userId);
         budgetEntity.setCategoryId(categoryId);
         budgetEntity.setWalletId(walletId);
         budgetEntity.setAmount(amount);

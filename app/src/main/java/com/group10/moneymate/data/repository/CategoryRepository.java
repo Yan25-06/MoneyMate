@@ -1,5 +1,10 @@
 package com.group10.moneymate.data.repository;
 
+import android.os.Handler;
+import android.os.Looper;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -18,6 +23,7 @@ import java.util.UUID;
 public class CategoryRepository {
 
     private final CategoryDao categoryDao;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public CategoryRepository(CategoryDao categoryDao) {
         this.categoryDao = categoryDao;
@@ -80,28 +86,67 @@ public class CategoryRepository {
      */
     public void seedDefaults() {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            if (categoryDao.getDefaultCategoryCount() > 0) return;
+            if (categoryDao.getDefaultCategoryCount() == 0) {
+                List<Constants.DefaultCategory> defaults = Constants.getDefaultCategories();
+                List<CategoryEntity> entities = new ArrayList<>();
+                long now = System.currentTimeMillis();
 
-            List<Constants.DefaultCategory> defaults = Constants.getDefaultCategories();
-            List<CategoryEntity> entities = new ArrayList<>();
-            long now = System.currentTimeMillis();
+                for (Constants.DefaultCategory dc : defaults) {
+                    CategoryEntity entity = new CategoryEntity();
+                    entity.setId(UUID.randomUUID().toString());
+                    entity.setUserId(null);        // null = dùng chung cho mọi user
+                    entity.setName(dc.name);
+                    entity.setIconResId(dc.iconResId);
+                    entity.setColorHex(dc.colorHex);
+                    entity.setType(dc.type);
+                    entity.setDefault(true);
+                    entity.setUpdatedAt(now);
+                    entity.setSyncStatus(0);       // SYNCED — default categories không cần sync
+                    entity.setDeleted(false);
+                    entities.add(entity);
+                }
 
-            for (Constants.DefaultCategory dc : defaults) {
-                CategoryEntity entity = new CategoryEntity();
-                entity.setId(UUID.randomUUID().toString());
-                entity.setUserId(null);        // null = dùng chung cho mọi user
-                entity.setName(dc.name);
-                entity.setIconResId(dc.iconResId);
-                entity.setColorHex(dc.colorHex);
-                entity.setType(dc.type);
-                entity.setDefault(true);
-                entity.setUpdatedAt(now);
-                entity.setSyncStatus(0);       // SYNCED — default categories không cần sync
-                entity.setDeleted(false);
-                entities.add(entity);
+                categoryDao.insertAll(entities);
             }
-
-            categoryDao.insertAll(entities);
+            ensureVirtualOtherCategoriesExistInternal();
         });
+    }
+
+    public void ensureVirtualOtherCategoryExists() {
+        ensureVirtualOtherCategoryExists(null);
+    }
+
+    public void ensureVirtualOtherCategoryExists(@Nullable Runnable onComplete) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            ensureVirtualOtherCategoriesExistInternal();
+            if (onComplete != null) {
+                mainHandler.post(onComplete);
+            }
+        });
+    }
+
+    private void ensureVirtualOtherCategoriesExistInternal() {
+        if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER) == null) {
+            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER));
+        }
+        if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER_LEGACY) == null) {
+            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER_LEGACY));
+        }
+    }
+
+    @NonNull
+    private CategoryEntity buildOtherCategory(@NonNull String categoryId) {
+        CategoryEntity otherCategory = new CategoryEntity();
+        otherCategory.setId(categoryId);
+        otherCategory.setUserId(null);
+        otherCategory.setName("Các mục khác");
+        otherCategory.setIconResId("ic_category_other");
+        otherCategory.setColorHex("#64748B");
+        otherCategory.setType(Constants.CATEGORY_TYPE_VIRTUAL_BUDGET);
+        otherCategory.setDefault(true);
+        otherCategory.setUpdatedAt(System.currentTimeMillis());
+        otherCategory.setSyncStatus(0);
+        otherCategory.setDeleted(false);
+        return otherCategory;
     }
 }

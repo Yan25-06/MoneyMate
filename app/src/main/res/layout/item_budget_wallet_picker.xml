@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:paddingStart="20dp"
+    android:paddingTop="18dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="18dp">
+
+    <View
+        android:id="@+id/vSelectedDot"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_centerVertical="true"
+        android:background="@drawable/bg_budget_wallet_selected_dot"
+        android:visibility="invisible" />
+
+    <FrameLayout
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="18dp"
+        android:background="@drawable/bg_circle_icon"
+        android:backgroundTint="#E7F5F0">
+
+        <ImageView
+            android:id="@+id/ivWalletIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/wallet"
+            android:tint="@color/budget_safe_green" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="78dp"
+        android:layout_marginEnd="56dp"
+        android:layout_toStartOf="@id/btnEditWallet"
+        android:gravity="start"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvWalletName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="start"
+            android:textAlignment="viewStart"
+            android:textColor="@android:color/black"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvWalletBalance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="start"
+            android:textAlignment="viewStart"
+            android:textColor="@color/budget_text_secondary"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnEditWallet"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/btn_update"
+        android:padding="8dp"
+        android:src="@drawable/outline_edit_24"
+        android:tint="@color/budget_text_secondary" />
+
+</RelativeLayout>

@@ -26,6 +26,29 @@
         android:name="com.group10.moneymate.ui.transaction.TransactionListFragment"
         android:label="@string/transactions"
         tools:layout="@layout/fragment_transaction_list">
+        <argument
+            android:name="budgetCategoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="budgetWalletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="budgetStartDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="budgetEndDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="budgetAggregateFilters"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
         <action android:id="@+id/action_transactionList_to_addEdit" app:destination="@id/addEditTransactionFragment" />
     </fragment>
 
@@ -109,6 +132,27 @@
         tools:layout="@layout/fragment_budget_list">
         <action android:id="@+id/action_budgetList_to_addEdit" app:destination="@id/addEditBudgetFragment" />
         <action android:id="@+id/action_budgetList_to_detail" app:destination="@id/budgetDetailFragment" />
+        <action android:id="@+id/action_budgetList_to_walletPicker" app:destination="@id/budgetWalletPickerFragment" />
+        <action android:id="@+id/action_budgetList_to_finished" app:destination="@id/budgetFinishedFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/budgetFinishedFragment"
+        android:name="com.group10.moneymate.ui.budget.BudgetFinishedFragment"
+        android:label="@string/budget_finished_title"
+        tools:layout="@layout/fragment_budget_finished">
+        <argument
+            android:name="selectedWalletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="selectedWalletLabel"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action android:id="@+id/action_budgetFinished_to_detail" app:destination="@id/budgetDetailFragment" />
+        <action android:id="@+id/action_budgetFinished_to_walletPicker" app:destination="@id/budgetWalletPickerFragment" />
     </fragment>
 
     <fragment
@@ -125,8 +169,39 @@
             android:name="isAggregate"
             app:argType="boolean"
             android:defaultValue="false" />
+        <argument
+            android:name="walletFilterId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="walletFilterLabel"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="budgetTab"
+            app:argType="string"
+            android:defaultValue="THIS_MONTH" />
         <action android:id="@+id/action_budgetDetail_to_addEdit" app:destination="@id/addEditBudgetFragment" />
         <action android:id="@+id/action_budgetDetail_to_budgetDetail" app:destination="@id/budgetDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/budgetWalletPickerFragment"
+        android:name="com.group10.moneymate.ui.budget.BudgetWalletPickerFragment"
+        android:label="@string/budget_wallet_picker_title"
+        tools:layout="@layout/fragment_budget_wallet_picker">
+        <argument
+            android:name="selectedWalletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_budgetWalletPicker_to_addEditWallet"
+            app:destination="@id/addEditWalletFragment"
+            app:enterAnim="@anim/slide_in_up"
+            app:popExitAnim="@anim/slide_out_down" />
     </fragment>
 
     <fragment

@@ -9,11 +9,14 @@ import java.util.Locale;
  */
 public class CurrencyFormatter {
 
+    private static final Locale VIETNAM = new Locale("vi", "VN");
+
     public static String format(double amount, String currencyCode) {
         NumberFormat formatter;
         switch (currencyCode) {
             case "VND":
-                formatter = new DecimalFormat("#,###");
+                formatter = NumberFormat.getNumberInstance(VIETNAM);
+                formatter.setMaximumFractionDigits(0);
                 return formatter.format(amount) + " ₫";
             case "USD":
                 formatter = NumberFormat.getCurrencyInstance(Locale.US);
@@ -25,6 +28,24 @@ public class CurrencyFormatter {
                 formatter = new DecimalFormat("#,###.##");
                 return formatter.format(amount) + " " + currencyCode;
         }
+    }
+
+    public static String formatInputAmount(long amount) {
+        NumberFormat formatter = NumberFormat.getNumberInstance(VIETNAM);
+        formatter.setMaximumFractionDigits(0);
+        return formatter.format(amount);
+    }
+
+    public static String extractDigits(String rawValue) {
+        return rawValue == null ? "" : rawValue.replaceAll("[^\\d]", "");
+    }
+
+    public static double parseFormattedAmount(String rawValue) throws NumberFormatException {
+        String digits = extractDigits(rawValue);
+        if (digits.isEmpty()) {
+            throw new NumberFormatException("Empty amount");
+        }
+        return Double.parseDouble(digits);
     }
 
     public static String formatCompact(double amount) {

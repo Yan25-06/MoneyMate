@@ -17,6 +17,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentHomeBinding;
+import com.group10.moneymate.ui.main.HomeActivity;
 import com.group10.moneymate.ui.transaction.TransactionAdapter;
 import com.group10.moneymate.utils.CurrencyFormatter;
 
@@ -69,7 +70,13 @@ public class HomeFragment extends Fragment {
         binding.fabAdd.setOnClickListener(v ->
                 Navigation.findNavController(v).navigate(HomeFragmentDirections.actionHomeToAddTransaction()));
         binding.btnViewAllTransactions.setOnClickListener(v -> {
-            // Lấy thanh BottomNav từ Activity chứa Fragment này
+            if (requireActivity() instanceof HomeActivity) {
+                ((HomeActivity) requireActivity()).navigateToBottomDestination(
+                        R.id.transactionListFragment,
+                        null
+                );
+                return;
+            }
             BottomNavigationView bottomNav = requireActivity().findViewById(R.id.bottom_navigation);
             if (bottomNav != null) {
                 bottomNav.setSelectedItemId(R.id.transactionListFragment);

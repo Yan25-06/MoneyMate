@@ -27,13 +27,14 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentAddEditBudgetBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.utils.Constants;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 
 public class AddEditBudgetFragment extends Fragment {
 
@@ -43,6 +44,7 @@ public class AddEditBudgetFragment extends Fragment {
     private final List<CategoryEntity> expenseCategories = new ArrayList<>();
     private final List<WalletOptionItem> walletOptions = new ArrayList<>();
     private CategoryEntity selectedCategory;
+    private boolean selectedAllCategories;
     private BudgetEntity editingBudget;
     private String pendingCategoryId;
     private String pendingWalletId;
@@ -78,6 +80,7 @@ public class AddEditBudgetFragment extends Fragment {
         MoneyMateApplication app = (MoneyMateApplication) requireActivity().getApplication();
         appContainer = app.getAppContainer();
         userId = appContainer.authRepository.getCurrentUserId();
+        appContainer.categoryRepository.ensureVirtualOtherCategoryExists();
         AddEditBudgetViewModel.Factory factory = new AddEditBudgetViewModel.Factory(
                 appContainer.budgetRepository,
                 appContainer.categoryRepository,
@@ -207,11 +210,12 @@ public class AddEditBudgetFragment extends Fragment {
                 }
                 editingBudget = budget;
                 pendingCategoryId = budget.getCategoryId();
+                selectedAllCategories = budget.getCategoryId() == null;
                 pendingWalletId = budget.getWalletId();
                 shouldApplyPendingWalletSelection = true;
                 selectedStartDate = budget.getStartDate();
                 selectedEndDate = budget.getEndDate();
-                binding.etAmount.setText(formatAmountValue((long) budget.getAmount()));
+                binding.etAmount.setText(BudgetUiUtils.formatInputAmount((long) budget.getAmount()));
                 updatePeriodLabel();
                 applyPendingCategorySelection();
                 applyPendingWalletSelection();
@@ -222,10 +226,18 @@ public class AddEditBudgetFragment extends Fragment {
 
     private void populateWalletDropdown(@Nullable List<WalletEntity> wallets) {
         walletOptions.clear();
-        walletOptions.add(new WalletOptionItem(null, getString(R.string.budget_wallet_scope_total)));
+        walletOptions.add(new WalletOptionItem(
+                null,
+                getString(R.string.budget_wallet_scope_total),
+                totalWalletBalance
+        ));
         if (wallets != null) {
             for (WalletEntity wallet : wallets) {
-                walletOptions.add(new WalletOptionItem(wallet.getId(), wallet.getName()));
+                walletOptions.add(new WalletOptionItem(
+                        wallet.getId(),
+                        wallet.getName(),
+                        wallet.getBalance()
+                ));
             }
         }
 
@@ -267,11 +279,23 @@ public class AddEditBudgetFragment extends Fragment {
     }
 
     private void applyPendingCategorySelection() {
-        if (pendingCategoryId == null || expenseCategories.isEmpty()) {
+        if (pendingCategoryId == null) {
+            if (selectedAllCategories) {
+                selectedCategory = null;
+                bindSelectedCategory(null);
+            }
+            return;
+        }
+        if (Constants.isOtherCategoryId(pendingCategoryId)) {
+            selectedAllCategories = false;
+            selectedCategory = createOtherCategoriesOption();
+            bindSelectedCategory(selectedCategory);
+            pendingCategoryId = null;
             return;
         }
         for (CategoryEntity category : expenseCategories) {
             if (pendingCategoryId.equals(category.getId())) {
+                selectedAllCategories = false;
                 selectedCategory = category;
                 bindSelectedCategory(category);
                 pendingCategoryId = null;
@@ -280,17 +304,22 @@ public class AddEditBudgetFragment extends Fragment {
         }
     }
 
-    private void bindSelectedCategory(@NonNull CategoryEntity category) {
-        binding.tvCategoryName.setText(category.getName());
+    private void bindSelectedCategory(@Nullable CategoryEntity category) {
+        String categoryName = category != null
+                ? category.getName()
+                : getString(R.string.budget_all_categories);
+        String iconName = category != null ? category.getIconResId() : "";
+        String colorHex = category != null ? category.getColorHex() : "#4CAF50";
+        binding.tvCategoryName.setText(categoryName);
         binding.tvCategoryName.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.black));
         int iconTint = BudgetUiUtils.parseColorOrDefault(
-                category.getColorHex(),
+                colorHex,
                 ContextCompat.getColor(requireContext(), R.color.budget_safe_green)
         );
         binding.ivCategoryIcon.setImageResource(BudgetUiUtils.resolveCategoryIcon(
                 requireContext(),
-                category.getIconResId(),
-                category.getName()
+                iconName,
+                categoryName
         ));
         binding.ivCategoryIcon.setImageTintList(android.content.res.ColorStateList.valueOf(iconTint));
         binding.categoryIconContainer.setBackgroundTintList(
@@ -301,26 +330,34 @@ public class AddEditBudgetFragment extends Fragment {
     }
 
     private void showCategoryPicker() {
-        if (expenseCategories.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.empty_categories, Toast.LENGTH_SHORT).show();
-            return;
-        }
+        List<CategoryEntity> selectableCategories = new ArrayList<>(expenseCategories);
+        selectableCategories.add(createOtherCategoriesOption());
 
-        String[] categoryNames = new String[expenseCategories.size()];
-        int checkedItem = -1;
-        for (int i = 0; i < expenseCategories.size(); i++) {
-            CategoryEntity category = expenseCategories.get(i);
-            categoryNames[i] = category.getName();
-            if (selectedCategory != null && category.getId().equals(selectedCategory.getId())) {
-                checkedItem = i;
+        String[] categoryNames = new String[selectableCategories.size() + 1];
+        categoryNames[0] = getString(R.string.budget_all_categories);
+        int checkedItem = selectedAllCategories ? 0 : -1;
+        for (int i = 0; i < selectableCategories.size(); i++) {
+            CategoryEntity category = selectableCategories.get(i);
+            categoryNames[i + 1] = category.getName();
+            if (!selectedAllCategories
+                    && selectedCategory != null
+                    && category.getId().equals(selectedCategory.getId())) {
+                checkedItem = i + 1;
             }
         }
 
         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle(R.string.budget_category_picker_title)
                 .setSingleChoiceItems(categoryNames, checkedItem, (dialog, which) -> {
-                    selectedCategory = expenseCategories.get(which);
-                    bindSelectedCategory(selectedCategory);
+                    if (which == 0) {
+                        selectedAllCategories = true;
+                        selectedCategory = null;
+                        bindSelectedCategory(null);
+                    } else {
+                        selectedAllCategories = false;
+                        selectedCategory = selectableCategories.get(which - 1);
+                        bindSelectedCategory(selectedCategory);
+                    }
                     updateSaveState();
                     dialog.dismiss();
                 })
@@ -347,21 +384,32 @@ public class AddEditBudgetFragment extends Fragment {
     }
 
     private void updatePeriodLabel() {
-        binding.tvPeriod.setText(getString(
-                R.string.budget_period_template,
-                BudgetUiUtils.formatDateRange(selectedStartDate, selectedEndDate)
-        ));
+        String dateRange = BudgetUiUtils.formatDateRange(selectedStartDate, selectedEndDate);
+        if (isCurrentMonthPeriod(selectedStartDate, selectedEndDate)) {
+            binding.tvPeriod.setText(getString(R.string.budget_period_template, dateRange));
+            return;
+        }
+        binding.tvPeriod.setText(dateRange);
     }
 
     private void updateSaveState() {
-        boolean hasCategory = selectedCategory != null;
+        boolean hasCategory = selectedAllCategories || selectedCategory != null;
         double amount = parseAmount();
         boolean hasAmount = amount > 0d;
-        boolean exceedsWalletBalance = amount > totalWalletBalance;
+        WalletOptionItem selectedWallet = getSelectedWalletOption();
+        boolean isAllWalletsScope = selectedWalletId == null;
+        double scopeBalance = isAllWalletsScope
+                ? totalWalletBalance
+                : (selectedWallet != null ? selectedWallet.balance : totalWalletBalance);
+        String scopeLabel = selectedWallet != null
+                ? selectedWallet.label
+                : getString(R.string.budget_wallet_scope_total);
+        boolean exceedsWalletBalance = amount > scopeBalance;
         if (hasAmount && exceedsWalletBalance) {
             binding.tvAmountError.setText(getString(
-                    R.string.budget_amount_exceeds_wallets,
-                    BudgetUiUtils.formatCurrency(totalWalletBalance)
+                    R.string.budget_amount_exceeds_scope,
+                    scopeLabel,
+                    BudgetUiUtils.formatCurrency(scopeBalance)
             ));
             binding.tvAmountError.setVisibility(View.VISIBLE);
         } else {
@@ -371,7 +419,7 @@ public class AddEditBudgetFragment extends Fragment {
     }
 
     private void saveBudget() {
-        if (selectedCategory == null) {
+        if (!selectedAllCategories && selectedCategory == null) {
             Toast.makeText(requireContext(), R.string.error_category_required, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -382,9 +430,23 @@ public class AddEditBudgetFragment extends Fragment {
         }
 
         binding.btnSave.setEnabled(false);
+        if (!selectedAllCategories
+                && selectedCategory != null
+                && Constants.isOtherCategoryId(selectedCategory.getId())) {
+            appContainer.categoryRepository.ensureVirtualOtherCategoryExists(this::performSaveBudget);
+            return;
+        }
+        performSaveBudget();
+    }
+
+    private void performSaveBudget() {
+        if (binding == null || !isAdded()) {
+            return;
+        }
+        double amount = parseAmount();
         if (editingBudget == null) {
             viewModel.addBudget(
-                    selectedCategory.getId(),
+                    selectedAllCategories ? null : selectedCategory.getId(),
                     selectedWalletId,
                     amount,
                     selectedStartDate,
@@ -394,7 +456,7 @@ public class AddEditBudgetFragment extends Fragment {
         } else {
             viewModel.updateBudget(
                     editingBudget,
-                    selectedCategory.getId(),
+                    selectedAllCategories ? null : selectedCategory.getId(),
                     selectedWalletId,
                     amount,
                     selectedStartDate,
@@ -430,17 +492,10 @@ public class AddEditBudgetFragment extends Fragment {
             return;
         }
         isFormattingAmount = true;
-        String formatted = formatAmountValue(Long.parseLong(digits));
+        String formatted = BudgetUiUtils.formatInputAmount(Long.parseLong(digits));
         binding.etAmount.setText(formatted);
         binding.etAmount.setSelection(formatted.length());
         isFormattingAmount = false;
-    }
-
-    @NonNull
-    private String formatAmountValue(long value) {
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
-        symbols.setGroupingSeparator(',');
-        return new DecimalFormat("#,###", symbols).format(value);
     }
 
     private double parseAmount() {
@@ -451,6 +506,44 @@ public class AddEditBudgetFragment extends Fragment {
             return 0d;
         }
         return Double.parseDouble(digits);
+    }
+
+    @Nullable
+    private WalletOptionItem getSelectedWalletOption() {
+        for (WalletOptionItem item : walletOptions) {
+            boolean matches = item.walletId == null
+                    ? selectedWalletId == null
+                    : item.walletId.equals(selectedWalletId);
+            if (matches) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private boolean isCurrentMonthPeriod(long startDate, long endDate) {
+        LocalDate today = LocalDate.now();
+        LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+        LocalDate selectedStart = Instant.ofEpochMilli(startDate)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        LocalDate selectedEnd = Instant.ofEpochMilli(endDate)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        return selectedStart.isEqual(monthStart) && selectedEnd.isEqual(monthEnd);
+    }
+
+    @NonNull
+    private CategoryEntity createOtherCategoriesOption() {
+        CategoryEntity categoryEntity = new CategoryEntity();
+        categoryEntity.setId(Constants.CATEGORY_ID_OTHER);
+        categoryEntity.setName(getString(R.string.budget_other_categories));
+        categoryEntity.setIconResId("ic_category_other");
+        categoryEntity.setColorHex("#64748B");
+        categoryEntity.setType(Constants.TYPE_EXPENSE);
+        categoryEntity.setDefault(true);
+        return categoryEntity;
     }
 
     @Override
@@ -464,10 +557,14 @@ public class AddEditBudgetFragment extends Fragment {
         private final String walletId;
         @NonNull
         private final String label;
+        private final double balance;
 
-        private WalletOptionItem(@Nullable String walletId, @NonNull String label) {
+        private WalletOptionItem(@Nullable String walletId,
+                                 @NonNull String label,
+                                 double balance) {
             this.walletId = walletId;
             this.label = label;
+            this.balance = balance;
         }
     }
 }

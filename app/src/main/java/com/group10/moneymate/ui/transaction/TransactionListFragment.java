@@ -9,12 +9,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.group10.moneymate.R;
+import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.databinding.FragmentTransactionListBinding;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TransactionListFragment extends Fragment {
 
@@ -74,10 +79,34 @@ public class TransactionListFragment extends Fragment {
     }
 
     private void observeTransactions() {
-        viewModel.getFilteredTransactions().observe(getViewLifecycleOwner(), transactions -> {
-            adapter.submitList(transactions);
+        TransactionListFragmentArgs args = TransactionListFragmentArgs.fromBundle(
+                getArguments() != null ? getArguments() : new Bundle()
+        );
+        List<AggregateBudgetFilter> aggregateFilters =
+                parseAggregateBudgetFilters(args.getBudgetAggregateFilters());
+        LiveData<List<TransactionEntity>> source = shouldUseSingleBudgetFilter(args)
+                ? viewModel.getTransactionsForBudget(
+                        args.getBudgetCategoryId(),
+                        args.getBudgetWalletId(),
+                        args.getBudgetStartDate(),
+                        args.getBudgetEndDate()
+                )
+                : shouldUseAggregateBudgetFilter(args)
+                ? viewModel.getExpenseTransactionsByRange(
+                        args.getBudgetStartDate(),
+                        args.getBudgetEndDate()
+                )
+                : viewModel.getFilteredTransactions();
+
+        source.observe(getViewLifecycleOwner(), transactions -> {
+            List<TransactionEntity> displayTransactions = transactions;
+            if (!aggregateFilters.isEmpty()) {
+                displayTransactions = filterTransactionsForAggregateBudget(transactions, aggregateFilters);
+            }
+
+            adapter.submitList(displayTransactions);
             // Empty state
-            if (transactions == null || transactions.isEmpty()) {
+            if (displayTransactions == null || displayTransactions.isEmpty()) {
                 binding.rvTransactions.setVisibility(View.GONE);
                 binding.tvEmpty.setVisibility(View.VISIBLE);
             } else {
@@ -85,6 +114,106 @@ public class TransactionListFragment extends Fragment {
                 binding.tvEmpty.setVisibility(View.GONE);
             }
         });
+    }
+
+    private boolean shouldUseSingleBudgetFilter(@NonNull TransactionListFragmentArgs args) {
+        return args.getBudgetStartDate() > 0L
+                && args.getBudgetEndDate() > 0L
+                && (args.getBudgetCategoryId() != null
+                || args.getBudgetWalletId() != null
+                || args.getBudgetAggregateFilters() == null);
+    }
+
+    private boolean shouldUseAggregateBudgetFilter(@NonNull TransactionListFragmentArgs args) {
+        return args.getBudgetCategoryId() == null
+                && args.getBudgetStartDate() > 0L
+                && args.getBudgetEndDate() > 0L;
+    }
+
+    @NonNull
+    private List<AggregateBudgetFilter> parseAggregateBudgetFilters(@Nullable String filterSpec) {
+        List<AggregateBudgetFilter> filters = new ArrayList<>();
+        if (filterSpec == null || filterSpec.trim().isEmpty()) {
+            return filters;
+        }
+
+        String[] segments = filterSpec.split(";");
+        for (String segment : segments) {
+            if (segment == null || segment.trim().isEmpty()) {
+                continue;
+            }
+            String[] parts = segment.split("\\|", -1);
+            if (parts.length != 4) {
+                continue;
+            }
+            try {
+                filters.add(new AggregateBudgetFilter(
+                        parts[0],
+                        parts[1].isEmpty() ? null : parts[1],
+                        Long.parseLong(parts[2]),
+                        Long.parseLong(parts[3])
+                ));
+            } catch (NumberFormatException ignored) {
+                // Skip malformed filters to keep the transaction screen usable.
+            }
+        }
+        return filters;
+    }
+
+    @NonNull
+    private List<TransactionEntity> filterTransactionsForAggregateBudget(
+            @Nullable List<TransactionEntity> transactions,
+            @NonNull List<AggregateBudgetFilter> filters
+    ) {
+        if (transactions == null || transactions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<TransactionEntity> matches = new ArrayList<>();
+        for (TransactionEntity transaction : transactions) {
+            if (matchesAnyBudgetFilter(transaction, filters)) {
+                matches.add(transaction);
+            }
+        }
+        return matches;
+    }
+
+    private boolean matchesAnyBudgetFilter(@NonNull TransactionEntity transaction,
+                                           @NonNull List<AggregateBudgetFilter> filters) {
+        for (AggregateBudgetFilter filter : filters) {
+            if (filter.matches(transaction)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static class AggregateBudgetFilter {
+        private final String categoryId;
+        @Nullable
+        private final String walletId;
+        private final long startDate;
+        private final long endDate;
+
+        private AggregateBudgetFilter(@NonNull String categoryId,
+                                      @Nullable String walletId,
+                                      long startDate,
+                                      long endDate) {
+            this.categoryId = categoryId;
+            this.walletId = walletId;
+            this.startDate = startDate;
+            this.endDate = endDate;
+        }
+
+        private boolean matches(@NonNull TransactionEntity transaction) {
+            if (!categoryId.equals(transaction.getCategoryId())) {
+                return false;
+            }
+            if (walletId != null && !walletId.equals(transaction.getWalletId())) {
+                return false;
+            }
+            long timestamp = transaction.getTimestamp();
+            return timestamp >= startDate && timestamp <= endDate;
+        }
     }
 
     @Override

@@ -8,9 +8,9 @@ import androidx.annotation.NonNull;
 
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
+import com.group10.moneymate.utils.Constants;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -19,19 +19,16 @@ import java.util.Locale;
 public final class BudgetUiUtils {
 
     private static final Locale VIETNAM = new Locale("vi", "VN");
-    private static final DecimalFormat NUMBER_FORMAT;
-    private static final DecimalFormat COMPACT_FORMAT;
+    private static final NumberFormat INTEGER_CURRENCY_FORMAT;
     private static final SimpleDateFormat DATE_RANGE_FORMAT =
             new SimpleDateFormat("dd/MM", VIETNAM);
     private static final SimpleDateFormat AXIS_DATE_FORMAT =
             new SimpleDateFormat("dd/MM/yyyy", VIETNAM);
 
     static {
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
-        symbols.setGroupingSeparator(',');
-        symbols.setDecimalSeparator('.');
-        NUMBER_FORMAT = new DecimalFormat("#,###", symbols);
-        COMPACT_FORMAT = new DecimalFormat("0.##", symbols);
+        INTEGER_CURRENCY_FORMAT = NumberFormat.getNumberInstance(VIETNAM);
+        INTEGER_CURRENCY_FORMAT.setMaximumFractionDigits(0);
+        INTEGER_CURRENCY_FORMAT.setMinimumFractionDigits(0);
     }
 
     private BudgetUiUtils() {
@@ -40,7 +37,7 @@ public final class BudgetUiUtils {
     @NonNull
     public static String formatCurrency(double amount) {
         String prefix = amount < 0d ? "-" : "";
-        return prefix + NUMBER_FORMAT.format(Math.abs(amount));
+        return prefix + INTEGER_CURRENCY_FORMAT.format(Math.abs(amount)) + " đ";
     }
 
     @NonNull
@@ -51,23 +48,38 @@ public final class BudgetUiUtils {
 
         if (absoluteValue >= 1_000_000_000d) {
             displayValue = absoluteValue / 1_000_000_000d;
-            suffix = " B";
+            suffix = " tỷ đ";
         } else if (absoluteValue >= 1_000_000d) {
             displayValue = absoluteValue / 1_000_000d;
-            suffix = " M";
+            suffix = " triệu đ";
         } else if (absoluteValue >= 1_000d) {
             displayValue = absoluteValue / 1_000d;
-            suffix = " K";
+            suffix = " nghìn đ";
+        } else {
+            return formatCurrency(amount);
         }
 
         String prefix = amount < 0d ? "-" : "";
-        return prefix + COMPACT_FORMAT.format(displayValue) + suffix;
+        return prefix + formatCompactNumber(displayValue) + suffix;
     }
 
     @NonNull
     public static String formatDecimalNumber(double amount) {
-        DecimalFormat decimalFormat = new DecimalFormat("#,##0.##", new DecimalFormatSymbols(Locale.US));
-        return decimalFormat.format(amount);
+        NumberFormat formatter = NumberFormat.getNumberInstance(VIETNAM);
+        formatter.setMaximumFractionDigits(2);
+        formatter.setMinimumFractionDigits(0);
+        return formatter.format(amount);
+    }
+
+    @NonNull
+    public static String formatDecimalCurrency(double amount) {
+        String prefix = amount < 0d ? "-" : "";
+        return prefix + formatDecimalNumber(Math.abs(amount)) + " đ";
+    }
+
+    @NonNull
+    public static String formatInputAmount(long amount) {
+        return INTEGER_CURRENCY_FORMAT.format(amount);
     }
 
     @NonNull
@@ -75,15 +87,15 @@ public final class BudgetUiUtils {
         double absoluteValue = Math.abs(amount);
         String prefix = amount < 0d ? "-" : "";
         if (absoluteValue >= 1_000_000_000d) {
-            return prefix + formatDecimalNumber(absoluteValue / 1_000_000_000d) + " B đ";
+            return prefix + formatCompactNumber(absoluteValue / 1_000_000_000d) + " tỷ đ";
         }
         if (absoluteValue >= 1_000_000d) {
-            return prefix + formatDecimalNumber(absoluteValue / 1_000_000d) + " M đ";
+            return prefix + formatCompactNumber(absoluteValue / 1_000_000d) + " triệu đ";
         }
         if (absoluteValue >= 1_000d) {
-            return prefix + formatDecimalNumber(absoluteValue / 1_000d) + " K đ";
+            return prefix + formatCompactNumber(absoluteValue / 1_000d) + " nghìn đ";
         }
-        return prefix + formatDecimalNumber(absoluteValue) + " đ";
+        return prefix + INTEGER_CURRENCY_FORMAT.format(absoluteValue) + " đ";
     }
 
     @NonNull
@@ -171,6 +183,10 @@ public final class BudgetUiUtils {
     public static int resolveCategoryIcon(@NonNull Context context,
                                           @NonNull String iconName,
                                           @NonNull String categoryName) {
+        if (Constants.isOtherCategoryId(iconName)
+                || "ic_category_other".equals(iconName)) {
+            return R.drawable.ic_category_other;
+        }
         if (!iconName.trim().isEmpty()) {
             int resId = context.getResources()
                     .getIdentifier(iconName, "drawable", context.getPackageName());
@@ -204,5 +220,13 @@ public final class BudgetUiUtils {
             return R.drawable.outline_payments_24;
         }
         return R.drawable.outline_account_balance_wallet_24;
+    }
+
+    @NonNull
+    private static String formatCompactNumber(double value) {
+        NumberFormat formatter = NumberFormat.getNumberInstance(VIETNAM);
+        formatter.setMaximumFractionDigits(1);
+        formatter.setMinimumFractionDigits(0);
+        return formatter.format(value);
     }
 }

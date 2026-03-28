@@ -19,12 +19,12 @@ public interface BudgetDao {
     @Update
     void update(BudgetEntity budget);
 
-    @Query("SELECT * FROM budgets WHERE is_deleted = 0 ORDER BY start_date ASC, updated_at DESC")
-    LiveData<List<BudgetEntity>> getAllBudgets();
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND is_deleted = 0 ORDER BY start_date ASC, updated_at DESC")
+    LiveData<List<BudgetEntity>> getAllBudgets(String userId);
 
-    @Query("SELECT * FROM budgets WHERE id = :id AND is_deleted = 0")
-    LiveData<BudgetEntity> getBudgetById(String id);
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND id = :id AND is_deleted = 0")
+    LiveData<BudgetEntity> getBudgetById(String userId, String id);
 
-    @Query("UPDATE budgets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
-    void softDelete(String id, long updatedAt);
+    @Query("UPDATE budgets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE user_id = :userId AND id = :id")
+    void softDelete(String userId, String id, long updatedAt);
 }
