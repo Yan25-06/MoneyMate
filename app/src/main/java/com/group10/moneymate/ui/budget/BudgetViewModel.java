@@ -9,25 +9,29 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
+import com.group10.moneymate.data.repository.WalletRepository;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 public class BudgetViewModel extends ViewModel {
 
+    private static final String ALL_WALLETS_LABEL = "Tất cả các ví";
+    private static final String UNKNOWN_WALLET_LABEL = "Ví";
+
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
+    private final WalletRepository walletRepository;
     private final String userId;
 
     private final LiveData<List<BudgetEntity>> budgetSource;
@@ -37,18 +41,22 @@ public class BudgetViewModel extends ViewModel {
     private final MediatorLiveData<BudgetSummaryUIModel> summary = new MediatorLiveData<>();
 
     private final Map<String, LiveData<CategoryEntity>> categorySources = new HashMap<>();
+    private final Map<String, LiveData<WalletEntity>> walletSources = new HashMap<>();
     private final Map<String, LiveData<Double>> spentSources = new HashMap<>();
     private final Map<String, CategoryEntity> categoryValues = new HashMap<>();
+    private final Map<String, WalletEntity> walletValues = new HashMap<>();
     private final Map<String, Double> spentValues = new HashMap<>();
     private List<BudgetEntity> currentBudgets = new ArrayList<>();
 
     public BudgetViewModel(@NonNull BudgetRepository budgetRepository,
                            @NonNull CategoryRepository categoryRepository,
                            @NonNull TransactionRepository transactionRepository,
+                           @NonNull WalletRepository walletRepository,
                            @NonNull String userId) {
         this.budgetRepository = budgetRepository;
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
+        this.walletRepository = walletRepository;
         this.userId = userId;
         this.budgetSource = budgetRepository.getAllBudgets();
         this.expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
@@ -80,9 +88,11 @@ public class BudgetViewModel extends ViewModel {
         MediatorLiveData<BudgetUIModel> result = new MediatorLiveData<>();
         LiveData<BudgetEntity> budgetLiveData = budgetRepository.getBudgetById(budgetId);
         final LiveData<CategoryEntity>[] categorySource = new LiveData[]{null};
+        final LiveData<WalletEntity>[] walletSource = new LiveData[]{null};
         final LiveData<Double>[] spentSource = new LiveData[]{null};
         final BudgetEntity[] budgetHolder = new BudgetEntity[]{null};
         final CategoryEntity[] categoryHolder = new CategoryEntity[]{null};
+        final WalletEntity[] walletHolder = new WalletEntity[]{null};
         final double[] spentHolder = new double[]{0d};
 
         Runnable publish = () -> {
@@ -93,10 +103,11 @@ public class BudgetViewModel extends ViewModel {
             CategoryEntity category = categoryHolder[0];
             result.setValue(new BudgetUIModel(
                     budgetHolder[0],
-                    category != null ? category.getName() : "Category",
+                    category != null ? category.getName() : "Danh mục",
                     category != null ? category.getIconResId() : "",
                     spentHolder[0],
                     category != null ? category.getColorHex() : "",
+                    resolveWalletName(budgetHolder[0], walletHolder[0]),
                     BudgetUiUtils.isActiveToday(budgetHolder[0])
             ));
         };
@@ -104,11 +115,16 @@ public class BudgetViewModel extends ViewModel {
         result.addSource(budgetLiveData, budget -> {
             budgetHolder[0] = budget;
             categoryHolder[0] = null;
+            walletHolder[0] = null;
             spentHolder[0] = 0d;
 
             if (categorySource[0] != null) {
                 result.removeSource(categorySource[0]);
                 categorySource[0] = null;
+            }
+            if (walletSource[0] != null) {
+                result.removeSource(walletSource[0]);
+                walletSource[0] = null;
             }
             if (spentSource[0] != null) {
                 result.removeSource(spentSource[0]);
@@ -126,9 +142,18 @@ public class BudgetViewModel extends ViewModel {
                 publish.run();
             });
 
+            if (budget.getWalletId() != null) {
+                walletSource[0] = walletRepository.getById(budget.getWalletId());
+                result.addSource(walletSource[0], wallet -> {
+                    walletHolder[0] = wallet;
+                    publish.run();
+                });
+            }
+
             spentSource[0] = transactionRepository.getTotalExpenseByCategory(
                     userId,
                     budget.getCategoryId(),
+                    budget.getWalletId(),
                     budget.getStartDate(),
                     budget.getEndDate()
             );
@@ -144,13 +169,15 @@ public class BudgetViewModel extends ViewModel {
     }
 
     public void addBudget(@NonNull String categoryId,
+                          @Nullable String walletId,
                           double amount,
                           long startDate,
                           long endDate) {
-        addBudget(categoryId, amount, startDate, endDate, null);
+        addBudget(categoryId, walletId, amount, startDate, endDate, null);
     }
 
     public void addBudget(@NonNull String categoryId,
+                          @Nullable String walletId,
                           double amount,
                           long startDate,
                           long endDate,
@@ -158,6 +185,7 @@ public class BudgetViewModel extends ViewModel {
         BudgetEntity budgetEntity = new BudgetEntity();
         budgetEntity.setId(UUID.randomUUID().toString());
         budgetEntity.setCategoryId(categoryId);
+        budgetEntity.setWalletId(walletId);
         budgetEntity.setAmount(amount);
         budgetEntity.setStartDate(startDate);
         budgetEntity.setEndDate(endDate);
@@ -166,19 +194,22 @@ public class BudgetViewModel extends ViewModel {
 
     public void updateBudget(@NonNull BudgetEntity budgetEntity,
                              @NonNull String categoryId,
+                             @Nullable String walletId,
                              double amount,
                              long startDate,
                              long endDate) {
-        updateBudget(budgetEntity, categoryId, amount, startDate, endDate, null);
+        updateBudget(budgetEntity, categoryId, walletId, amount, startDate, endDate, null);
     }
 
     public void updateBudget(@NonNull BudgetEntity budgetEntity,
                              @NonNull String categoryId,
+                             @Nullable String walletId,
                              double amount,
                              long startDate,
                              long endDate,
                              @Nullable BudgetRepository.WriteCallback callback) {
         budgetEntity.setCategoryId(categoryId);
+        budgetEntity.setWalletId(walletId);
         budgetEntity.setAmount(amount);
         budgetEntity.setStartDate(startDate);
         budgetEntity.setEndDate(endDate);
@@ -196,69 +227,70 @@ public class BudgetViewModel extends ViewModel {
     }
 
     private void syncChildSources() {
-        Set<String> activeIds = new HashSet<>();
+        resetChildSources();
+
         for (BudgetEntity budgetEntity : currentBudgets) {
             String budgetId = budgetEntity.getId();
-            activeIds.add(budgetId);
 
-            if (!categorySources.containsKey(budgetId)) {
-                final String sourceBudgetId = budgetId;
-                LiveData<CategoryEntity> categoryLiveData =
-                        categoryRepository.getCategoryById(budgetEntity.getCategoryId());
-                categorySources.put(sourceBudgetId, categoryLiveData);
-                activeBudgets.addSource(categoryLiveData, categoryEntity -> {
-                    categoryValues.put(sourceBudgetId, categoryEntity);
+            LiveData<CategoryEntity> categoryLiveData =
+                    categoryRepository.getCategoryById(budgetEntity.getCategoryId());
+            categorySources.put(budgetId, categoryLiveData);
+            activeBudgets.addSource(categoryLiveData, categoryEntity -> {
+                categoryValues.put(budgetId, categoryEntity);
+                rebuildUiModels();
+            });
+
+            if (budgetEntity.getWalletId() != null) {
+                LiveData<WalletEntity> walletLiveData =
+                        walletRepository.getById(budgetEntity.getWalletId());
+                walletSources.put(budgetId, walletLiveData);
+                activeBudgets.addSource(walletLiveData, walletEntity -> {
+                    walletValues.put(budgetId, walletEntity);
                     rebuildUiModels();
                 });
             }
 
-            if (!spentSources.containsKey(budgetId)) {
-                final String sourceBudgetId = budgetId;
-                LiveData<Double> spentLiveData = transactionRepository.getTotalExpenseByCategory(
-                        userId,
-                        budgetEntity.getCategoryId(),
-                        budgetEntity.getStartDate(),
-                        budgetEntity.getEndDate()
-                );
-                spentSources.put(sourceBudgetId, spentLiveData);
-                activeBudgets.addSource(spentLiveData, spentAmount -> {
-                    spentValues.put(sourceBudgetId, spentAmount != null ? spentAmount : 0d);
-                    rebuildUiModels();
-                });
-            }
+            LiveData<Double> spentLiveData = transactionRepository.getTotalExpenseByCategory(
+                    userId,
+                    budgetEntity.getCategoryId(),
+                    budgetEntity.getWalletId(),
+                    budgetEntity.getStartDate(),
+                    budgetEntity.getEndDate()
+            );
+            spentSources.put(budgetId, spentLiveData);
+            activeBudgets.addSource(spentLiveData, spentAmount -> {
+                spentValues.put(budgetId, spentAmount != null ? spentAmount : 0d);
+                rebuildUiModels();
+            });
         }
-
-        removeStaleSources(categorySources, activeIds, categoryValues);
-        removeStaleSources(spentSources, activeIds, spentValues);
     }
 
-    private <T> void removeStaleSources(@NonNull Map<String, LiveData<T>> sourceMap,
-                                        @NonNull Set<String> activeIds,
-                                        @NonNull Map<String, ?> valueMap) {
-        List<String> staleIds = new ArrayList<>();
-        for (String id : sourceMap.keySet()) {
-            if (!activeIds.contains(id)) {
-                staleIds.add(id);
-            }
+    private void resetChildSources() {
+        for (LiveData<CategoryEntity> source : categorySources.values()) {
+            activeBudgets.removeSource(source);
         }
-
-        for (String staleId : staleIds) {
-            LiveData<T> liveData = sourceMap.remove(staleId);
-            if (liveData != null) {
-                activeBudgets.removeSource(liveData);
-            }
-            valueMap.remove(staleId);
+        for (LiveData<WalletEntity> source : walletSources.values()) {
+            activeBudgets.removeSource(source);
         }
+        for (LiveData<Double> source : spentSources.values()) {
+            activeBudgets.removeSource(source);
+        }
+        categorySources.clear();
+        walletSources.clear();
+        spentSources.clear();
+        categoryValues.clear();
+        walletValues.clear();
+        spentValues.clear();
     }
 
     private void rebuildUiModels() {
-        List<BudgetUIModel> allItems = new ArrayList<>();
         List<BudgetUIModel> activeItems = new ArrayList<>();
         List<BudgetUIModel> finishedItems = new ArrayList<>();
 
         for (BudgetEntity budgetEntity : currentBudgets) {
             String budgetId = budgetEntity.getId();
             CategoryEntity categoryEntity = categoryValues.get(budgetId);
+            WalletEntity walletEntity = walletValues.get(budgetId);
             double spentAmount = spentValues.containsKey(budgetId)
                     ? spentValues.get(budgetId)
                     : 0d;
@@ -270,10 +302,10 @@ public class BudgetViewModel extends ViewModel {
                     categoryEntity != null ? categoryEntity.getIconResId() : "",
                     spentAmount,
                     categoryEntity != null ? categoryEntity.getColorHex() : "",
+                    resolveWalletName(budgetEntity, walletEntity),
                     isActive
             );
 
-            allItems.add(item);
             if (isActive) {
                 activeItems.add(item);
             } else {
@@ -291,6 +323,15 @@ public class BudgetViewModel extends ViewModel {
         activeBudgets.setValue(activeItems);
         finishedBudgets.setValue(finishedItems);
         summary.setValue(buildSummary(activeItems));
+    }
+
+    @NonNull
+    private String resolveWalletName(@NonNull BudgetEntity budgetEntity,
+                                     @Nullable WalletEntity walletEntity) {
+        if (budgetEntity.getWalletId() == null) {
+            return ALL_WALLETS_LABEL;
+        }
+        return walletEntity != null ? walletEntity.getName() : UNKNOWN_WALLET_LABEL;
     }
 
     @NonNull
@@ -322,16 +363,7 @@ public class BudgetViewModel extends ViewModel {
     protected void onCleared() {
         super.onCleared();
         activeBudgets.removeSource(budgetSource);
-        for (LiveData<CategoryEntity> source : categorySources.values()) {
-            activeBudgets.removeSource(source);
-        }
-        for (LiveData<Double> source : spentSources.values()) {
-            activeBudgets.removeSource(source);
-        }
-        categorySources.clear();
-        spentSources.clear();
-        categoryValues.clear();
-        spentValues.clear();
+        resetChildSources();
     }
 
     public static class BudgetSummaryUIModel {
@@ -385,15 +417,18 @@ public class BudgetViewModel extends ViewModel {
         private final BudgetRepository budgetRepository;
         private final CategoryRepository categoryRepository;
         private final TransactionRepository transactionRepository;
+        private final WalletRepository walletRepository;
         private final String userId;
 
         public Factory(@NonNull BudgetRepository budgetRepository,
                        @NonNull CategoryRepository categoryRepository,
                        @NonNull TransactionRepository transactionRepository,
+                       @NonNull WalletRepository walletRepository,
                        @NonNull String userId) {
             this.budgetRepository = budgetRepository;
             this.categoryRepository = categoryRepository;
             this.transactionRepository = transactionRepository;
+            this.walletRepository = walletRepository;
             this.userId = userId;
         }
 
@@ -408,6 +443,7 @@ public class BudgetViewModel extends ViewModel {
                     budgetRepository,
                     categoryRepository,
                     transactionRepository,
+                    walletRepository,
                     userId
             );
         }

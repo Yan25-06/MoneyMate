@@ -6,6 +6,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -22,6 +23,7 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentAddEditBudgetBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
@@ -36,15 +38,19 @@ import java.util.Locale;
 public class AddEditBudgetFragment extends Fragment {
 
     private FragmentAddEditBudgetBinding binding;
-    private BudgetViewModel viewModel;
+    private AddEditBudgetViewModel viewModel;
 
     private final List<CategoryEntity> expenseCategories = new ArrayList<>();
+    private final List<WalletOptionItem> walletOptions = new ArrayList<>();
     private CategoryEntity selectedCategory;
     private BudgetEntity editingBudget;
     private String pendingCategoryId;
+    private String pendingWalletId;
+    private String selectedWalletId;
     private long selectedStartDate;
     private long selectedEndDate;
     private boolean isFormattingAmount;
+    private boolean shouldApplyPendingWalletSelection = true;
     private double totalWalletBalance;
     private String userId;
     private AppContainer appContainer;
@@ -72,13 +78,13 @@ public class AddEditBudgetFragment extends Fragment {
         MoneyMateApplication app = (MoneyMateApplication) requireActivity().getApplication();
         appContainer = app.getAppContainer();
         userId = appContainer.authRepository.getCurrentUserId();
-        BudgetViewModel.Factory factory = new BudgetViewModel.Factory(
+        AddEditBudgetViewModel.Factory factory = new AddEditBudgetViewModel.Factory(
                 appContainer.budgetRepository,
                 appContainer.categoryRepository,
-                appContainer.transactionRepository,
+                appContainer.walletRepository,
                 userId
         );
-        viewModel = new ViewModelProvider(this, factory).get(BudgetViewModel.class);
+        viewModel = new ViewModelProvider(this, factory).get(AddEditBudgetViewModel.class);
     }
 
     private void setupDefaultPeriod() {
@@ -134,14 +140,22 @@ public class AddEditBudgetFragment extends Fragment {
         binding.tvScreenTitle.setText(isEditMode
                 ? R.string.edit_budget_sheet_title
                 : R.string.add_budget_sheet_title);
-        binding.tvCancel.setText(R.string.budget_cancel_label);
-        binding.tvWalletScope.setText(R.string.budget_wallet_scope_total);
         updatePeriodLabel();
+        binding.dropdownWallet.setKeyListener(null);
 
         binding.tvCancel.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.rowCategory.setOnClickListener(v -> showCategoryPicker());
         binding.rowPeriod.setOnClickListener(v -> showDateRangePicker());
         binding.btnSave.setOnClickListener(v -> saveBudget());
+        binding.dropdownWallet.setOnItemClickListener((parent, view, position, id) -> {
+            if (position < 0 || position >= walletOptions.size()) {
+                return;
+            }
+            WalletOptionItem selectedItem = walletOptions.get(position);
+            selectedWalletId = selectedItem.walletId;
+            binding.dropdownWallet.setText(selectedItem.label, false);
+            updateSaveState();
+        });
 
         binding.etAmount.addTextChangedListener(new TextWatcher() {
             @Override
@@ -173,6 +187,11 @@ public class AddEditBudgetFragment extends Fragment {
             updateSaveState();
         });
 
+        viewModel.getWallets().observe(getViewLifecycleOwner(), wallets -> {
+            populateWalletDropdown(wallets);
+            updateSaveState();
+        });
+
         appContainer.walletRepository.getTotalBalance(userId).observe(getViewLifecycleOwner(), balance -> {
             totalWalletBalance = balance != null ? balance : 0d;
             updateSaveState();
@@ -188,14 +207,63 @@ public class AddEditBudgetFragment extends Fragment {
                 }
                 editingBudget = budget;
                 pendingCategoryId = budget.getCategoryId();
+                pendingWalletId = budget.getWalletId();
+                shouldApplyPendingWalletSelection = true;
                 selectedStartDate = budget.getStartDate();
                 selectedEndDate = budget.getEndDate();
                 binding.etAmount.setText(formatAmountValue((long) budget.getAmount()));
                 updatePeriodLabel();
                 applyPendingCategorySelection();
+                applyPendingWalletSelection();
                 updateSaveState();
             });
         }
+    }
+
+    private void populateWalletDropdown(@Nullable List<WalletEntity> wallets) {
+        walletOptions.clear();
+        walletOptions.add(new WalletOptionItem(null, getString(R.string.budget_wallet_scope_total)));
+        if (wallets != null) {
+            for (WalletEntity wallet : wallets) {
+                walletOptions.add(new WalletOptionItem(wallet.getId(), wallet.getName()));
+            }
+        }
+
+        List<String> labels = new ArrayList<>();
+        for (WalletOptionItem item : walletOptions) {
+            labels.add(item.label);
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                labels
+        );
+        binding.dropdownWallet.setAdapter(adapter);
+        applyPendingWalletSelection();
+    }
+
+    private void applyPendingWalletSelection() {
+        if (!shouldApplyPendingWalletSelection || walletOptions.isEmpty()) {
+            return;
+        }
+        bindSelectedWallet(pendingWalletId);
+        shouldApplyPendingWalletSelection = false;
+    }
+
+    private void bindSelectedWallet(@Nullable String walletId) {
+        for (WalletOptionItem item : walletOptions) {
+            boolean matches = item.walletId == null
+                    ? walletId == null
+                    : item.walletId.equals(walletId);
+            if (matches) {
+                selectedWalletId = item.walletId;
+                binding.dropdownWallet.setText(item.label, false);
+                return;
+            }
+        }
+        WalletOptionItem allWallets = walletOptions.get(0);
+        selectedWalletId = allWallets.walletId;
+        binding.dropdownWallet.setText(allWallets.label, false);
     }
 
     private void applyPendingCategorySelection() {
@@ -317,6 +385,7 @@ public class AddEditBudgetFragment extends Fragment {
         if (editingBudget == null) {
             viewModel.addBudget(
                     selectedCategory.getId(),
+                    selectedWalletId,
                     amount,
                     selectedStartDate,
                     selectedEndDate,
@@ -326,6 +395,7 @@ public class AddEditBudgetFragment extends Fragment {
             viewModel.updateBudget(
                     editingBudget,
                     selectedCategory.getId(),
+                    selectedWalletId,
                     amount,
                     selectedStartDate,
                     selectedEndDate,
@@ -387,5 +457,17 @@ public class AddEditBudgetFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    private static class WalletOptionItem {
+        @Nullable
+        private final String walletId;
+        @NonNull
+        private final String label;
+
+        private WalletOptionItem(@Nullable String walletId, @NonNull String label) {
+            this.walletId = walletId;
+            this.label = label;
+        }
     }
 }

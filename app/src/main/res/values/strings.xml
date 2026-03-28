@@ -105,7 +105,7 @@
     <string name="budget_select_category">Chọn danh mục</string>
     <string name="budget_amount_label">Số tiền</string>
     <string name="budget_default_period">Tháng này</string>
-    <string name="budget_wallet_scope_total">Tất cả ví</string>
+    <string name="budget_wallet_scope_total">Tất cả các ví</string>
     <string name="budget_repeat_title">Lặp lại ngân sách này</string>
     <string name="budget_repeat_subtitle">Ngân sách sẽ tự động gia hạn.</string>
     <string name="budget_create_cta">Tạo ngân sách</string>

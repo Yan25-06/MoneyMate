@@ -58,6 +58,7 @@
         <action android:id="@+id/action_settings_to_profile" app:destination="@id/profileFragment" />
         <action android:id="@+id/action_settings_to_categories" app:destination="@id/categoryListFragment" />
         <action android:id="@+id/action_settings_to_budgets" app:destination="@id/budgetListFragment" />
+        <action android:id="@+id/action_settings_to_statistics" app:destination="@id/statisticsFragment" />
         <action
             android:id="@+id/action_settings_to_wallets"
             app:destination="@id/walletListFragment"

@@ -50,11 +50,12 @@ public class CategoryListFragment extends Fragment {
         binding.rvCategories.setAdapter(adapter);
 
         // Click item → Edit mode (truyền categoryId qua Safe Args)
-        adapter.setOnItemClickListener(item ->
-                Navigation.findNavController(requireView()).navigate(
-                        CategoryListFragmentDirections.actionCategoryListToAddEdit()
-                )
-        );
+        adapter.setOnItemClickListener(item -> {
+            CategoryListFragmentDirections.ActionCategoryListToAddEdit action =
+                    CategoryListFragmentDirections.actionCategoryListToAddEdit();
+            action.setCategoryId(item.getId());
+            Navigation.findNavController(requireView()).navigate(action);
+        });
 
         // Xóa danh mục tùy chỉnh với confirm dialog
         adapter.setOnItemDeleteListener(item -> new AlertDialog.Builder(requireContext())

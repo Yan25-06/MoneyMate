@@ -1,6 +1,7 @@
 package com.group10.moneymate.data.local.entity;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
@@ -40,6 +41,10 @@ public class BudgetEntity {
 
     @ColumnInfo(name = "end_date")
     private long endDate;
+
+    @Nullable
+    @ColumnInfo(name = "wallet_id")
+    private String walletId;
 
     @ColumnInfo(name = "created_at")
     private long createdAt;
@@ -101,6 +106,15 @@ public class BudgetEntity {
 
     public void setEndDate(long endDate) {
         this.endDate = endDate;
+    }
+
+    @Nullable
+    public String getWalletId() {
+        return walletId;
+    }
+
+    public void setWalletId(@Nullable String walletId) {
+        this.walletId = walletId;
     }
 
     public long getCreatedAt() {

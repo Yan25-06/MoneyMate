@@ -67,7 +67,7 @@ public class SettingsFragment extends Fragment {
 
         binding.btnBudgets.setOnClickListener(v ->
                 Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToBudgets()
+                        SettingsFragmentDirections.actionSettingsToStatistics()
                 )
         );
 

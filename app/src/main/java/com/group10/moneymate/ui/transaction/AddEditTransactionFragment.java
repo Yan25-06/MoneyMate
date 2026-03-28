@@ -43,6 +43,7 @@ public class AddEditTransactionFragment extends Fragment {
     private long selectedTimestamp = System.currentTimeMillis();
     private List<WalletEntity> walletList = new ArrayList<>();
     private List<CategoryEntity> currentCategoryList = new ArrayList<>();
+    private LiveData<List<CategoryEntity>> currentCategorySource;
 
     // Edit mode
     private String transactionId = null;
@@ -135,14 +136,15 @@ public class AddEditTransactionFragment extends Fragment {
     // ─── Category Chips ───────────────────────────────────────────────────────
 
     private void observeCategories(String type) {
-        // Xóa chips cũ
-        binding.chipGroupCategory.removeAllViews();
+        if (currentCategorySource != null) {
+            currentCategorySource.removeObservers(getViewLifecycleOwner());
+        }
 
-        LiveData<List<CategoryEntity>> source = "INCOME".equals(type)
+        currentCategorySource = "INCOME".equals(type)
                 ? viewModel.getIncomeCategories()
                 : viewModel.getExpenseCategories();
 
-        source.observe(getViewLifecycleOwner(), categories -> {
+        currentCategorySource.observe(getViewLifecycleOwner(), categories -> {
             binding.chipGroupCategory.removeAllViews();
             currentCategoryList = categories != null ? categories : new ArrayList<>();
             for (CategoryEntity cat : currentCategoryList) {

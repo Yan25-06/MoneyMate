@@ -63,11 +63,9 @@ public class CategoryRepository {
      */
     public void deleteCategory(CategoryEntity category) {
         if (category.isDefault()) return;
-        category.setDeleted(true);
-        category.setSyncStatus(2); // PENDING_DELETE
-        category.setUpdatedAt(System.currentTimeMillis());
+        long updatedAt = System.currentTimeMillis();
         AppDatabase.databaseWriteExecutor.execute(() ->
-                categoryDao.updateCategory(category)
+                categoryDao.softDelete(category.getId(), updatedAt)
         );
     }
 

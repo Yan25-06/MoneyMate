@@ -62,6 +62,7 @@ public class BudgetListFragment extends Fragment {
                 container.budgetRepository,
                 container.categoryRepository,
                 container.transactionRepository,
+                container.walletRepository,
                 container.authRepository.getCurrentUserId()
         );
         viewModel = new ViewModelProvider(this, factory).get(BudgetViewModel.class);

@@ -61,8 +61,13 @@ public interface TransactionDao {
             "AND category_id = :categoryId " +
             "AND type = 'EXPENSE' " +
             "AND is_deleted = 0 " +
+            "AND (:walletId IS NULL OR wallet_id = :walletId) " +
             "AND timestamp BETWEEN :startDate AND :endDate")
-    LiveData<Double> getTotalExpenseByCategory(String userId, String categoryId, long startDate, long endDate);
+    LiveData<Double> getTotalExpenseByCategory(String userId,
+                                               String categoryId,
+                                               String walletId,
+                                               long startDate,
+                                               long endDate);
 
     @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'EXPENSE' AND category_id = :categoryId AND timestamp BETWEEN :startDate AND :endDate AND is_deleted = 0")
     double getTotalExpenseByCategorySync(String userId, String categoryId, long startDate, long endDate);

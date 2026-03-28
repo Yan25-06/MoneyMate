@@ -15,6 +15,8 @@ public class MoneyMateApplication extends Application {
         super.onCreate();
         // Initialize dependency injection container
         appContainer = new AppContainer(this);
+        // Default categories are global/shared and should exist regardless of auth flow.
+        appContainer.seedDefaultCategoriesIfNeeded();
     }
 
     public AppContainer getAppContainer() {

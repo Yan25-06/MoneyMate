@@ -71,6 +71,7 @@ public class BudgetDetailFragment extends Fragment {
                 container.budgetRepository,
                 container.categoryRepository,
                 container.transactionRepository,
+                container.walletRepository,
                 container.authRepository.getCurrentUserId()
         );
         viewModel = new ViewModelProvider(this, factory).get(BudgetViewModel.class);
@@ -163,6 +164,7 @@ public class BudgetDetailFragment extends Fragment {
                     item.getCategoryName(),
                     item.getCategoryIcon(),
                     item.getCategoryColorHex(),
+                    item.getWalletName(),
                     item.getBudgetEntity(),
                     item.getSpentAmount(),
                     Collections.emptyList(),
@@ -200,6 +202,7 @@ public class BudgetDetailFragment extends Fragment {
                 getString(R.string.budget_all_categories),
                 "",
                 "#4CAF50",
+                getString(R.string.budget_total_scope),
                 aggregateBudget,
                 currentSummary.getTotalSpent(),
                 sortedItems,
@@ -210,6 +213,7 @@ public class BudgetDetailFragment extends Fragment {
     private void renderDetail(@NonNull String title,
                               @NonNull String iconName,
                               @NonNull String colorHex,
+                              @NonNull String walletScopeLabel,
                               @NonNull BudgetEntity entity,
                               double spentAmount,
                               @NonNull List<BudgetUIModel> breakdownItems,
@@ -249,7 +253,7 @@ public class BudgetDetailFragment extends Fragment {
                 Math.max(daysLeft, 1),
                 Math.max(daysLeft, 1)
         ));
-        binding.tvWalletScope.setText(R.string.budget_total_scope);
+        binding.tvWalletScope.setText(walletScopeLabel);
         binding.tvRecommendedDaily.setText(BudgetUiUtils.formatDecimalNumber(recommendedDaily));
         binding.tvProjectedSpending.setText(BudgetUiUtils.formatDecimalNumber(projectedSpending));
         binding.tvProjectedSpending.setTextColor(projectedSpending > entity.getAmount()
