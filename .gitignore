@@ -60,3 +60,7 @@ Thumbs.db
 # Output files
 outputs/
 reports/
+
+.codex/
+.claude/
+AGENT.md
