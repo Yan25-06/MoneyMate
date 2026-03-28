@@ -83,11 +83,13 @@ public class BudgetListFragment extends Fragment {
                 container.transactionRepository,
                 container.walletRepository,
                 container.authRepository.getCurrentUserId(),
-                getString(R.string.budget_all_categories),
-                getString(R.string.budget_other_categories),
-                getString(R.string.budget_wallet_scope_total),
-                getString(R.string.budget_unknown_wallet),
-                getString(R.string.budget_unknown_category)
+                new BudgetViewModel.Labels(
+                        getString(R.string.budget_all_categories),
+                        getString(R.string.budget_other_categories),
+                        getString(R.string.budget_wallet_scope_total),
+                        getString(R.string.budget_unknown_wallet),
+                        getString(R.string.budget_unknown_category)
+                )
         );
         viewModel = new ViewModelProvider(this, factory).get(BudgetViewModel.class);
     }
@@ -208,10 +210,12 @@ public class BudgetListFragment extends Fragment {
 
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {
+                // No-op: only the selected tab should trigger budget filtering.
             }
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
+                // No-op: reselecting the same tab should preserve the current list state.
             }
         });
         selectTab(viewModel.getSelectedTab());
@@ -313,47 +317,58 @@ public class BudgetListFragment extends Fragment {
             cancelWalletRedirect();
         }
 
-        binding.scrollContent.setVisibility(showFullEmpty ? View.GONE : View.VISIBLE);
-        binding.emptyState.setVisibility(showFullEmpty ? View.VISIBLE : View.GONE);
-
-        binding.rvActiveBudgets.setVisibility(hasSpecificBudgets ? View.VISIBLE : View.GONE);
-        binding.layoutContentEmpty.setVisibility(showInlineEmpty ? View.VISIBLE : View.GONE);
+        updateSectionVisibility(showFullEmpty, hasSpecificBudgets, showInlineEmpty);
 
         if (showFullEmpty) {
-            binding.cardSummary.setVisibility(View.GONE);
-            if (hasWallets) {
-                binding.btnEmptyCreateBudget.setText(R.string.budget_create_empty_cta);
-                binding.btnEmptyCreateBudget.setVisibility(View.VISIBLE);
-                binding.emptyState.setVisibility(View.VISIBLE);
-                updateFullEmptyState(
-                        getString(R.string.budget_empty_title),
-                        getString(R.string.budget_empty_description),
-                        R.string.budget_create_empty_cta
-                );
-            } else {
-                binding.btnEmptyCreateBudget.setVisibility(View.VISIBLE);
-                binding.btnEmptyCreateBudget.setText(R.string.budget_empty_no_wallet_action);
-                updateFullEmptyState(
-                        getString(R.string.budget_empty_no_wallet_title),
-                        getString(R.string.budget_empty_no_wallet_description),
-                        R.string.budget_empty_no_wallet_action
-                );
-                scheduleWalletRedirect();
-            }
+            renderFullEmptyState();
             return;
         }
 
         cancelWalletRedirect();
         if (showInlineEmpty) {
-            binding.tvContentEmpty.setText(hasWallets
-                    ? getTabEmptyMessage()
-                    : getString(R.string.budget_empty_no_wallet_description));
-            binding.btnContentEmptyAction.setText(hasWallets
-                    ? R.string.budget_empty_inline_action
-                    : R.string.budget_inline_no_wallet_action);
-            if (!hasWallets) {
-                scheduleWalletRedirect();
-            }
+            renderInlineEmptyState();
+        }
+    }
+
+    private void updateSectionVisibility(boolean showFullEmpty,
+                                         boolean hasSpecificBudgets,
+                                         boolean showInlineEmpty) {
+        binding.scrollContent.setVisibility(showFullEmpty ? View.GONE : View.VISIBLE);
+        binding.emptyState.setVisibility(showFullEmpty ? View.VISIBLE : View.GONE);
+        binding.rvActiveBudgets.setVisibility(hasSpecificBudgets ? View.VISIBLE : View.GONE);
+        binding.layoutContentEmpty.setVisibility(showInlineEmpty ? View.VISIBLE : View.GONE);
+    }
+
+    private void renderFullEmptyState() {
+        binding.cardSummary.setVisibility(View.GONE);
+        binding.btnEmptyCreateBudget.setVisibility(View.VISIBLE);
+        if (hasWallets) {
+            binding.btnEmptyCreateBudget.setText(R.string.budget_create_empty_cta);
+            updateFullEmptyState(
+                    getString(R.string.budget_empty_title),
+                    getString(R.string.budget_empty_description),
+                    R.string.budget_create_empty_cta
+            );
+            return;
+        }
+        binding.btnEmptyCreateBudget.setText(R.string.budget_empty_no_wallet_action);
+        updateFullEmptyState(
+                getString(R.string.budget_empty_no_wallet_title),
+                getString(R.string.budget_empty_no_wallet_description),
+                R.string.budget_empty_no_wallet_action
+        );
+        scheduleWalletRedirect();
+    }
+
+    private void renderInlineEmptyState() {
+        binding.tvContentEmpty.setText(hasWallets
+                ? getTabEmptyMessage()
+                : getString(R.string.budget_empty_no_wallet_description));
+        binding.btnContentEmptyAction.setText(hasWallets
+                ? R.string.budget_empty_inline_action
+                : R.string.budget_inline_no_wallet_action);
+        if (!hasWallets) {
+            scheduleWalletRedirect();
         }
     }
 

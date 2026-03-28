@@ -85,16 +85,16 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetW
                 }
             });
         }
-    }
 
-    private int resolveWalletIcon(String type) {
-        if ("BANK".equals(type)) {
-            return R.drawable.outline_account_balance_24;
+        private int resolveWalletIcon(String type) {
+            if ("BANK".equals(type)) {
+                return R.drawable.outline_account_balance_24;
+            }
+            if ("E_WALLET".equals(type)) {
+                return R.drawable.outline_credit_card_24;
+            }
+            return R.drawable.outline_payments_24;
         }
-        if ("E_WALLET".equals(type)) {
-            return R.drawable.outline_credit_card_24;
-        }
-        return R.drawable.outline_payments_24;
     }
 
     private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK =

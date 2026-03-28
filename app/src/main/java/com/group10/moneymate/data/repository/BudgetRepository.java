@@ -58,8 +58,8 @@ public class BudgetRepository {
             try {
                 budgetDao.insert(budget);
                 notifySuccess(callback);
-            } catch (Throwable throwable) {
-                notifyError(callback, throwable);
+            } catch (Exception exception) {
+                notifyError(callback, exception);
             }
         });
     }
@@ -75,8 +75,8 @@ public class BudgetRepository {
             try {
                 budgetDao.update(budget);
                 notifySuccess(callback);
-            } catch (Throwable throwable) {
-                notifyError(callback, throwable);
+            } catch (Exception exception) {
+                notifyError(callback, exception);
             }
         });
     }

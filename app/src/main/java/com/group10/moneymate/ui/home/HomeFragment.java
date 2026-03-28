@@ -25,6 +25,8 @@ import java.util.List;
 
 public class HomeFragment extends Fragment {
 
+    private static final String HIDDEN_BALANCE_MASK = "*********";
+
     private FragmentHomeBinding binding;
     private HomeViewModel viewModel;
     private TransactionAdapter transactionAdapter;
@@ -120,9 +122,9 @@ public class HomeFragment extends Fragment {
             binding.btnToggleBalanceVisibility.setImageResource(R.drawable.outline_visibility_off_24);
         } else {
             // Ẩn số tiền bằng dấu sao
-            binding.tvTotalBalance.setText("*********");
-            binding.tvIncome.setText("*********");
-            binding.tvExpense.setText("*********");
+            binding.tvTotalBalance.setText(HIDDEN_BALANCE_MASK);
+            binding.tvIncome.setText(HIDDEN_BALANCE_MASK);
+            binding.tvExpense.setText(HIDDEN_BALANCE_MASK);
             binding.btnToggleBalanceVisibility.setImageResource(R.drawable.outline_visibility_24);
         }
     }

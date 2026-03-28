@@ -54,4 +54,10 @@ public class AppContainer {
     public void ensureVirtualBudgetCategoriesIfNeeded() {
         categoryRepository.ensureVirtualOtherCategoryExists();
     }
+
+    public void bootstrapLocalData() {
+        authRepository.ensureLocalUserRecord();
+        seedDefaultCategoriesIfNeeded();
+        ensureVirtualBudgetCategoriesIfNeeded();
+    }
 }

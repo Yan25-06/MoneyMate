@@ -89,11 +89,13 @@ public class BudgetFinishedFragment extends Fragment {
                 container.transactionRepository,
                 container.walletRepository,
                 container.authRepository.getCurrentUserId(),
-                getString(R.string.budget_all_categories),
-                getString(R.string.budget_other_categories),
-                getString(R.string.budget_wallet_scope_total),
-                getString(R.string.budget_unknown_wallet),
-                getString(R.string.budget_unknown_category)
+                new BudgetViewModel.Labels(
+                        getString(R.string.budget_all_categories),
+                        getString(R.string.budget_other_categories),
+                        getString(R.string.budget_wallet_scope_total),
+                        getString(R.string.budget_unknown_wallet),
+                        getString(R.string.budget_unknown_category)
+                )
         );
         viewModel = new ViewModelProvider(this, factory).get(BudgetViewModel.class);
         viewModel.setSelectedWalletFilter(selectedWalletId);

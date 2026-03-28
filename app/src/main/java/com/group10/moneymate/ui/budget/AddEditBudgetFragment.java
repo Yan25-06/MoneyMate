@@ -163,10 +163,12 @@ public class AddEditBudgetFragment extends Fragment {
         binding.etAmount.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // No-op: amount formatting is applied once the final text is available.
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // No-op: we only normalize the formatted amount after the edit is complete.
             }
 
             @Override
@@ -397,13 +399,8 @@ public class AddEditBudgetFragment extends Fragment {
         double amount = parseAmount();
         boolean hasAmount = amount > 0d;
         WalletOptionItem selectedWallet = getSelectedWalletOption();
-        boolean isAllWalletsScope = selectedWalletId == null;
-        double scopeBalance = isAllWalletsScope
-                ? totalWalletBalance
-                : (selectedWallet != null ? selectedWallet.balance : totalWalletBalance);
-        String scopeLabel = selectedWallet != null
-                ? selectedWallet.label
-                : getString(R.string.budget_wallet_scope_total);
+        double scopeBalance = resolveScopeBalance(selectedWallet);
+        String scopeLabel = resolveScopeLabel(selectedWallet);
         boolean exceedsWalletBalance = amount > scopeBalance;
         if (hasAmount && exceedsWalletBalance) {
             binding.tvAmountError.setText(getString(
@@ -416,6 +413,21 @@ public class AddEditBudgetFragment extends Fragment {
             binding.tvAmountError.setVisibility(View.GONE);
         }
         binding.btnSave.setEnabled(hasCategory && hasAmount);
+    }
+
+    private double resolveScopeBalance(@Nullable WalletOptionItem selectedWallet) {
+        if (selectedWalletId == null || selectedWallet == null) {
+            return totalWalletBalance;
+        }
+        return selectedWallet.balance;
+    }
+
+    @NonNull
+    private String resolveScopeLabel(@Nullable WalletOptionItem selectedWallet) {
+        if (selectedWallet == null) {
+            return getString(R.string.budget_wallet_scope_total);
+        }
+        return selectedWallet.label;
     }
 
     private void saveBudget() {

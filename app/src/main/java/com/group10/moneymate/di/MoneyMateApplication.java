@@ -13,14 +13,8 @@ public class MoneyMateApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // Initialize dependency injection container
         appContainer = new AppContainer(this);
-        // Recreate missing local user rows after destructive Room migrations while
-        // keeping the current auth session, to avoid foreign-key crashes on writes.
-        appContainer.authRepository.ensureLocalUserRecord();
-        // Default categories are global/shared and should exist regardless of auth flow.
-        appContainer.seedDefaultCategoriesIfNeeded();
-        appContainer.ensureVirtualBudgetCategoriesIfNeeded();
+        appContainer.bootstrapLocalData();
     }
 
     public AppContainer getAppContainer() {

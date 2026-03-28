@@ -110,9 +110,7 @@ public class BudgetWalletPickerFragment extends Fragment {
         binding.cardAllWallets.setStrokeColor(requireContext().getColor(
                 isAllWallets ? R.color.budget_safe_green : R.color.budget_divider
         ));
-        binding.cardAllWallets.setCardBackgroundColor(requireContext().getColor(
-                isAllWallets ? android.R.color.white : android.R.color.white
-        ));
+        binding.cardAllWallets.setCardBackgroundColor(requireContext().getColor(android.R.color.white));
         if (adapter != null) {
             adapter.setSelectedWalletId(selectedWalletId);
         }

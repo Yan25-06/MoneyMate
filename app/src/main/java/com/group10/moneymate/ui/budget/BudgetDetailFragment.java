@@ -86,11 +86,13 @@ public class BudgetDetailFragment extends Fragment {
                 container.transactionRepository,
                 container.walletRepository,
                 container.authRepository.getCurrentUserId(),
-                getString(R.string.budget_all_categories),
-                getString(R.string.budget_other_categories),
-                getString(R.string.budget_wallet_scope_total),
-                getString(R.string.budget_unknown_wallet),
-                getString(R.string.budget_unknown_category)
+                new BudgetViewModel.Labels(
+                        getString(R.string.budget_all_categories),
+                        getString(R.string.budget_other_categories),
+                        getString(R.string.budget_wallet_scope_total),
+                        getString(R.string.budget_unknown_wallet),
+                        getString(R.string.budget_unknown_category)
+                )
         );
         viewModel = new ViewModelProvider(this, factory).get(BudgetViewModel.class);
         BudgetStatisticsCalculator.logExampleOnce();
@@ -189,20 +191,7 @@ public class BudgetDetailFragment extends Fragment {
             }
             syncSingleChartSource(item);
             binding.breakdownSection.setVisibility(View.GONE);
-            renderDetail(
-                    item.getCategoryName(),
-                    item.getCategoryIcon(),
-                    item.getCategoryColorHex(),
-                    item.getWalletName(),
-                    item.getBudgetEntity(),
-                    item.getSpentAmount(),
-                    buildChartPoints(
-                            item.getBudgetEntity(),
-                            chartTransactions.get(item.getBudgetEntity().getId())
-                    ),
-                    Collections.emptyList(),
-                    false
-            );
+            renderDetail(buildSingleDetailModel(item));
         });
     }
 
@@ -231,7 +220,7 @@ public class BudgetDetailFragment extends Fragment {
         aggregateBudget.setStartDate(earliestStart);
         aggregateBudget.setEndDate(latestEnd);
 
-        renderDetail(
+        renderDetail(new DetailRenderModel(
                 getString(R.string.budget_all_categories),
                 "",
                 "#4CAF50",
@@ -243,71 +232,65 @@ public class BudgetDetailFragment extends Fragment {
                 buildChartPoints(aggregateBudget, buildAggregateTransactions()),
                 sortedItems,
                 true
-        );
+        ));
     }
 
-    private void renderDetail(@NonNull String title,
-                              @NonNull String iconName,
-                              @NonNull String colorHex,
-                              @NonNull String walletScopeLabel,
-                              @NonNull BudgetEntity entity,
-                              double spentAmount,
-                              @NonNull List<BudgetProjectionChartView.ChartPoint> chartPoints,
-                              @NonNull List<BudgetUIModel> breakdownItems,
-                              boolean showBreakdown) {
-        double remaining = entity.getAmount() - spentAmount;
+    private void renderDetail(@NonNull DetailRenderModel model) {
+        double remaining = model.entity.getAmount() - model.spentAmount;
         BudgetStatisticsCalculator.BudgetStatistics statistics =
                 BudgetStatisticsCalculator.calculate(
-                        entity.getStartDate(),
-                        entity.getEndDate(),
-                        entity.getAmount(),
-                        spentAmount
+                        model.entity.getStartDate(),
+                        model.entity.getEndDate(),
+                        model.entity.getAmount(),
+                        model.spentAmount
                 );
         int daysLeft = statistics.getDaysRemaining();
         double recommendedDaily = statistics.getRecommendedDailySpend();
         double actualDaily = statistics.getActualDailyAverage();
         double projectedSpending = statistics.getProjectedTotalSpend();
-        float percent = entity.getAmount() <= 0d ? 0f : (float) ((spentAmount / entity.getAmount()) * 100f);
+        float percent = model.entity.getAmount() <= 0d
+                ? 0f
+                : (float) ((model.spentAmount / model.entity.getAmount()) * 100f);
         int progress = Math.max(0, Math.min(100, Math.round(percent)));
         int iconTint = BudgetUiUtils.parseColorOrDefault(
-                colorHex,
+                model.colorHex,
                 ContextCompat.getColor(requireContext(), R.color.budget_safe_green)
         );
 
         binding.ivCategoryIcon.setImageResource(BudgetUiUtils.resolveCategoryIcon(
                 requireContext(),
-                iconName,
-                title
+                model.iconName,
+                model.title
         ));
         binding.ivCategoryIcon.setImageTintList(ColorStateList.valueOf(iconTint));
         binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
                 androidx.core.graphics.ColorUtils.setAlphaComponent(iconTint, 32)
         ));
-        binding.tvCategoryName.setText(title);
-        binding.tvAmount.setText(BudgetUiUtils.formatCurrency(entity.getAmount()));
-        binding.tvSpentValue.setText(BudgetUiUtils.formatCurrency(spentAmount));
+        binding.tvCategoryName.setText(model.title);
+        binding.tvAmount.setText(BudgetUiUtils.formatCurrency(model.entity.getAmount()));
+        binding.tvSpentValue.setText(BudgetUiUtils.formatCurrency(model.spentAmount));
         binding.tvLeftValue.setText(BudgetUiUtils.formatCurrency(Math.max(remaining, 0d)));
         binding.progressBudget.setProgressCompat(progress, false);
         binding.progressBudget.setIndicatorColor(resolveProgressColor(percent, remaining));
-        binding.tvPeriod.setText(BudgetUiUtils.formatDateRange(entity.getStartDate(), entity.getEndDate()));
+        binding.tvPeriod.setText(BudgetUiUtils.formatDateRange(model.entity.getStartDate(), model.entity.getEndDate()));
         binding.tvDaysLeft.setText(getResources().getQuantityString(
                 R.plurals.budget_days_left,
                 Math.max(daysLeft, 1),
                 Math.max(daysLeft, 1)
         ));
-        binding.tvWalletScope.setText(walletScopeLabel);
+        binding.tvWalletScope.setText(model.walletScopeLabel);
         binding.tvRecommendedDaily.setText(BudgetUiUtils.formatDecimalCurrency(recommendedDaily));
         binding.tvProjectedSpending.setText(BudgetUiUtils.formatDecimalCurrency(projectedSpending));
-        binding.tvProjectedSpending.setTextColor(projectedSpending > entity.getAmount()
+        binding.tvProjectedSpending.setTextColor(projectedSpending > model.entity.getAmount()
                 ? ContextCompat.getColor(requireContext(), R.color.budget_danger_red)
                 : ContextCompat.getColor(requireContext(), android.R.color.black));
         binding.tvActualDaily.setText(BudgetUiUtils.formatDecimalCurrency(actualDaily));
         binding.chartView.setBudgetData(
-                entity.getAmount(),
+                model.entity.getAmount(),
                 projectedSpending,
-                entity.getStartDate(),
-                entity.getEndDate(),
-                chartPoints
+                model.entity.getStartDate(),
+                model.entity.getEndDate(),
+                model.chartPoints
         );
 
         binding.progressMarkerContainer.post(() -> {
@@ -315,7 +298,7 @@ public class BudgetDetailFragment extends Fragment {
             if (availableWidth <= 0) {
                 return;
             }
-            int markerX = Math.round(availableWidth * BudgetUiUtils.getTimelineFraction(entity));
+            int markerX = Math.round(availableWidth * BudgetUiUtils.getTimelineFraction(model.entity));
             FrameLayout.LayoutParams markerParams =
                     (FrameLayout.LayoutParams) binding.vTodayMarker.getLayoutParams();
             markerParams.leftMargin = Math.max(0, Math.min(availableWidth, markerX));
@@ -332,12 +315,30 @@ public class BudgetDetailFragment extends Fragment {
             binding.tvToday.setLayoutParams(chipParams);
         });
 
-        binding.breakdownSection.setVisibility(showBreakdown ? View.VISIBLE : View.GONE);
-        if (showBreakdown) {
-            breakdownAdapter.submitList(new ArrayList<>(breakdownItems));
+        binding.breakdownSection.setVisibility(model.showBreakdown ? View.VISIBLE : View.GONE);
+        if (model.showBreakdown) {
+            breakdownAdapter.submitList(new ArrayList<>(model.breakdownItems));
         } else {
             breakdownAdapter.submitList(Collections.emptyList());
         }
+    }
+
+    @NonNull
+    private DetailRenderModel buildSingleDetailModel(@NonNull BudgetUIModel item) {
+        return new DetailRenderModel(
+                item.getCategoryName(),
+                item.getCategoryIcon(),
+                item.getCategoryColorHex(),
+                item.getWalletName(),
+                item.getBudgetEntity(),
+                item.getSpentAmount(),
+                buildChartPoints(
+                        item.getBudgetEntity(),
+                        chartTransactions.get(item.getBudgetEntity().getId())
+                ),
+                Collections.emptyList(),
+                false
+        );
     }
 
     private void syncSingleChartSource(@NonNull BudgetUIModel item) {
@@ -353,17 +354,7 @@ public class BudgetDetailFragment extends Fragment {
             if (currentItem != null
                     && budgetId.equals(currentItem.getBudgetEntity().getId())
                     && !isAggregate) {
-                renderDetail(
-                        currentItem.getCategoryName(),
-                        currentItem.getCategoryIcon(),
-                        currentItem.getCategoryColorHex(),
-                        currentItem.getWalletName(),
-                        currentItem.getBudgetEntity(),
-                        currentItem.getSpentAmount(),
-                        buildChartPoints(currentItem.getBudgetEntity(), chartTransactions.get(budgetId)),
-                        Collections.emptyList(),
-                        false
-                );
+                renderDetail(buildSingleDetailModel(currentItem));
             }
         });
     }
@@ -529,6 +520,45 @@ public class BudgetDetailFragment extends Fragment {
             );
         }
         return joiner.toString();
+    }
+
+    private static final class DetailRenderModel {
+        @NonNull
+        private final String title;
+        @NonNull
+        private final String iconName;
+        @NonNull
+        private final String colorHex;
+        @NonNull
+        private final String walletScopeLabel;
+        @NonNull
+        private final BudgetEntity entity;
+        private final double spentAmount;
+        @NonNull
+        private final List<BudgetProjectionChartView.ChartPoint> chartPoints;
+        @NonNull
+        private final List<BudgetUIModel> breakdownItems;
+        private final boolean showBreakdown;
+
+        private DetailRenderModel(@NonNull String title,
+                                  @NonNull String iconName,
+                                  @NonNull String colorHex,
+                                  @NonNull String walletScopeLabel,
+                                  @NonNull BudgetEntity entity,
+                                  double spentAmount,
+                                  @NonNull List<BudgetProjectionChartView.ChartPoint> chartPoints,
+                                  @NonNull List<BudgetUIModel> breakdownItems,
+                                  boolean showBreakdown) {
+            this.title = title;
+            this.iconName = iconName;
+            this.colorHex = colorHex;
+            this.walletScopeLabel = walletScopeLabel;
+            this.entity = entity;
+            this.spentAmount = spentAmount;
+            this.chartPoints = chartPoints;
+            this.breakdownItems = breakdownItems;
+            this.showBreakdown = showBreakdown;
+        }
     }
 
     @Override

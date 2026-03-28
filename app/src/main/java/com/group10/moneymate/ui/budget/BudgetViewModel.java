@@ -43,11 +43,7 @@ public class BudgetViewModel extends ViewModel {
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
     private final String userId;
-    private final String allCategoriesLabel;
-    private final String otherCategoriesLabel;
-    private final String allWalletsLabel;
-    private final String unknownWalletLabel;
-    private final String unknownCategoryLabel;
+    private final Labels labels;
 
     private final LiveData<List<BudgetEntity>> budgetSource;
     private final LiveData<List<CategoryEntity>> expenseCategories;
@@ -78,21 +74,13 @@ public class BudgetViewModel extends ViewModel {
                            @NonNull TransactionRepository transactionRepository,
                            @NonNull WalletRepository walletRepository,
                            @NonNull String userId,
-                           @NonNull String allCategoriesLabel,
-                           @NonNull String otherCategoriesLabel,
-                           @NonNull String allWalletsLabel,
-                           @NonNull String unknownWalletLabel,
-                           @NonNull String unknownCategoryLabel) {
+                           @NonNull Labels labels) {
         this.budgetRepository = budgetRepository;
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
         this.userId = userId;
-        this.allCategoriesLabel = allCategoriesLabel;
-        this.otherCategoriesLabel = otherCategoriesLabel;
-        this.allWalletsLabel = allWalletsLabel;
-        this.unknownWalletLabel = unknownWalletLabel;
-        this.unknownCategoryLabel = unknownCategoryLabel;
+        this.labels = labels;
         this.budgetSource = budgetRepository.getAllBudgets(userId);
         this.expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
         this.wallets = walletRepository.getAllByUser(userId);
@@ -406,47 +394,10 @@ public class BudgetViewModel extends ViewModel {
         LocalDate thisMonthEnd = today.withDayOfMonth(today.lengthOfMonth());
 
         for (BudgetEntity budgetEntity : currentBudgets) {
-            if (selectedWalletId != null && !selectedWalletId.equals(budgetEntity.getWalletId())) {
-                continue;
+            if (matchesSelectedWallet(budgetEntity, selectedWalletId)) {
+                BudgetUIModel item = buildBudgetUiModel(budgetEntity);
+                assignToPartition(item, finishedItems, thisMonth, future, custom, thisMonthStart, thisMonthEnd);
             }
-
-            String budgetId = budgetEntity.getId();
-            CategoryEntity categoryEntity = categoryValues.get(budgetId);
-            WalletEntity walletEntity = walletValues.get(budgetId);
-            double spentAmount = spentValues.containsKey(budgetId)
-                    ? spentValues.get(budgetId)
-                    : 0d;
-
-            BudgetUIModel item = new BudgetUIModel(
-                    budgetEntity,
-                    resolveCategoryName(budgetEntity, categoryEntity),
-                    resolveCategoryIcon(budgetEntity, categoryEntity),
-                    spentAmount,
-                    resolveCategoryColor(budgetEntity, categoryEntity),
-                    resolveWalletName(budgetEntity, walletEntity),
-                    BudgetUiUtils.isActiveToday(budgetEntity)
-            );
-
-            LocalDate startDate = toLocalDate(budgetEntity.getStartDate());
-            LocalDate endDate = toLocalDate(budgetEntity.getEndDate());
-
-            if (endDate.isBefore(thisMonthStart)) {
-                finishedItems.add(item);
-                continue;
-            }
-
-            if (startDate.isAfter(thisMonthEnd)) {
-                future.add(item);
-                continue;
-            }
-
-            if (isWithinMonth(startDate, thisMonthStart, thisMonthEnd)
-                    && isWithinMonth(endDate, thisMonthStart, thisMonthEnd)) {
-                thisMonth.add(item);
-                continue;
-            }
-
-            custom.add(item);
         }
 
         sortBudgetItems(thisMonth.items);
@@ -487,21 +438,21 @@ public class BudgetViewModel extends ViewModel {
     private String resolveWalletName(@NonNull BudgetEntity budgetEntity,
                                      @Nullable WalletEntity walletEntity) {
         if (budgetEntity.getWalletId() == null) {
-            return allWalletsLabel;
+            return labels.allWalletsLabel;
         }
-        return walletEntity != null ? walletEntity.getName() : unknownWalletLabel;
+        return walletEntity != null ? walletEntity.getName() : labels.unknownWalletLabel;
     }
 
     @NonNull
     private String resolveCategoryName(@NonNull BudgetEntity budgetEntity,
                                        @Nullable CategoryEntity categoryEntity) {
         if (budgetEntity.getCategoryId() == null) {
-            return allCategoriesLabel;
+            return labels.allCategoriesLabel;
         }
         if (Constants.isOtherCategoryId(budgetEntity.getCategoryId())) {
-            return otherCategoriesLabel;
+            return labels.otherCategoriesLabel;
         }
-        return categoryEntity != null ? categoryEntity.getName() : unknownCategoryLabel;
+        return categoryEntity != null ? categoryEntity.getName() : labels.unknownCategoryLabel;
     }
 
     @NonNull
@@ -526,6 +477,50 @@ public class BudgetViewModel extends ViewModel {
                                   @NonNull LocalDate monthStart,
                                   @NonNull LocalDate monthEnd) {
         return (!date.isBefore(monthStart)) && (!date.isAfter(monthEnd));
+    }
+
+    private boolean matchesSelectedWallet(@NonNull BudgetEntity budgetEntity,
+                                          @Nullable String selectedWalletId) {
+        return selectedWalletId == null || selectedWalletId.equals(budgetEntity.getWalletId());
+    }
+
+    @NonNull
+    private BudgetUIModel buildBudgetUiModel(@NonNull BudgetEntity budgetEntity) {
+        String budgetId = budgetEntity.getId();
+        CategoryEntity categoryEntity = categoryValues.get(budgetId);
+        WalletEntity walletEntity = walletValues.get(budgetId);
+        double spentAmount = spentValues.getOrDefault(budgetId, 0d);
+        return new BudgetUIModel(
+                budgetEntity,
+                resolveCategoryName(budgetEntity, categoryEntity),
+                resolveCategoryIcon(budgetEntity, categoryEntity),
+                spentAmount,
+                resolveCategoryColor(budgetEntity, categoryEntity),
+                resolveWalletName(budgetEntity, walletEntity),
+                BudgetUiUtils.isActiveToday(budgetEntity)
+        );
+    }
+
+    private void assignToPartition(@NonNull BudgetUIModel item,
+                                   @NonNull List<BudgetUIModel> finishedItems,
+                                   @NonNull BudgetPartition thisMonth,
+                                   @NonNull BudgetPartition future,
+                                   @NonNull BudgetPartition custom,
+                                   @NonNull LocalDate thisMonthStart,
+                                   @NonNull LocalDate thisMonthEnd) {
+        LocalDate startDate = toLocalDate(item.getBudgetEntity().getStartDate());
+        LocalDate endDate = toLocalDate(item.getBudgetEntity().getEndDate());
+
+        if (endDate.isBefore(thisMonthStart)) {
+            finishedItems.add(item);
+        } else if (startDate.isAfter(thisMonthEnd)) {
+            future.add(item);
+        } else if (isWithinMonth(startDate, thisMonthStart, thisMonthEnd)
+                && isWithinMonth(endDate, thisMonthStart, thisMonthEnd)) {
+            thisMonth.add(item);
+        } else {
+            custom.add(item);
+        }
     }
 
     @NonNull
@@ -688,32 +683,20 @@ public class BudgetViewModel extends ViewModel {
         private final TransactionRepository transactionRepository;
         private final WalletRepository walletRepository;
         private final String userId;
-        private final String allCategoriesLabel;
-        private final String otherCategoriesLabel;
-        private final String allWalletsLabel;
-        private final String unknownWalletLabel;
-        private final String unknownCategoryLabel;
+        private final Labels labels;
 
         public Factory(@NonNull BudgetRepository budgetRepository,
                        @NonNull CategoryRepository categoryRepository,
                        @NonNull TransactionRepository transactionRepository,
                        @NonNull WalletRepository walletRepository,
                        @NonNull String userId,
-                       @NonNull String allCategoriesLabel,
-                       @NonNull String otherCategoriesLabel,
-                       @NonNull String allWalletsLabel,
-                       @NonNull String unknownWalletLabel,
-                       @NonNull String unknownCategoryLabel) {
+                       @NonNull Labels labels) {
             this.budgetRepository = budgetRepository;
             this.categoryRepository = categoryRepository;
             this.transactionRepository = transactionRepository;
             this.walletRepository = walletRepository;
             this.userId = userId;
-            this.allCategoriesLabel = allCategoriesLabel;
-            this.otherCategoriesLabel = otherCategoriesLabel;
-            this.allWalletsLabel = allWalletsLabel;
-            this.unknownWalletLabel = unknownWalletLabel;
-            this.unknownCategoryLabel = unknownCategoryLabel;
+            this.labels = labels;
         }
 
         @NonNull
@@ -729,12 +712,28 @@ public class BudgetViewModel extends ViewModel {
                     transactionRepository,
                     walletRepository,
                     userId,
-                    allCategoriesLabel,
-                    otherCategoriesLabel,
-                    allWalletsLabel,
-                    unknownWalletLabel,
-                    unknownCategoryLabel
+                    labels
             );
+        }
+    }
+
+    public static final class Labels {
+        private final String allCategoriesLabel;
+        private final String otherCategoriesLabel;
+        private final String allWalletsLabel;
+        private final String unknownWalletLabel;
+        private final String unknownCategoryLabel;
+
+        public Labels(@NonNull String allCategoriesLabel,
+                      @NonNull String otherCategoriesLabel,
+                      @NonNull String allWalletsLabel,
+                      @NonNull String unknownWalletLabel,
+                      @NonNull String unknownCategoryLabel) {
+            this.allCategoriesLabel = allCategoriesLabel;
+            this.otherCategoriesLabel = otherCategoriesLabel;
+            this.allWalletsLabel = allWalletsLabel;
+            this.unknownWalletLabel = unknownWalletLabel;
+            this.unknownCategoryLabel = unknownCategoryLabel;
         }
     }
 }

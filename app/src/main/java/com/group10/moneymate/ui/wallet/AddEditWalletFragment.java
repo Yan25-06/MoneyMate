@@ -75,10 +75,12 @@ public class AddEditWalletFragment extends Fragment {
         binding.etBalance.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // No-op: balance formatting happens after the text change is applied.
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // No-op: we only need the final text to normalize currency formatting.
             }
 
             @Override

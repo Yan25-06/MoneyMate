@@ -132,10 +132,12 @@ public class AddEditTransactionFragment extends Fragment {
         binding.etAmount.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // No-op: input is reformatted only after the latest user edit is available.
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // No-op: the formatter relies on the settled text in afterTextChanged().
             }
 
             @Override

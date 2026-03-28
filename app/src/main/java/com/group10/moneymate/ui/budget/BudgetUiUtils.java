@@ -11,7 +11,6 @@ import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.utils.Constants;
 
 import java.text.NumberFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -20,11 +19,6 @@ public final class BudgetUiUtils {
 
     private static final Locale VIETNAM = new Locale("vi", "VN");
     private static final NumberFormat INTEGER_CURRENCY_FORMAT;
-    private static final SimpleDateFormat DATE_RANGE_FORMAT =
-            new SimpleDateFormat("dd/MM", VIETNAM);
-    private static final SimpleDateFormat AXIS_DATE_FORMAT =
-            new SimpleDateFormat("dd/MM/yyyy", VIETNAM);
-
     static {
         INTEGER_CURRENCY_FORMAT = NumberFormat.getNumberInstance(VIETNAM);
         INTEGER_CURRENCY_FORMAT.setMaximumFractionDigits(0);
@@ -100,14 +94,18 @@ public final class BudgetUiUtils {
 
     @NonNull
     public static String formatDateRange(long startDate, long endDate) {
-        return DATE_RANGE_FORMAT.format(new Date(startDate))
+        java.text.SimpleDateFormat dateRangeFormat =
+                new java.text.SimpleDateFormat("dd/MM", VIETNAM);
+        return dateRangeFormat.format(new Date(startDate))
                 + " - "
-                + DATE_RANGE_FORMAT.format(new Date(endDate));
+                + dateRangeFormat.format(new Date(endDate));
     }
 
     @NonNull
     public static String formatAxisDate(long date) {
-        return AXIS_DATE_FORMAT.format(new Date(date));
+        java.text.SimpleDateFormat axisDateFormat =
+                new java.text.SimpleDateFormat("dd/MM/yyyy", VIETNAM);
+        return axisDateFormat.format(new Date(date));
     }
 
     public static long startOfDay(long timeMillis) {

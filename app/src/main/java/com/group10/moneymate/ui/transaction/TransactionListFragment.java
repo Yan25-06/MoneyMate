@@ -84,19 +84,7 @@ public class TransactionListFragment extends Fragment {
         );
         List<AggregateBudgetFilter> aggregateFilters =
                 parseAggregateBudgetFilters(args.getBudgetAggregateFilters());
-        LiveData<List<TransactionEntity>> source = shouldUseSingleBudgetFilter(args)
-                ? viewModel.getTransactionsForBudget(
-                        args.getBudgetCategoryId(),
-                        args.getBudgetWalletId(),
-                        args.getBudgetStartDate(),
-                        args.getBudgetEndDate()
-                )
-                : shouldUseAggregateBudgetFilter(args)
-                ? viewModel.getExpenseTransactionsByRange(
-                        args.getBudgetStartDate(),
-                        args.getBudgetEndDate()
-                )
-                : viewModel.getFilteredTransactions();
+        LiveData<List<TransactionEntity>> source = resolveTransactionSource(args);
 
         source.observe(getViewLifecycleOwner(), transactions -> {
             List<TransactionEntity> displayTransactions = transactions;
@@ -131,6 +119,27 @@ public class TransactionListFragment extends Fragment {
     }
 
     @NonNull
+    private LiveData<List<TransactionEntity>> resolveTransactionSource(
+            @NonNull TransactionListFragmentArgs args
+    ) {
+        if (shouldUseSingleBudgetFilter(args)) {
+            return viewModel.getTransactionsForBudget(
+                    args.getBudgetCategoryId(),
+                    args.getBudgetWalletId(),
+                    args.getBudgetStartDate(),
+                    args.getBudgetEndDate()
+            );
+        }
+        if (shouldUseAggregateBudgetFilter(args)) {
+            return viewModel.getExpenseTransactionsByRange(
+                    args.getBudgetStartDate(),
+                    args.getBudgetEndDate()
+            );
+        }
+        return viewModel.getFilteredTransactions();
+    }
+
+    @NonNull
     private List<AggregateBudgetFilter> parseAggregateBudgetFilters(@Nullable String filterSpec) {
         List<AggregateBudgetFilter> filters = new ArrayList<>();
         if (filterSpec == null || filterSpec.trim().isEmpty()) {
@@ -139,25 +148,34 @@ public class TransactionListFragment extends Fragment {
 
         String[] segments = filterSpec.split(";");
         for (String segment : segments) {
-            if (segment == null || segment.trim().isEmpty()) {
-                continue;
-            }
-            String[] parts = segment.split("\\|", -1);
-            if (parts.length != 4) {
-                continue;
-            }
-            try {
-                filters.add(new AggregateBudgetFilter(
-                        parts[0],
-                        parts[1].isEmpty() ? null : parts[1],
-                        Long.parseLong(parts[2]),
-                        Long.parseLong(parts[3])
-                ));
-            } catch (NumberFormatException ignored) {
-                // Skip malformed filters to keep the transaction screen usable.
+            AggregateBudgetFilter filter = parseAggregateBudgetFilter(segment);
+            if (filter != null) {
+                filters.add(filter);
             }
         }
         return filters;
+    }
+
+    @Nullable
+    private AggregateBudgetFilter parseAggregateBudgetFilter(@Nullable String segment) {
+        if (segment == null || segment.trim().isEmpty()) {
+            return null;
+        }
+        String[] parts = segment.split("\\|", -1);
+        if (parts.length != 4) {
+            return null;
+        }
+        try {
+            return new AggregateBudgetFilter(
+                    parts[0],
+                    parts[1].isEmpty() ? null : parts[1],
+                    Long.parseLong(parts[2]),
+                    Long.parseLong(parts[3])
+            );
+        } catch (NumberFormatException ignored) {
+            // Skip malformed filters to keep the transaction screen usable.
+            return null;
+        }
     }
 
     @NonNull
