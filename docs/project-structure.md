@@ -20,7 +20,7 @@ com.group10.moneymate/
 │
 ├── data/
 │   ├── local/
-│   │   ├── AppDatabase.java                 ← Room singleton (version 3, 7 entities)
+│   │   ├── AppDatabase.java                 ← Room singleton (version 7, 7 entities)
 │   │   ├── Converters.java                  ← TypeConverters: Enum↔String, Date↔Long
 │   │   ├── entity/
 │   │   │   ├── UserEntity.java
@@ -33,9 +33,9 @@ com.group10.moneymate/
 │   │   └── dao/
 │   │       ├── UserDao.java
 │   │       ├── WalletDao.java
-│   │       ├── CategoryDao.java             ← countDefaultCategoriesByUid(), getCategoriesByType()
-│   │       ├── TransactionDao.java          ← ✅ Phase 4: softDelete(), searchTransactions(), getTotalIncome/Expense()
-│   │       ├── BudgetDao.java
+│   │       ├── CategoryDao.java             ← countDefaultCategoriesByUid(), query hỗ trợ category ảo budget
+│   │       ├── TransactionDao.java          ← query filter budget, detail, aggregate, các mục khác
+│   │       ├── BudgetDao.java               ← query theo user, active, finished
 │   │       ├── DebtDao.java
 │   │       └── EventDao.java
 │   ├── remote/
@@ -44,19 +44,18 @@ com.group10.moneymate/
 │       ├── AuthRepository.java
 │       ├── UserRepository.java
 │       ├── WalletRepository.java
-│       ├── CategoryRepository.java          ← seedDefaults(), soft delete, background executor
-│       ├── TransactionRepository.java       ← ✅ Phase 4: databaseWriteExecutor, applyBalanceChange(), soft delete
+│       ├── CategoryRepository.java          ← seedDefaults(), soft delete, background executor, category ảo cho budget
+│       ├── TransactionRepository.java       ← CRUD + query phục vụ budget/detail/filter
 │       ├── BudgetRepository.java
 │       ├── DebtRepository.java
 │       └── EventRepository.java
 │
 ├── di/
-│   ├── AppContainer.java                    ← Manual DI + seedDefaultCategoriesIfNeeded()
-│   │                                           TransactionRepository nhận thêm WalletDao
-│   └── MoneyMateApplication.java            ← getAppContainer()
+│   ├── AppContainer.java                    ← Manual DI + wiring các repository
+│   └── MoneyMateApplication.java            ← getAppContainer(), restore local state sau migration
 │
 ├── utils/
-│   ├── Constants.java                       ← Prefs keys, DefaultCategory, getDefaultCategories()
+│   ├── Constants.java                       ← Prefs keys, DefaultCategory, ID ảo cho budget
 │   ├── CurrencyFormatter.java
 │   ├── DateUtils.java
 │   └── PrefsManager.java                    ← getUid(), saveUid(), isLoggedIn(), setLoggedIn()
@@ -73,20 +72,32 @@ com.group10.moneymate/
     ├── home/
     │   ├── HomeFragment.java
     │   └── HomeViewModel.java
-    ├── transaction/                          ← ✅ Phase 4 hoàn thành
-    │   ├── TransactionListFragment.java      ← RecyclerView, FAB, empty state, long-click delete
-    │   ├── AddEditTransactionFragment.java   ← Add/Edit mode, chip picker, wallet dropdown, date picker
-    │   ├── TransactionAdapter.java           ← ListAdapter + DiffUtil, màu amount theo loại
-    │   └── TransactionViewModel.java         ← AndroidViewModel, filter type, search, CRUD
-    ├── category/                             ← ✅ Phase 3 hoàn thành
-    │   ├── CategoryListFragment.java         ← TabLayout, RecyclerView, FAB, Safe Args
-    │   ├── AddEditCategoryFragment.java      ← Add/Edit mode, color picker
-    │   ├── CategoryAdapter.java              ← ListAdapter + DiffUtil
-    │   └── CategoryViewModel.java            ← AndroidViewModel, switchMap filter
-    ├── budget/
+    ├── transaction/
+    │   ├── TransactionListFragment.java
+    │   ├── AddEditTransactionFragment.java
+    │   ├── TransactionAdapter.java
+    │   └── TransactionViewModel.java
+    ├── category/
+    │   ├── CategoryListFragment.java
+    │   ├── AddEditCategoryFragment.java
+    │   ├── CategoryAdapter.java
+    │   ├── CategoryIconAdapter.java
+    │   └── CategoryViewModel.java
+    ├── budget/                              ← ✅ Phase 6 hoàn thành
     │   ├── BudgetListFragment.java
+    │   ├── BudgetFinishedFragment.java
+    │   ├── BudgetDetailFragment.java
+    │   ├── BudgetWalletPickerFragment.java
     │   ├── AddEditBudgetFragment.java
+    │   ├── AddEditBudgetViewModel.java
     │   ├── BudgetAdapter.java
+    │   ├── BudgetBreakdownAdapter.java
+    │   ├── BudgetWalletPickerAdapter.java
+    │   ├── BudgetStatisticsCalculator.java
+    │   ├── BudgetProjectionChartView.java
+    │   ├── BudgetArcProgressView.java
+    │   ├── BudgetUIModel.java
+    │   ├── BudgetUiUtils.java
     │   └── BudgetViewModel.java
     ├── wallet/
     │   ├── WalletListFragment.java
@@ -108,7 +119,7 @@ com.group10.moneymate/
     │   ├── ProfileFragment.java
     │   └── ProfileViewModel.java
     ├── settings/
-    │   ├── SettingsFragment.java             ← navigation tới tất cả destinations
+    │   ├── SettingsFragment.java             ← navigation tới wallets/categories/budgets/statistics/debts/events
     │   └── SettingsViewModel.java
     ├── security/
     │   ├── PasscodeFragment.java
@@ -134,11 +145,14 @@ res/layout/
 ├── fragment_register.xml
 ├── fragment_forgot_password.xml
 ├── fragment_home.xml
-├── fragment_transaction_list.xml            ← ✅ Phase 4: empty state, paddingTop
-├── fragment_add_edit_transaction.xml        ← ✅ Phase 4: type toggle, chip group, wallet dropdown, date picker
-├── fragment_category_list.xml               ← ✅ Phase 3.4
-├── fragment_add_edit_category.xml           ← ✅ Phase 3.4
+├── fragment_transaction_list.xml
+├── fragment_add_edit_transaction.xml
+├── fragment_category_list.xml
+├── fragment_add_edit_category.xml
 ├── fragment_budget_list.xml
+├── fragment_budget_finished.xml
+├── fragment_budget_detail.xml
+├── fragment_budget_wallet_picker.xml
 ├── fragment_add_edit_budget.xml
 ├── fragment_wallet_list.xml
 ├── fragment_add_edit_wallet.xml
@@ -148,13 +162,16 @@ res/layout/
 ├── fragment_add_edit_event.xml
 ├── fragment_statistics.xml
 ├── fragment_profile.xml
-├── fragment_settings.xml                    ← navigation buttons đầy đủ
+├── fragment_settings.xml
 ├── fragment_passcode.xml
 ├── fragment_ai_assistant.xml
 ├── fragment_ai_receipt_scanner.xml
-├── item_transaction.xml                     ← ✅ Phase 4: MaterialCardView, amount + màu, date, type badge
-├── item_category.xml                        ← ✅ Phase 3.4
+├── item_transaction.xml
+├── item_category.xml
+├── item_category_icon.xml
 ├── item_budget.xml
+├── item_budget_breakdown.xml
+├── item_budget_wallet_picker.xml
 └── item_wallet.xml
 ```
 
@@ -164,25 +181,32 @@ res/layout/
 
 ```
 res/drawable/
-├── bg_circle_icon.xml                       ← ✅ mới thêm (Phase 3.4)
-├── bg_circle_color_preview.xml              ← ✅ mới thêm (Phase 3.4)
-├── ic_launcher_background.xml
-├── ic_launcher_foreground.xml
-├── outline_account_balance_24.xml
-├── outline_account_balance_wallet_24.xml
-├── outline_add_24.xml
-├── outline_arrow_back_24.xml
-├── outline_attach_money_24.xml
-├── outline_bar_chart_24.xml
-├── outline_close_24.xml
-├── outline_credit_card_24.xml
-├── outline_home_24.xml
-├── outline_more_horiz_24.xml
-├── outline_payments_24.xml
-├── outline_receipt_24.xml
-├── outline_settings_24.xml
-├── outline_visibility_24.xml
-└── outline_visibility_off_24.xml
+├── bg_circle_icon.xml
+├── bg_circle_color_preview.xml
+├── bg_budget_header_icon_button.xml
+├── bg_budget_wallet_filter.xml
+├── bg_budget_wallet_picker_selected.xml
+├── bg_budget_wallet_selected_dot.xml
+├── ic_category_other.xml
+├── ic_food.xml
+├── ic_transport.xml
+├── ic_shopping.xml
+├── ic_entertain.xml
+├── ic_health.xml
+├── ic_education.xml
+├── ic_bill.xml
+├── ic_house.xml
+├── ic_travel.xml
+├── ic_other.xml
+├── ic_salary.xml
+├── ic_bonus.xml
+├── ic_invest.xml
+├── ic_sale.xml
+├── ic_gift.xml
+├── ic_other_in.xml
+├── outline_history_24.xml
+├── outline_warning_amber_24.xml
+└── ...
 ```
 
 ---
@@ -192,8 +216,8 @@ res/drawable/
 ```
 res/navigation/
 ├── nav_auth.xml     ← Login → Register → ForgotPassword
-└── nav_main.xml     ← Home, Transactions, Statistics, Settings + tất cả sub-screens
-                        ✅ Phase 4: thêm argument transactionId (nullable) cho addEditTransactionFragment
+└── nav_main.xml     ← Home, Transactions, Budgets, Settings + tất cả sub-screens
+                        Có thêm budget detail, finished budgets, wallet picker
 ```
 
 ---
@@ -230,16 +254,15 @@ MainActivity (router)
 
 HomeActivity — BottomNav 4 tabs
 ├── 🏠 Home
-├── 💰 Transactions        ← ✅ Phase 4 done
-│     ├── TransactionListFragment (danh sách, filter, delete)
-│     └── AddEditTransactionFragment (thêm / sửa)
-├── 📊 Statistics
+├── 💰 Transactions
+├── 💼 Budgets
 └── ⚙️ Settings
       ├── Profile
       ├── Security (Passcode)
       ├── Wallets
-      ├── Categories        ← ✅ Phase 3 done
+      ├── Categories
       ├── Budgets
+      ├── Statistics
       ├── Debts
       └── Events
 ```
@@ -255,9 +278,9 @@ HomeActivity — BottomNav 4 tabs
 | 2 | Wallet CRUD | ✅ Hoàn thành |
 | 3 | Category CRUD + seed defaults | ✅ Hoàn thành |
 | 4 | Transaction CRUD | ✅ Hoàn thành |
-| 5 | Home Dashboard | 🔲 Chưa bắt đầu |
-| 6 | Budget | 🔲 Chưa bắt đầu |
-| 7 | Statistics | 🔲 Chưa bắt đầu |
-| 8 | Profile & Settings | 🔲 Chưa bắt đầu |
-| 9 | Passcode | 🔲 Chưa bắt đầu |
-| 10 | Polish & QA | 🔲 Chưa bắt đầu |
+| 5 | Home Dashboard | ✅ Cơ bản |
+| 6 | Budget | ✅ Hoàn thành |
+| 7 | Statistics | ⏳ Mục tiêu tiếp theo |
+| 8 | Profile & Settings | 🔄 Đã có nền tảng |
+| 9 | Passcode | 🔄 Đã có nền tảng |
+| 10 | Polish & QA | 🔄 Đang diễn ra |

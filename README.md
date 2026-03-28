@@ -44,11 +44,14 @@
 - Danh mục hệ thống mặc định sẵn có (16 danh mục: 10 Chi + 6 Thu)
 - Tạo danh mục tùy chỉnh (Thu / Chi) với màu sắc riêng
 - Không thể xóa danh mục mặc định
+- Hỗ trợ icon picker và dữ liệu danh mục ảo phục vụ budget
 
 ### Ngân sách
-- Đặt hạn mức chi tiêu theo tháng / theo danh mục
-- Ngưỡng cảnh báo linh hoạt (`alert_threshold`)
-- Theo dõi % đã sử dụng
+- Đặt hạn mức chi tiêu theo khoảng ngày / danh mục / ví
+- Hỗ trợ `Tất cả các ví`, `Tất cả danh mục`, và `Các mục khác`
+- Màn danh sách có 3 tab: `Tháng này`, `Tương lai`, `Thời gian khác`
+- Có màn `Ngân sách đã kết thúc`
+- Có màn chi tiết ngân sách với biểu đồ timeline, thống kê theo ngày và danh sách giao dịch đúng phạm vi
 
 ### Nợ / Mượn
 - Ghi nhận các khoản cho vay (LEND) và đi vay (BORROW)
@@ -63,6 +66,7 @@
 ### Thống kê & Báo cáo
 - Biểu đồ tròn (PieChart) chi tiêu theo danh mục
 - Biểu đồ cột (BarChart) so sánh thu/chi theo tháng
+- Module Statistics đã có nền tảng và là mục tiêu ưu tiên tiếp theo
 
 ### Trợ lý AI (Gemini)
 - Hỏi đáp phân tích chi tiêu bằng ngôn ngữ tự nhiên
@@ -140,7 +144,7 @@ Dự án sử dụng **MVVM + Repository Pattern + Manual DI**:
 
 ## Cơ sở dữ liệu
 
-Room Database version **3** với **7 bảng**, áp dụng offline-first:
+Room Database version **7** với **7 bảng**, áp dụng offline-first:
 
 | Bảng | Mô tả | FK |
 |---|---|---|
@@ -148,7 +152,7 @@ Room Database version **3** với **7 bảng**, áp dụng offline-first:
 | `wallets` | Ví tiền | → users |
 | `categories` | Danh mục thu/chi (system + custom) | → users (nullable) |
 | `transactions` | Giao dịch thu/chi/chuyển khoản | → wallets, categories, debts, events |
-| `budgets` | Ngân sách theo tháng/danh mục | → users, categories (nullable) |
+| `budgets` | Ngân sách theo khoảng ngày / ví / danh mục | → users, categories (nullable) |
 | `debts` | Khoản nợ/mượn | → users |
 | `events` | Sự kiện tài chính | → users |
 
@@ -212,7 +216,7 @@ Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 |---|---|
 | Cấu hình build.gradle.kts (tất cả dependencies) | ✅ |
 | AndroidManifest (CAMERA, BIOMETRIC, NETWORK permissions) | ✅ |
-| Room DB v3: 7 entities, 7 DAOs, Converters | ✅ |
+| Room DB v7: 7 entities, 7 DAOs, Converters | ✅ |
 | FK + Index đầy đủ trên tất cả entities | ✅ |
 | 8 Repositories + AppContainer (Manual DI) | ✅ |
 | UI Scaffolding: tất cả Fragment/ViewModel shells | ✅ |
@@ -245,17 +249,10 @@ Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 | `AppContainer` — seedDefaultCategoriesIfNeeded(), getAppContainer() | ✅ |
 | `MoneyMateApplication` — getAppContainer() | ✅ |
 | `PrefsManager` — getUid(), saveUid(), isLoggedIn(), setLoggedIn() | ✅ |
-| `CategoryDao` — countDefaultCategoriesByUid() | ✅ |
+| `CategoryDao` — countDefaultCategoriesByUid() + loại trừ danh mục ảo budget | ✅ |
 | `CategoryViewModel` — AndroidViewModel, switchMap filter by type | ✅ |
 | `CategoryAdapter` — ListAdapter + DiffUtil, click/delete listeners | ✅ |
-| `CategoryListFragment` — TabLayout, RecyclerView, FAB, Safe Args | ✅ |
-| `AddEditCategoryFragment` — Add/Edit mode, color picker, validation | ✅ |
-| `fragment_category_list.xml` — CoordinatorLayout + TabLayout + FAB | ✅ |
-| `fragment_add_edit_category.xml` — form đầy đủ | ✅ |
-| `item_category.xml` — icon, tên, badge mặc định, nút xóa | ✅ |
-| `bg_circle_icon.xml`, `bg_circle_color_preview.xml` | ✅ |
-| `SettingsFragment` — navigation tới tất cả destinations | ✅ |
-| `fragment_settings.xml` — đầy đủ sections và navigation buttons | ✅ |
+| `AddEditCategoryFragment` — Add/Edit mode, color picker, icon picker, validation | ✅ |
 
 ### Phase 4 — Transaction CRUD ✅ Hoàn thành
 
@@ -266,22 +263,36 @@ Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 | `TransactionViewModel` — AndroidViewModel, filter by type (switchMap), search, CRUD | ✅ |
 | `TransactionAdapter` — ListAdapter + DiffUtil, màu amount (xanh/đỏ/xanh dương), static ViewHolder | ✅ |
 | `TransactionListFragment` — RecyclerView, FAB, empty state, long-click confirm delete | ✅ |
-| `AddEditTransactionFragment` — Add/Edit mode, category chip picker, wallet dropdown, DatePicker, validation | ✅ |
-| `fragment_transaction_list.xml` — empty state TextView, paddingTop tránh che status bar | ✅ |
-| `fragment_add_edit_transaction.xml` — type toggle, chip group, wallet dropdown, date field | ✅ |
+| `AddEditTransactionFragment` — Add/Edit mode, category chip picker, wallet dropdown, DatePicker, validation, ghi chú tiếng Việt | ✅ |
+| `fragment_add_edit_transaction.xml` — type toggle, chip group, wallet dropdown, date field, numeric keypad phù hợp | ✅ |
 | `item_transaction.xml` — MaterialCardView, amount + màu, date, type badge | ✅ |
-| `nav_main.xml` — thêm argument `transactionId` (nullable) cho addEditTransactionFragment | ✅ |
+| `nav_main.xml` — thêm argument `transactionId` và filter phục vụ Budget detail | ✅ |
+
+### Phase 6 — Budget ✅ Hoàn thành
+
+| Mục | Trạng thái |
+|---|---|
+| `BudgetEntity`, `BudgetDao`, `BudgetRepository` | ✅ |
+| `BudgetViewModel`, `AddEditBudgetViewModel` | ✅ |
+| `BudgetListFragment`, `BudgetFinishedFragment`, `BudgetDetailFragment`, `BudgetWalletPickerFragment` | ✅ |
+| `AddEditBudgetFragment`, `BudgetAdapter`, `BudgetBreakdownAdapter` | ✅ |
+| Bộ lọc ví cho ngân sách hiện tại và ngân sách đã kết thúc | ✅ |
+| 3 tab `Tháng này / Tương lai / Thời gian khác` | ✅ |
+| Chi tiết ngân sách với biểu đồ timeline và thống kê theo ngày | ✅ |
+| `Tất cả danh mục` và `Các mục khác` | ✅ |
+| `Các mục khác` với tính toán động bằng `NOT EXISTS` | ✅ |
+| Xóa budget không xóa transaction | ✅ |
+| Empty state + redirect tạo ví khi cần | ✅ |
 
 ### Các Phase còn lại
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
-| 5 | Home Dashboard | 🔲 Chưa bắt đầu |
-| 6 | Budget | 🔲 Chưa bắt đầu |
-| 7 | Statistics | 🔲 Chưa bắt đầu |
-| 8 | Profile & Settings | 🔲 Chưa bắt đầu |
-| 9 | Passcode | 🔲 Chưa bắt đầu |
-| 10 | Polish & QA | 🔲 Chưa bắt đầu |
+| 5 | Home Dashboard | ✅ Cơ bản |
+| 7 | Statistics | ⏳ Là mục tiêu tiếp theo |
+| 8 | Profile & Settings | 🔄 Đã có nền tảng |
+| 9 | Passcode | 🔄 Đã có nền tảng |
+| 10 | Polish & QA | 🔄 Đang thực hiện theo module |
 
 ---
 
@@ -290,7 +301,8 @@ Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
 | File | Mô tả |
 |---|---|
 | [project-structure.md](docs/project-structure.md) | Cấu trúc file & kiến trúc chi tiết |
-| [phases.md](docs/phases.md) | Kế hoạch triển khai 10 phases |
+| [phases.md](docs/phases.md) | Kế hoạch triển khai và trạng thái hiện tại |
+| [implementation-phases.md](docs/implementation-phases.md) | Lộ trình triển khai song song giữa các track |
 | [copilot-instructions.md](.github/copilot-instructions.md) | Coding rules cho AI code generation |
 
 ---
