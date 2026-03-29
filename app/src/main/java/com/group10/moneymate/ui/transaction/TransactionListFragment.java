@@ -589,7 +589,10 @@ public class TransactionListFragment extends Fragment {
         CategoryEntity category = transaction.getCategoryId() != null ? categoryMap.get(transaction.getCategoryId()) : null;
         int fallback = ContextCompat.getColor(requireContext(), "INCOME".equals(transaction.getType()) ? R.color.transfer_blue : R.color.expense_red);
         int accent = category != null ? parseColorOrDefault(category.getColorHex(), fallback) : fallback;
-        int iconRes = category != null ? resolveIconRes(category.getIconResId()) : ("INCOME".equals(transaction.getType()) ? R.drawable.outline_attach_money_24 : R.drawable.ic_spending);
+        int iconRes = category != null ? resolveIconRes(category.getIconResId())
+                : ("INCOME".equals(transaction.getType())
+                ? R.drawable.outline_attach_money_24
+                : R.drawable.ic_category_spending);
         String title = category != null ? category.getName() : getString(R.string.ledger_section_unknown);
         return new SectionMeta(transaction.getCategoryId() != null ? transaction.getCategoryId() : transaction.getType(), title, iconRes, accent, applyAlpha(accent, 0.14f));
     }

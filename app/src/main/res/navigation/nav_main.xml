@@ -367,6 +367,13 @@
             app:argType="string"
             android:defaultValue="THIS_MONTH" />
         <action android:id="@+id/action_budgetDetail_to_addEdit" app:destination="@id/addEditBudgetFragment" />
+        <action
+            android:id="@+id/action_budgetDetail_to_reportTransactionListFragment"
+            app:destination="@id/reportTransactionListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action android:id="@+id/action_budgetDetail_to_budgetDetail" app:destination="@id/budgetDetailFragment" />
     </fragment>
 

@@ -87,7 +87,7 @@ public class CategoryAdapter extends ListAdapter<CategoryEntity, CategoryAdapter
                     "drawable",
                     binding.getRoot().getContext().getPackageName()
             );
-            binding.ivCategoryIcon.setImageResource(iconResId != 0 ? iconResId : R.drawable.ic_other);
+            binding.ivCategoryIcon.setImageResource(iconResId != 0 ? iconResId : R.drawable.ic_category_other);
 
             // Badge "Mặc định" chỉ hiện với default category
             binding.tvDefaultBadge.setVisibility(item.isDefault() ? View.VISIBLE : View.GONE);

@@ -79,8 +79,8 @@ public class HomeFragment extends Fragment {
     private double currentWeekExpense = 0.0;
     private double previousWeekExpense = 0.0;
     private double currentMonthIncome = 0.0;
-    private boolean isTotalBalanceVisible = true;
-    private boolean areWalletBalancesVisible = true;
+    private boolean isTotalBalanceVisible = false;
+    private boolean areWalletBalancesVisible = false;
     @NonNull
     private ExpenseRangeMode reportRangeMode = ExpenseRangeMode.MONTH;
     @NonNull
@@ -340,10 +340,10 @@ public class HomeFragment extends Fragment {
     private void renderTotalBalanceText() {
         if (isTotalBalanceVisible) {
             binding.tvTotalBalance.setText(CurrencyFormatter.format(currentTotalBalance, "VND"));
-            binding.btnToggleBalanceVisibility.setImageResource(R.drawable.outline_visibility_off_24);
+            binding.btnToggleBalanceVisibility.setImageResource(R.drawable.outline_visibility_24);
         } else {
             binding.tvTotalBalance.setText(HIDDEN_BALANCE_MASK);
-            binding.btnToggleBalanceVisibility.setImageResource(R.drawable.outline_visibility_24);
+            binding.btnToggleBalanceVisibility.setImageResource(R.drawable.outline_visibility_off_24);
         }
     }
 
@@ -351,8 +351,8 @@ public class HomeFragment extends Fragment {
         walletAdapter.setBalancesVisible(areWalletBalancesVisible);
         binding.btnToggleWalletBalances.setImageResource(
                 areWalletBalancesVisible
-                        ? R.drawable.outline_visibility_off_24
-                        : R.drawable.outline_visibility_24
+                        ? R.drawable.outline_visibility_24
+                        : R.drawable.outline_visibility_off_24
         );
     }
 
@@ -400,6 +400,10 @@ public class HomeFragment extends Fragment {
         binding.viewTrendIncomeIndicator.setBackgroundTintList(ColorStateList.valueOf(
                 incomeSelected ? activeIncomeColor : inactiveIndicatorColor
         ));
+        binding.viewTrendLegendCurrent.setBackgroundTintList(ColorStateList.valueOf(
+                expenseSelected ? activeExpenseColor : activeIncomeColor
+        ));
+        binding.tvTrendLegendCurrent.setTextColor(expenseSelected ? activeExpenseColor : activeIncomeColor);
         renderTrendChart();
     }
 
@@ -682,19 +686,19 @@ public class HomeFragment extends Fragment {
         if ("TRANSFER".equals(type)) {
             return R.drawable.outline_payments_24;
         }
-        return R.drawable.ic_spending;
+        return R.drawable.ic_category_spending;
     }
 
     private int resolveIcon(@Nullable String iconResId) {
         if (iconResId == null || iconResId.trim().isEmpty()) {
-            return R.drawable.ic_spending;
+            return R.drawable.ic_category_spending;
         }
         int resolved = requireContext().getResources().getIdentifier(
                 iconResId,
                 "drawable",
                 requireContext().getPackageName()
         );
-        return resolved != 0 ? resolved : R.drawable.ic_spending;
+        return resolved != 0 ? resolved : R.drawable.ic_category_spending;
     }
 
     @ColorInt

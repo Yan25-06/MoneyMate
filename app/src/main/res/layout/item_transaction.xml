@@ -38,7 +38,7 @@
                 android:layout_gravity="center"
                 android:contentDescription="@null"
                 app:tint="?attr/colorOnSurfaceVariant"
-                tools:src="@drawable/ic_spending" />
+                tools:src="@drawable/ic_category_spending" />
 
         </com.google.android.material.card.MaterialCardView>
 

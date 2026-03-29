@@ -39,6 +39,7 @@
 
     <!-- Home -->
     <string name="total_balance">Tổng số dư</string>
+    <string name="total_balance_label">Tổng số dư</string>
     <string name="income">Thu nhập</string>
     <string name="expense">Chi tiêu</string>
     <string name="recent_transactions">Giao dịch gần đây</string>

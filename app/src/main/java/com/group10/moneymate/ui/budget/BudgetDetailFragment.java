@@ -30,7 +30,6 @@ import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.databinding.FragmentBudgetDetailBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
-import com.group10.moneymate.ui.main.HomeActivity;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,6 +51,8 @@ public class BudgetDetailFragment extends Fragment {
     private boolean isAggregate;
     @Nullable
     private String aggregateWalletFilterLabel;
+    @Nullable
+    private String walletFilterId;
     @NonNull
     private BudgetViewModel.BudgetTab budgetTab = BudgetViewModel.BudgetTab.THIS_MONTH;
     private final Map<String, LiveData<List<TransactionEntity>>> chartSources = new HashMap<>();
@@ -138,13 +139,14 @@ public class BudgetDetailFragment extends Fragment {
                 : new Bundle());
         isAggregate = args.getIsAggregate();
         aggregateWalletFilterLabel = args.getWalletFilterLabel();
+        walletFilterId = args.getWalletFilterId();
         try {
             budgetTab = BudgetViewModel.BudgetTab.valueOf(args.getBudgetTab());
         } catch (IllegalArgumentException | NullPointerException exception) {
             budgetTab = BudgetViewModel.BudgetTab.THIS_MONTH;
         }
         viewModel.setSelectedTab(budgetTab);
-        viewModel.setSelectedWalletFilter(args.getWalletFilterId());
+        viewModel.setSelectedWalletFilter(walletFilterId);
     }
 
     private void setupActions() {
@@ -469,13 +471,15 @@ public class BudgetDetailFragment extends Fragment {
     }
 
     private void openTransactionsTab() {
-        Bundle args = new Bundle();
+        BudgetDetailFragmentDirections.ActionBudgetDetailToReportTransactionListFragment action =
+                BudgetDetailFragmentDirections.actionBudgetDetailToReportTransactionListFragment();
+
         if (!isAggregate && currentItem != null) {
-            args = new Bundle();
-            args.putString("budgetCategoryId", currentItem.getBudgetEntity().getCategoryId());
-            args.putString("budgetWalletId", currentItem.getBudgetEntity().getWalletId());
-            args.putLong("budgetStartDate", currentItem.getBudgetEntity().getStartDate());
-            args.putLong("budgetEndDate", currentItem.getBudgetEntity().getEndDate());
+            action.setCategoryId(currentItem.getBudgetEntity().getCategoryId());
+            action.setWalletId(currentItem.getBudgetEntity().getWalletId());
+            action.setStartDate(currentItem.getBudgetEntity().getStartDate());
+            action.setEndDate(currentItem.getBudgetEntity().getEndDate());
+            action.setTransactionType("EXPENSE");
         } else if (isAggregate && currentActiveBudgets != null && !currentActiveBudgets.isEmpty()) {
             long earliestStart = Long.MAX_VALUE;
             long latestEnd = 0L;
@@ -483,23 +487,19 @@ public class BudgetDetailFragment extends Fragment {
                 earliestStart = Math.min(earliestStart, item.getBudgetEntity().getStartDate());
                 latestEnd = Math.max(latestEnd, item.getBudgetEntity().getEndDate());
             }
-            if (earliestStart != Long.MAX_VALUE && latestEnd > 0L) {
-                args.putLong("budgetStartDate", earliestStart);
-                args.putLong("budgetEndDate", latestEnd);
-                args.putString("budgetAggregateFilters", buildAggregateBudgetFilterSpec(currentActiveBudgets));
+            if (earliestStart == Long.MAX_VALUE || latestEnd <= 0L) {
+                return;
             }
-        }
-
-        if (requireActivity() instanceof HomeActivity) {
-            ((HomeActivity) requireActivity()).navigateToBottomDestination(
-                    R.id.transactionListFragment,
-                    args
-            );
+            action.setWalletId(walletFilterId);
+            action.setStartDate(earliestStart);
+            action.setEndDate(latestEnd);
+            action.setTransactionType("EXPENSE");
+        } else {
             return;
         }
 
         NavController navController = Navigation.findNavController(binding.getRoot());
-        navController.navigate(R.id.transactionListFragment, args);
+        navController.navigate(action);
     }
 
     @NonNull

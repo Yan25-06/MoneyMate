@@ -274,7 +274,7 @@ public class ReportTransactionListFragment extends Fragment {
         if ("TRANSFER".equals(type)) {
             return R.drawable.outline_payments_24;
         }
-        return R.drawable.ic_spending;
+        return R.drawable.ic_category_spending;
     }
 
     @ColorInt

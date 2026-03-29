@@ -237,7 +237,7 @@ public class AddEditTransactionFragment extends Fragment {
             for (WalletEntity w : walletList) walletNames.add(w.getName());
             ArrayAdapter<String> adapter = new ArrayAdapter<>(
                     requireContext(),
-                    android.R.layout.simple_dropdown_item_1line,
+                    R.layout.item_wallet_dropdown,
                     walletNames);
             binding.dropdownWallet.setAdapter(adapter);
             binding.dropdownWallet.setOnItemClickListener((parent, view, position, id) -> {

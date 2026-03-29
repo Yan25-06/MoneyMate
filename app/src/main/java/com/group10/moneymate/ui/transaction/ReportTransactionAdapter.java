@@ -163,7 +163,7 @@ public class ReportTransactionAdapter extends ListAdapter<TransactionEntity, Rep
                     "INCOME".equals(type) ? R.color.transfer_blue : ("EXPENSE".equals(type) ? R.color.expense_red : R.color.statistics_text_secondary)
             );
             return new TransactionPresentation(
-                    "INCOME".equals(type) ? R.drawable.outline_attach_money_24 : ("TRANSFER".equals(type) ? R.drawable.outline_payments_24 : R.drawable.ic_spending),
+                    "INCOME".equals(type) ? R.drawable.outline_attach_money_24 : ("TRANSFER".equals(type) ? R.drawable.outline_payments_24 : R.drawable.ic_category_spending),
                     accent,
                     context.getString(R.string.ledger_section_unknown),
                     context.getString(R.string.transaction_detail_no_note),

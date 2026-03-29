@@ -35,7 +35,7 @@ public class AddEditCategoryFragment extends Fragment {
     private CategoryEntity existingCategory;
 
     private String selectedColorHex = "#9E9E9E";
-    private String selectedIconResId = "ic_other";
+    private String selectedIconResId = "ic_category_other";
 
     @Nullable
     @Override
@@ -120,7 +120,7 @@ public class AddEditCategoryFragment extends Fragment {
                 requireContext().getPackageName()
         );
         if (iconResId == 0) {
-            iconResId = R.drawable.ic_other;
+            iconResId = R.drawable.ic_category_other;
         }
         binding.ivIconPreview.setImageResource(iconResId);
         binding.ivIconPreview.setColorFilter(parseSelectedColor());

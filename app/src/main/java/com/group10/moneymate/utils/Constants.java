@@ -65,24 +65,24 @@ public class Constants {
         List<DefaultCategory> list = new ArrayList<>();
 
         // ── Chi tiêu (EXPENSE) ──────────────────────────────────────────────
-        list.add(new DefaultCategory("Ăn uống",    "ic_food",      "#F44336", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Di chuyển",  "ic_transport", "#FF9800", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Mua sắm",    "ic_shopping",  "#9C27B0", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Giải trí",   "ic_entertain", "#2196F3", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Y tế",       "ic_health",    "#E91E63", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Giáo dục",   "ic_education", "#3F51B5", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Hoá đơn",    "ic_bill",      "#607D8B", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Nhà ở",      "ic_house",     "#795548", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Du lịch",    "ic_travel",    "#00BCD4", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Khác (Chi)", "ic_other",     "#9E9E9E", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Ăn uống",    "ic_category_food",      "#F44336", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Di chuyển",  "ic_category_transport", "#FF9800", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Mua sắm",    "ic_category_shopping",  "#9C27B0", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Giải trí",   "ic_category_entertain", "#2196F3", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Y tế",       "ic_category_health",    "#E91E63", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Giáo dục",   "ic_category_education", "#3F51B5", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Hoá đơn",    "ic_category_bill",      "#607D8B", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Nhà ở",      "ic_category_house",     "#795548", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Du lịch",    "ic_category_travel",    "#00BCD4", TYPE_EXPENSE));
+        list.add(new DefaultCategory("Khác (Chi)", "ic_category_other",     "#9E9E9E", TYPE_EXPENSE));
 
         // ── Thu nhập (INCOME) ───────────────────────────────────────────────
-        list.add(new DefaultCategory("Lương",      "ic_salary",    "#4CAF50", TYPE_INCOME));
-        list.add(new DefaultCategory("Thưởng",     "ic_bonus",     "#8BC34A", TYPE_INCOME));
-        list.add(new DefaultCategory("Đầu tư",     "ic_invest",    "#009688", TYPE_INCOME));
-        list.add(new DefaultCategory("Bán hàng",   "ic_sale",      "#CDDC39", TYPE_INCOME));
-        list.add(new DefaultCategory("Quà tặng",   "ic_gift",      "#FF5722", TYPE_INCOME));
-        list.add(new DefaultCategory("Khác (Thu)", "ic_other_in",  "#00BFA5", TYPE_INCOME));
+        list.add(new DefaultCategory("Lương",      "ic_category_salary",    "#4CAF50", TYPE_INCOME));
+        list.add(new DefaultCategory("Thưởng",     "ic_category_bonus",     "#8BC34A", TYPE_INCOME));
+        list.add(new DefaultCategory("Đầu tư",     "ic_category_invest",    "#009688", TYPE_INCOME));
+        list.add(new DefaultCategory("Bán hàng",   "ic_category_sale",      "#CDDC39", TYPE_INCOME));
+        list.add(new DefaultCategory("Quà tặng",   "ic_category_gift",      "#FF5722", TYPE_INCOME));
+        list.add(new DefaultCategory("Khác (Thu)", "ic_category_other_in",  "#00BFA5", TYPE_INCOME));
 
         return list;
     }

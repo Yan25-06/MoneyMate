@@ -84,7 +84,7 @@ public class CategoryIconAdapter extends RecyclerView.Adapter<CategoryIconAdapte
                     "drawable",
                     context.getPackageName()
             );
-            binding.ivIconOption.setImageResource(iconResId != 0 ? iconResId : R.drawable.ic_other);
+            binding.ivIconOption.setImageResource(iconResId != 0 ? iconResId : R.drawable.ic_category_other);
             binding.ivIconOption.setImageTintList(ColorStateList.valueOf(tintColor));
             binding.tvIconOptionName.setText(item.label);
 
