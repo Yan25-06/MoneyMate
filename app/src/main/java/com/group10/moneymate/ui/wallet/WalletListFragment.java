@@ -8,13 +8,14 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.google.android.material.appbar.MaterialToolbar;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentWalletListBinding;
@@ -38,13 +39,7 @@ public class WalletListFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(WalletViewModel.class);
 
-        // Make this Fragment's toolbar act as the Activity ActionBar so the title is displayed
-        AppCompatActivity activity = (AppCompatActivity) requireActivity();
-        activity.setSupportActionBar(binding.topAppBar);
-        if (activity.getSupportActionBar() != null) {
-            activity.getSupportActionBar().setTitle(R.string.my_wallets);
-            activity.getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+        setupInsets();
 
         WalletAdapter adapter = new WalletAdapter();
         adapter.setWalletItemListener(new WalletAdapter.WalletItemListener() {
@@ -71,12 +66,24 @@ public class WalletListFragment extends Fragment {
             binding.tvTotalWalletBalance.setText(CurrencyFormatter.format(value, "VND"));
         });
 
-        // keep navigation click to handle up navigation
         binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
-
-        binding.fabAdd.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+        binding.fabAddInline.setOnClickListener(v -> Navigation.findNavController(v).navigate(
                 WalletListFragmentDirections.actionWalletListToAddEdit()
         ));
+    }
+
+    private void setupInsets() {
+        final int initialTopPadding = binding.scrollWallets.getPaddingTop();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollWallets, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            binding.scrollWallets.setPadding(
+                    binding.scrollWallets.getPaddingLeft(),
+                    initialTopPadding + systemBars.top,
+                    binding.scrollWallets.getPaddingRight(),
+                    binding.scrollWallets.getPaddingBottom()
+            );
+            return insets;
+        });
     }
 
     private void showDeleteConfirmDialog(WalletEntity wallet) {

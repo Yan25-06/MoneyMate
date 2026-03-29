@@ -1,6 +1,5 @@
 package com.group10.moneymate.ui.statistics;
 
-import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -47,6 +46,7 @@ import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.models.TransactionType;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -395,8 +395,8 @@ public class CategoryReportFragment extends Fragment {
     }
 
     private void openLevelFourDetail(@NonNull IncomeExpenseDetailViewModel.PeriodSummaryUiModel item) {
-        CategoryReportFragmentDirections.ActionStatisticsCategoryDetailFragmentToStatisticsCategoryDayDetailFragment action =
-                CategoryReportFragmentDirections.actionStatisticsCategoryDetailFragmentToStatisticsCategoryDayDetailFragment();
+        CategoryReportFragmentDirections.ActionStatisticsCategoryDetailFragmentToReportTransactionListFragment action =
+                CategoryReportFragmentDirections.actionStatisticsCategoryDetailFragmentToReportTransactionListFragment();
         action.setWalletId(viewModel.getCurrentFilterState().getWalletId());
         action.setStartDate(item.getStartDate());
         action.setEndDate(item.getEndDate());
@@ -585,14 +585,12 @@ public class CategoryReportFragment extends Fragment {
 
     private void showSingleDatePicker(@NonNull LocalDate initialDate,
                                       @NonNull DateSelectedCallback callback) {
-        new DatePickerDialog(
-                requireContext(),
-                (view, year, month, dayOfMonth) ->
-                        callback.onDateSelected(LocalDate.of(year, month + 1, dayOfMonth)),
-                initialDate.getYear(),
-                initialDate.getMonthValue() - 1,
-                initialDate.getDayOfMonth()
-        ).show();
+        MoneyMateDatePickerHelper.showSingleDatePicker(
+                this,
+                initialDate,
+                "category_report_single_date",
+                callback::onDateSelected
+        );
     }
 
     private void renderDateButton(@NonNull TextView textView, @NonNull LocalDate date) {

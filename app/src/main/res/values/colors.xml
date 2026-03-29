@@ -35,4 +35,25 @@
     <color name="statistics_card_stroke">#EAECF0</color>
     <color name="statistics_card_background">#FFFFFF</color>
     <color name="statistics_card_inner_bg">#F8FAFC</color>
+    <color name="bottom_nav_inactive">#B7BCC6</color>
+    <color name="transaction_surface">#FBFCFE</color>
+    <color name="transaction_panel">#FFFFFF</color>
+    <color name="transaction_border">#D8DEE8</color>
+    <color name="transaction_muted_icon">#667085</color>
+    <color name="transaction_muted_text">#475467</color>
+    <color name="transaction_hint">#98A2B3</color>
+    <color name="transaction_chip_bg">#F7F9FC</color>
+    <color name="transaction_chip_bg_selected">#E8F1FF</color>
+    <color name="transaction_chip_text_selected">#175CD3</color>
+    <color name="transaction_income_soft">#E7F6EC</color>
+    <color name="transaction_expense_soft">#FDECEC</color>
+    <color name="transaction_income_accent">#16A34A</color>
+    <color name="transaction_expense_accent">#E5484D</color>
+    <color name="moneymate_field_surface">#FCFDFE</color>
+    <color name="moneymate_field_text">#101828</color>
+    <color name="moneymate_field_hint">#667085</color>
+    <color name="moneymate_field_border">#D0D5DD</color>
+    <color name="moneymate_field_border_hover">#98A2B3</color>
+    <color name="moneymate_picker_accent">#16A34A</color>
+    <color name="moneymate_picker_header_background">#F6FBF7</color>
 </resources>

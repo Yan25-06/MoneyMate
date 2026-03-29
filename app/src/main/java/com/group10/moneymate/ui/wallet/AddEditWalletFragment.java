@@ -12,6 +12,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -52,6 +55,7 @@ public class AddEditWalletFragment extends Fragment {
             bottomNavigationView.setVisibility(View.GONE);
         }
 
+        setupInsets();
         setupTypeDropdown();
         setupBalanceInput();
 
@@ -69,6 +73,20 @@ public class AddEditWalletFragment extends Fragment {
 
         binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.btnSave.setOnClickListener(v -> saveWallet());
+    }
+
+    private void setupInsets() {
+        final int initialTopPadding = binding.scrollWalletForm.getPaddingTop();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollWalletForm, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            binding.scrollWalletForm.setPadding(
+                    binding.scrollWalletForm.getPaddingLeft(),
+                    initialTopPadding + systemBars.top,
+                    binding.scrollWalletForm.getPaddingRight(),
+                    binding.scrollWalletForm.getPaddingBottom()
+            );
+            return insets;
+        });
     }
 
     private void setupBalanceInput() {
@@ -107,9 +125,14 @@ public class AddEditWalletFragment extends Fragment {
                 getString(R.string.wallet_type_bank),
                 getString(R.string.wallet_type_ewallet)
         };
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, types);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                R.layout.item_moneymate_dropdown_option,
+                types
+        );
         binding.dropdownType.setAdapter(adapter);
         binding.dropdownType.setText(types[0], false);
+        binding.dropdownType.setOnClickListener(v -> binding.dropdownType.showDropDown());
     }
 
     private void loadEditingWallet(String id) {

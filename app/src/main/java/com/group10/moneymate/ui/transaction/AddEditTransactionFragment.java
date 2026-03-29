@@ -1,6 +1,7 @@
 package com.group10.moneymate.ui.transaction;
 
-import android.app.DatePickerDialog;
+import android.content.res.ColorStateList;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -14,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
@@ -29,6 +31,7 @@ import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.DateUtils;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -44,11 +47,13 @@ public class AddEditTransactionFragment extends Fragment {
     // State
     private String currentType = "EXPENSE";
     private String selectedCategoryId = null;
+    private String selectedWalletId = null;
     private long selectedTimestamp = System.currentTimeMillis();
     private List<WalletEntity> walletList = new ArrayList<>();
     private List<CategoryEntity> currentCategoryList = new ArrayList<>();
     private LiveData<List<CategoryEntity>> currentCategorySource;
     private boolean isFormattingAmount;
+    private boolean isLoadingEdit;
 
     // Edit mode
     private String transactionId = null;
@@ -68,11 +73,12 @@ public class AddEditTransactionFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
 
-        // Đọc transactionId từ arguments (Edit mode)
-        if (getArguments() != null) {
-            transactionId = getArguments().getString("transactionId");
-        }
+        AddEditTransactionFragmentArgs args = AddEditTransactionFragmentArgs.fromBundle(
+                getArguments() != null ? getArguments() : new Bundle()
+        );
+        transactionId = args.getTransactionId();
 
+        setupToolbar();
         setupTypeToggle();
         setupDatePicker();
         setupTextInputs();
@@ -80,26 +86,39 @@ public class AddEditTransactionFragment extends Fragment {
         observeWallets();
 
         if (transactionId != null) {
+            binding.tvToolbarTitle.setText(R.string.transaction_edit_title);
+            binding.btnSave.setText(R.string.btn_update);
             loadExistingTransaction();
         } else {
             // Add mode: chọn EXPENSE mặc định, ngày hôm nay
+            binding.tvToolbarTitle.setText(R.string.add_transaction);
+            binding.btnSave.setText(R.string.btn_save);
             binding.toggleType.check(R.id.btn_expense);
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
             observeCategories("EXPENSE");
+            updateAmountAccent();
+            updateTypeToggleAppearance();
         }
+    }
+
+    private void setupToolbar() {
+        binding.btnCloseScreen.setOnClickListener(v ->
+                Navigation.findNavController(v).navigateUp());
     }
 
     // ─── Type Toggle ──────────────────────────────────────────────────────────
 
     private void setupTypeToggle() {
         binding.toggleType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            if (!isChecked) return;
+            if (!isChecked || isLoadingEdit) return;
             if (checkedId == R.id.btn_expense) {
                 currentType = "EXPENSE";
             } else if (checkedId == R.id.btn_income) {
                 currentType = "INCOME";
             }
             selectedCategoryId = null;
+            updateAmountAccent();
+            updateTypeToggleAppearance();
             observeCategories(currentType);
         });
     }
@@ -110,18 +129,29 @@ public class AddEditTransactionFragment extends Fragment {
         binding.etDate.setOnClickListener(v -> {
             Calendar cal = Calendar.getInstance();
             cal.setTimeInMillis(selectedTimestamp);
-            new DatePickerDialog(
-                    requireContext(),
-                    (picker, year, month, day) -> {
-                        cal.set(year, month, day);
+            MoneyMateDatePickerHelper.showSingleDatePicker(
+                    this,
+                    java.time.Instant.ofEpochMilli(selectedTimestamp)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate(),
+                    "transaction_single_date",
+                    date -> {
+                        cal.set(date.getYear(), date.getMonthValue() - 1, date.getDayOfMonth());
                         selectedTimestamp = cal.getTimeInMillis();
                         binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
-                    },
-                    cal.get(Calendar.YEAR),
-                    cal.get(Calendar.MONTH),
-                    cal.get(Calendar.DAY_OF_MONTH)
-            ).show();
+                    }
+            );
         });
+        binding.btnPrevDate.setOnClickListener(v -> shiftSelectedDate(-1));
+        binding.btnNextDate.setOnClickListener(v -> shiftSelectedDate(1));
+    }
+
+    private void shiftSelectedDate(int dayOffset) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(selectedTimestamp);
+        cal.add(Calendar.DAY_OF_MONTH, dayOffset);
+        selectedTimestamp = cal.getTimeInMillis();
+        binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
     }
 
     private void setupTextInputs() {
@@ -158,6 +188,46 @@ public class AddEditTransactionFragment extends Fragment {
         });
     }
 
+    private void updateAmountAccent() {
+        int accentColor = ContextCompat.getColor(
+                requireContext(),
+                "INCOME".equals(currentType) ? R.color.transaction_income_accent : R.color.transaction_expense_accent
+        );
+        binding.etAmount.setTextColor(accentColor);
+        binding.viewAmountAccent.setBackgroundColor(accentColor);
+        binding.btnSave.setBackgroundTintList(ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)
+        ));
+    }
+
+    private void updateTypeToggleAppearance() {
+        styleTypeButton(binding.btnExpense, "EXPENSE".equals(currentType), true);
+        styleTypeButton(binding.btnIncome, "INCOME".equals(currentType), false);
+    }
+
+    private void styleTypeButton(@NonNull com.google.android.material.button.MaterialButton button,
+                                 boolean selected,
+                                 boolean expenseButton) {
+        int backgroundColor = ContextCompat.getColor(
+                requireContext(),
+                selected
+                        ? (expenseButton ? R.color.transaction_expense_soft : R.color.transaction_income_soft)
+                        : R.color.white
+        );
+        int textColor = ContextCompat.getColor(
+                requireContext(),
+                selected
+                        ? (expenseButton ? R.color.transaction_expense_accent : R.color.transaction_income_accent)
+                        : R.color.transaction_muted_text
+        );
+        button.setBackgroundTintList(ColorStateList.valueOf(backgroundColor));
+        button.setStrokeColor(ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.transaction_border)
+        ));
+        button.setTextColor(textColor);
+        button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+    }
+
     // ─── Wallet Dropdown ──────────────────────────────────────────────────────
 
     private void observeWallets() {
@@ -170,7 +240,25 @@ public class AddEditTransactionFragment extends Fragment {
                     android.R.layout.simple_dropdown_item_1line,
                     walletNames);
             binding.dropdownWallet.setAdapter(adapter);
+            binding.dropdownWallet.setOnItemClickListener((parent, view, position, id) -> {
+                if (position >= 0 && position < walletList.size()) {
+                    selectedWalletId = walletList.get(position).getId();
+                }
+            });
+            applySelectedWalletSelection();
         });
+    }
+
+    private void applySelectedWalletSelection() {
+        if (selectedWalletId == null || walletList.isEmpty()) {
+            return;
+        }
+        for (WalletEntity wallet : walletList) {
+            if (selectedWalletId.equals(wallet.getId())) {
+                binding.dropdownWallet.setText(wallet.getName(), false);
+                return;
+            }
+        }
     }
 
     // ─── Category Chips ───────────────────────────────────────────────────────
@@ -192,15 +280,42 @@ public class AddEditTransactionFragment extends Fragment {
                 chip.setText(cat.getName());
                 chip.setCheckable(true);
                 chip.setTag(cat.getId());
+                chip.setChipBackgroundColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(requireContext(), R.color.transaction_chip_bg)
+                ));
+                chip.setChipStrokeWidth(1f);
+                chip.setChipStrokeColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(requireContext(), R.color.transaction_border)
+                ));
+                chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.transaction_muted_text));
                 if (cat.getId().equals(selectedCategoryId)) {
                     chip.setChecked(true);
                 }
                 chip.setOnCheckedChangeListener((btn, checked) -> {
-                    if (checked) selectedCategoryId = cat.getId();
+                    if (checked) {
+                        selectedCategoryId = cat.getId();
+                    }
+                    updateCategoryChipAppearance(chip, checked);
                 });
+                updateCategoryChipAppearance(chip, cat.getId().equals(selectedCategoryId));
                 binding.chipGroupCategory.addView(chip);
             }
         });
+    }
+
+    private void updateCategoryChipAppearance(@NonNull Chip chip, boolean selected) {
+        chip.setChipBackgroundColor(ColorStateList.valueOf(ContextCompat.getColor(
+                requireContext(),
+                selected ? R.color.transaction_chip_bg_selected : R.color.transaction_chip_bg
+        )));
+        chip.setTextColor(ContextCompat.getColor(
+                requireContext(),
+                selected ? R.color.transaction_chip_text_selected : R.color.transaction_muted_text
+        ));
+        chip.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+        chip.setChipStrokeColor(ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.transaction_border)
+        ));
     }
 
     // ─── Load existing transaction (Edit mode) ────────────────────────────────
@@ -211,12 +326,14 @@ public class AddEditTransactionFragment extends Fragment {
             // Chỉ populate lần đầu
             if (originalTransaction != null) return;
             originalTransaction = transaction;
+            isLoadingEdit = true;
 
             binding.etAmount.setText(CurrencyFormatter.formatInputAmount((long) transaction.getAmount()));
-            binding.etNote.setText(transaction.getNote());
+            binding.etNote.setText(TextUtils.isEmpty(transaction.getNote()) ? "" : transaction.getNote());
             selectedTimestamp = transaction.getTimestamp();
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
             selectedCategoryId = transaction.getCategoryId();
+            selectedWalletId = transaction.getWalletId();
             currentType = transaction.getType();
 
             if ("INCOME".equals(currentType)) {
@@ -224,16 +341,11 @@ public class AddEditTransactionFragment extends Fragment {
             } else {
                 binding.toggleType.check(R.id.btn_expense);
             }
-
-            // Chọn ví đúng trong dropdown
-            for (int i = 0; i < walletList.size(); i++) {
-                if (walletList.get(i).getId().equals(transaction.getWalletId())) {
-                    binding.dropdownWallet.setText(walletList.get(i).getName(), false);
-                    break;
-                }
-            }
-
+            updateAmountAccent();
+            updateTypeToggleAppearance();
             observeCategories(currentType);
+            applySelectedWalletSelection();
+            isLoadingEdit = false;
         });
     }
 
@@ -249,13 +361,14 @@ public class AddEditTransactionFragment extends Fragment {
                     ? binding.etNote.getText().toString().trim()
                     : "";
 
-            // Tìm walletId từ tên đã chọn
-            String walletName = binding.dropdownWallet.getText().toString().trim();
-            String walletId = null;
-            for (WalletEntity w : walletList) {
-                if (w.getName().equals(walletName)) {
-                    walletId = w.getId();
-                    break;
+            String walletId = selectedWalletId;
+            if (walletId == null) {
+                String walletName = binding.dropdownWallet.getText().toString().trim();
+                for (WalletEntity w : walletList) {
+                    if (w.getName().equals(walletName)) {
+                        walletId = w.getId();
+                        break;
+                    }
                 }
             }
 

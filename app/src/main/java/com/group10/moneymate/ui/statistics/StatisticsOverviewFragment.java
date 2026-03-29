@@ -1,6 +1,5 @@
 package com.group10.moneymate.ui.statistics;
 
-import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -45,6 +44,7 @@ import com.group10.moneymate.databinding.LayoutStatisticsGroupPreviewBinding;
 import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
 import com.group10.moneymate.models.TransactionType;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,6 +61,7 @@ public class StatisticsOverviewFragment extends Fragment {
     private FragmentStatisticsBinding binding;
     private StatisticsViewModel viewModel;
     private MoneyChartValueFormatter moneyChartValueFormatter;
+    private StatisticsOverviewFragmentArgs navArgs;
 
     @Nullable
     @Override
@@ -81,13 +82,31 @@ public class StatisticsOverviewFragment extends Fragment {
                 container.authRepository.getCurrentUserId()
         );
         viewModel = new ViewModelProvider(this, factory).get(StatisticsViewModel.class);
+        navArgs = StatisticsOverviewFragmentArgs.fromBundle(getArguments() != null ? getArguments() : new Bundle());
         moneyChartValueFormatter = new MoneyChartValueFormatter();
 
         applyWindowInsets();
         configureHeader();
         configureCharts();
+        applyInitialFilterIfPresent();
         bindActions();
         observeViewModel();
+    }
+
+    private void applyInitialFilterIfPresent() {
+        if (navArgs.getFilterPeriodType() == null
+                && navArgs.getFilterStartDate() <= 0L
+                && navArgs.getFilterEndDate() <= 0L
+                && navArgs.getFilterWalletId() == null) {
+            return;
+        }
+        viewModel.applyExternalFilter(
+                navArgs.getFilterWalletId(),
+                navArgs.getFilterWalletLabel(),
+                navArgs.getFilterStartDate(),
+                navArgs.getFilterEndDate(),
+                navArgs.getFilterPeriodType()
+        );
     }
 
     private void configureHeader() {
@@ -392,14 +411,12 @@ public class StatisticsOverviewFragment extends Fragment {
 
     private void showSingleDatePicker(@NonNull LocalDate initialDate,
                                       @NonNull DateSelectedCallback callback) {
-        new DatePickerDialog(
-                requireContext(),
-                (view, year, month, dayOfMonth) ->
-                        callback.onDateSelected(LocalDate.of(year, month + 1, dayOfMonth)),
-                initialDate.getYear(),
-                initialDate.getMonthValue() - 1,
-                initialDate.getDayOfMonth()
-        ).show();
+        MoneyMateDatePickerHelper.showSingleDatePicker(
+                this,
+                initialDate,
+                "statistics_overview_single_date",
+                callback::onDateSelected
+        );
     }
 
     private void renderDateButton(@NonNull TextView textView, @NonNull LocalDate date) {

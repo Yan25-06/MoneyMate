@@ -1,259 +1,657 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface">
+    android:background="@color/statistics_surface">
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
         android:fillViewport="true">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="25dp"
-            android:paddingBottom="88dp">
+            android:orientation="vertical"
+            android:paddingStart="18dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="108dp">
 
-            <!-- Thẻ Tổng số dư -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cv_balance"
+            <LinearLayout
+                android:id="@+id/layoutBalanceHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="?attr/colorSecondaryContainer"
-                app:cardCornerRadius="28dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:padding="24dp">
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/tv_balance_label"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/tvTotalBalance"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="@string/total_balance"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:textColor="?attr/colorOnSecondaryContainer"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/statistics_text_primary"
+                        android:textSize="34sp"
+                        android:textStyle="bold"
+                        tools:text="8,917,000 ₫" />
 
                     <ImageButton
-                        android:id="@+id/btn_toggle_balance_visibility"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:src="@drawable/outline_visibility_off_24"
-                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:id="@+id/btnToggleBalanceVisibility"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_statistics_header_icon_button"
                         android:contentDescription="@string/hide_balance"
-                        app:tint="?attr/colorOnSecondaryContainer"
-                        app:layout_constraintTop_toTopOf="@id/tv_balance_label"
-                        app:layout_constraintBottom_toBottomOf="@id/tv_balance_label"
-                        app:layout_constraintEnd_toEndOf="parent" />
+                        android:padding="8dp"
+                        android:src="@drawable/outline_visibility_24"
+                        android:tint="@color/statistics_text_primary" />
+                </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/tv_total_balance"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textAppearance="?attr/textAppearanceHeadlineLarge"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorOnSecondaryContainer"
-                        tools:text="100.000.000 VND"
-                        app:layout_constraintTop_toBottomOf="@id/tv_balance_label" />
+                <ImageButton
+                    android:id="@+id/btnSearchHome"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="12dp"
+                    android:background="@drawable/bg_statistics_header_icon_button"
+                    android:contentDescription="@string/home_search"
+                    android:padding="8dp"
+                    android:src="@drawable/outline_search_24"
+                    android:tint="@color/statistics_text_primary" />
 
-                    <!-- Khu vực Thu / Chi -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:baselineAligned="false"
-                        android:orientation="horizontal"
-                        app:layout_constraintTop_toBottomOf="@id/tv_total_balance">
+                <ImageButton
+                    android:id="@+id/btnNotificationsHome"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_statistics_header_icon_button"
+                    android:contentDescription="@string/home_notifications"
+                    android:padding="8dp"
+                    android:src="@drawable/outline_notifications_24"
+                    android:tint="@color/statistics_text_primary" />
+            </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/income"
-                                android:textColor="?attr/colorOnSecondaryContainer"
-                                android:textSize="12sp" />
-                            <TextView
-                                android:id="@+id/tv_income"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="@color/green_500"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/expense"
-                                android:textColor="?attr/colorOnSecondaryContainer"
-                                android:textSize="12sp" />
-                            <TextView
-                                android:id="@+id/tv_expense"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="@color/red_500"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Thẻ Ví của tôi -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cv_wallets"
+                android:id="@+id/cardWallets"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-                app:cardCornerRadius="28dp"
+                android:layout_marginTop="18dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="26dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                app:layout_constraintTop_toBottomOf="@id/cv_balance">
+                app:strokeColor="@color/statistics_card_stroke"
+                app:strokeWidth="1dp">
 
-                <androidx.constraintlayout.widget.ConstraintLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp">
+                    android:orientation="vertical"
+                    android:paddingStart="18dp"
+                    android:paddingTop="18dp"
+                    android:paddingEnd="18dp"
+                    android:paddingBottom="8dp">
 
-                    <TextView
-                        android:id="@+id/tv_wallets_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/my_wallets"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorOnSurface"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/tv_view_all_wallets"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/view_all"
-                        android:textAppearance="?attr/textAppearanceLabelLarge"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="@id/tv_wallets_title"
-                        app:layout_constraintEnd_toEndOf="parent" />
-
-                    <TextView
-                        android:id="@+id/tv_wallet_empty"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="@string/wallet_preview_empty"
-                        android:textSize="14sp"
-                        android:visibility="gone"
-                        app:layout_constraintTop_toBottomOf="@id/tv_view_all_wallets"
-                        app:layout_constraintStart_toStartOf="parent"/>
-
-                    <LinearLayout
-                        android:id="@+id/ll_wallet_preview"
+                    <androidx.constraintlayout.widget.ConstraintLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="vertical"
-                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_empty" />
+                        android:layout_height="wrap_content">
 
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </com.google.android.material.card.MaterialCardView>
+                        <TextView
+                            android:id="@+id/tvWalletsTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/my_wallets"
+                            android:textColor="@color/statistics_text_primary"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- Thẻ Giao dịch -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cv_transactions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-                app:cardCornerRadius="28dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                app:layout_constraintTop_toBottomOf="@id/cv_wallets">
+                        <TextView
+                            android:id="@+id/tvViewAllWallets"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="12dp"
+                            android:text="@string/view_all"
+                            android:textColor="@color/income_green"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            app:layout_constraintBottom_toBottomOf="@id/tvWalletsTitle"
+                            app:layout_constraintEnd_toStartOf="@id/btnToggleWalletBalances"
+                            app:layout_constraintTop_toTopOf="@id/tvWalletsTitle" />
 
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="20dp">
+                        <ImageButton
+                            android:id="@+id/btnToggleWalletBalances"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_statistics_header_icon_button"
+                            android:contentDescription="@string/hide_balance"
+                            android:padding="8dp"
+                            android:src="@drawable/outline_visibility_off_24"
+                            android:tint="@color/statistics_text_primary"
+                            app:layout_constraintBottom_toBottomOf="@id/tvWalletsTitle"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="@id/tvWalletsTitle" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
 
-                    <TextView
-                        android:id="@+id/tv_transactions_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/recent_transactions"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorOnSurface"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_view_all_transactions"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/view_all"
-                        android:textAppearance="?attr/textAppearanceLabelLarge"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="@id/tv_transactions_title"
-                        app:layout_constraintEnd_toEndOf="parent" />
-
-                    <TextView
-                        android:id="@+id/tv_transactions_empty"
+                    <View
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center"
-                        android:text="@string/empty_transactions"
-                        android:visibility="gone"
-                        app:layout_constraintTop_toBottomOf="@id/btn_view_all_transactions" />
+                        android:layout_height="1dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/statistics_card_stroke" />
 
                     <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_recent_transactions"
+                        android:id="@+id/rvWalletPreview"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="5dp"
-                        android:nestedScrollingEnabled="false"
-                        app:layout_constraintTop_toBottomOf="@id/tv_transactions_empty" />
+                        android:nestedScrollingEnabled="false" />
 
-                </androidx.constraintlayout.widget.ConstraintLayout>
+                    <TextView
+                        android:id="@+id/tvWalletEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="20dp"
+                        android:paddingBottom="14dp"
+                        android:text="@string/wallet_preview_empty"
+                        android:textColor="@color/statistics_text_muted"
+                        android:textSize="15sp"
+                        android:visibility="gone" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.core.widget.NestedScrollView>
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp">
 
-    <!-- Nút FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_add"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:contentDescription="@string/add_transaction"
-        android:src="@drawable/outline_add_24"
-        app:tint="?attr/colorOnPrimary"
-        app:backgroundTint="?attr/colorPrimary" />
+                <TextView
+                    android:id="@+id/tvMonthlyReportTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_monthly_report"
+                    android:textColor="@color/statistics_text_primary"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/btnViewMonthlyReport"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_view_report"
+                    android:textColor="@color/income_green"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="@id/tvMonthlyReportTitle"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/tvMonthlyReportTitle" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardMonthlyReport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="26dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/statistics_card_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        app:cardBackgroundColor="@color/statistics_card_inner_bg"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="horizontal"
+                            android:padding="4dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnReportExpense"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:text="@string/home_report_type_expense"
+                                android:textAllCaps="false"
+                                app:cornerRadius="14dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnReportTrend"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:text="@string/home_report_type_trend"
+                                android:textAllCaps="false"
+                                app:cornerRadius="14dp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <LinearLayout
+                        android:id="@+id/layoutExpenseReportContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="50dp"
+                            app:cardBackgroundColor="@color/statistics_card_inner_bg"
+                            app:cardCornerRadius="18dp"
+                            app:cardElevation="0dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="horizontal"
+                                android:padding="4dp">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnReportWeek"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:text="@string/statistics_period_week"
+                                    android:textAllCaps="false"
+                                    app:cornerRadius="14dp" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnReportMonth"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:text="@string/statistics_period_month"
+                                    android:textAllCaps="false"
+                                    app:cornerRadius="14dp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <TextView
+                            android:id="@+id/tvReportAmount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:textColor="@color/statistics_text_primary"
+                            android:textSize="26sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvReportSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/statistics_text_secondary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/tvReportChange"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:textColor="@color/expense_red"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <com.github.mikephil.charting.charts.BarChart
+                            android:id="@+id/chartMonthlyReport"
+                            android:layout_width="match_parent"
+                            android:layout_height="238dp"
+                            android:layout_marginTop="14dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layoutTrendReportContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:id="@+id/layoutTrendExpenseMetric"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:paddingTop="6dp"
+                                android:paddingBottom="10dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/home_trend_expense_total"
+                                    android:textColor="@color/statistics_text_secondary"
+                                    android:textSize="14sp" />
+
+                                <TextView
+                                    android:id="@+id/tvTrendExpenseAmount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:textColor="@color/expense_red"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"
+                                    tools:text="47,045,000 ₫" />
+
+                                <View
+                                    android:id="@+id/viewTrendExpenseIndicator"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="3dp"
+                                    android:layout_marginTop="12dp"
+                                    android:background="@color/expense_red" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/layoutTrendIncomeMetric"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:paddingTop="6dp"
+                                android:paddingBottom="10dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/home_trend_income_total"
+                                    android:textColor="@color/statistics_text_secondary"
+                                    android:textSize="14sp" />
+
+                                <TextView
+                                    android:id="@+id/tvTrendIncomeAmount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:textColor="@color/transfer_blue"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"
+                                    tools:text="48,385,000 ₫" />
+
+                                <View
+                                    android:id="@+id/viewTrendIncomeIndicator"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="3dp"
+                                    android:layout_marginTop="12dp"
+                                    android:background="@color/transfer_blue" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <include
+                            android:id="@+id/layoutTrendSummary"
+                            layout="@layout/layout_statistics_compare_summary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end"
+                            android:layout_marginTop="10dp" />
+
+                        <com.github.mikephil.charting.charts.LineChart
+                            android:id="@+id/chartTrendReport"
+                            android:layout_width="match_parent"
+                            android:layout_height="250dp"
+                            android:layout_marginTop="10dp" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal"
+                            android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="10dp"
+                                android:layout_height="10dp"
+                                android:background="@drawable/bg_statistics_legend_dot_current" />
+
+                            <TextView
+                                android:id="@+id/tvTrendLegendCurrent"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="@string/home_trend_legend_current"
+                                android:textColor="@color/statistics_text_secondary"
+                                android:textSize="14sp" />
+
+                            <View
+                                android:layout_width="10dp"
+                                android:layout_height="10dp"
+                                android:layout_marginStart="18dp"
+                                android:background="@drawable/bg_statistics_legend_dot_average" />
+
+                            <TextView
+                                android:id="@+id/tvTrendLegendAverage"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="@string/home_trend_legend_average"
+                                android:textColor="@color/statistics_text_secondary"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/btnReportDetailCta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/home_expense_report_cta"
+                        android:textColor="@color/income_green"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp">
+
+                <TextView
+                    android:id="@+id/tvTopSpendingTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_top_spending"
+                    android:textColor="@color/statistics_text_primary"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/btnViewTopSpendingDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_view_detail"
+                    android:textColor="@color/income_green"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="@id/tvTopSpendingTitle"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/tvTopSpendingTitle" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardTopSpending"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="26dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/statistics_card_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        app:cardBackgroundColor="@color/statistics_card_inner_bg"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="horizontal"
+                            android:padding="4dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnTopWeek"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:text="@string/statistics_period_week"
+                                android:textAllCaps="false"
+                                app:cornerRadius="14dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnTopMonth"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:text="@string/statistics_period_month"
+                                android:textAllCaps="false"
+                                app:cornerRadius="14dp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvTopSpending"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:nestedScrollingEnabled="false" />
+
+                    <TextView
+                        android:id="@+id/tvTopSpendingEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="10dp"
+                        android:text="@string/statistics_no_data"
+                        android:textColor="@color/statistics_text_muted"
+                        android:textSize="15sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp">
+
+                <TextView
+                    android:id="@+id/tvRecentTransactionsTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/recent_transactions"
+                    android:textColor="@color/statistics_text_primary"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/btnViewAllTransactions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/view_all"
+                    android:textColor="@color/income_green"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="@id/tvRecentTransactionsTitle"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/tvRecentTransactionsTitle" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardRecentTransactions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="26dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/statistics_card_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="18dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="18dp"
+                    android:paddingBottom="10dp">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvRecentTransactions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                    <TextView
+                        android:id="@+id/tvTransactionsEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:paddingTop="18dp"
+                        android:paddingBottom="14dp"
+                        android:text="@string/empty_transactions"
+                        android:textColor="@color/statistics_text_muted"
+                        android:textSize="15sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

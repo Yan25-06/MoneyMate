@@ -32,6 +32,10 @@
     <string name="transactions">Giao dịch</string>
     <string name="statistics">Thống kê</string>
     <string name="title_settings">Cài đặt</string>
+    <string name="nav_overview">Tổng quan</string>
+    <string name="nav_ledger">Sổ Giao Dịch</string>
+    <string name="nav_budgets">Ngân sách</string>
+    <string name="nav_settings">Cài đặt</string>
 
     <!-- Home -->
     <string name="total_balance">Tổng số dư</string>
@@ -41,6 +45,32 @@
     <string name="my_wallets">Ví của tôi</string>
     <string name="view_all">Xem tất cả</string>
     <string name="wallet_preview_empty">Bạn chưa có ví nào</string>
+    <string name="home_search">Tìm kiếm</string>
+    <string name="home_notifications">Thông báo</string>
+    <string name="home_monthly_report">Báo cáo tháng này</string>
+    <string name="home_view_report">Xem báo cáo</string>
+    <string name="home_view_detail">Xem chi tiết</string>
+    <string name="home_expense_report_cta">Báo cáo chi tiêu</string>
+    <string name="home_trend_report_cta">Báo cáo xu hướng</string>
+    <string name="home_report_type_expense">Báo cáo chi tiêu</string>
+    <string name="home_report_type_trend">Báo cáo xu hướng</string>
+    <string name="home_trend_expense_total">Tổng đã chi</string>
+    <string name="home_trend_income_total">Tổng thu</string>
+    <string name="home_trend_legend_current">Tháng này</string>
+    <string name="home_trend_legend_average">Trung bình 3 tháng trước</string>
+    <string name="home_promo_title">Dành riêng cho bạn</string>
+    <string name="home_promo_timer">26:07:51</string>
+    <string name="home_promo_discount">-80%%</string>
+    <string name="home_promo_action">Nâng cấp ngay</string>
+    <string name="home_top_spending">Chi tiêu nhiều nhất</string>
+    <string name="home_report_subtitle_month">Tổng chi tháng này</string>
+    <string name="home_report_subtitle_week">Tổng chi tuần này</string>
+    <string name="home_report_no_change">0%%</string>
+    <string name="home_previous_month_label">Tháng trước</string>
+    <string name="home_current_month_label">Tháng này</string>
+    <string name="home_previous_week_label">Tuần trước</string>
+    <string name="home_current_week_label">Tuần này</string>
+    <string name="home_feature_soon">Tính năng đang được hoàn thiện.</string>
 
     <!-- Transaction -->
     <string name="add_transaction">Thêm giao dịch</string>
@@ -55,6 +85,21 @@
     <string name="empty_transactions">Chưa có giao dịch nào.\nNhấn + để thêm mới.</string>
     <string name="delete_transaction">Xóa giao dịch</string>
     <string name="delete_transaction_confirm">Bạn có chắc muốn xóa giao dịch này không?</string>
+    <string name="ledger_empty_state">Không có giao dịch trong khoảng thời gian này.</string>
+    <string name="ledger_income_label">Tiền vào</string>
+    <string name="ledger_expense_label">Tiền ra</string>
+    <string name="ledger_view_period_report">Xem báo cáo cho giai đoạn này</string>
+    <string name="ledger_section_transaction_count">%1$d giao dịch</string>
+    <string name="ledger_section_transfer">Chuyển khoản</string>
+    <string name="ledger_section_unknown">Giao dịch khác</string>
+    <string name="transaction_detail_title">Chi tiết giao dịch</string>
+    <string name="transaction_edit_title">Sửa giao dịch</string>
+    <string name="transaction_detail_no_note">Không có ghi chú</string>
+    <string name="transaction_detail_duplicate">Nhân bản giao dịch</string>
+    <string name="transaction_detail_share">Chia sẻ giao dịch</string>
+    <string name="transaction_detail_duplicate_coming_soon">Tính năng nhân bản sẽ được bổ sung sau.</string>
+    <string name="report_transaction_list_title">Danh sách giao dịch</string>
+    <string name="report_transaction_list_empty">Không có giao dịch phù hợp trong bộ lọc này.</string>
 
     <!-- Validation errors -->
     <string name="error_amount_required">Vui lòng nhập số tiền</string>
@@ -184,6 +229,10 @@
     <string name="wallet_type_ewallet">Ví điện tử</string>
     <string name="wallet_saved">Đã lưu ví</string>
     <string name="wallet_total">Tổng cộng</string>
+    <string name="wallet_list_hint">Theo dõi tất cả nguồn tiền của bạn ở một nơi gọn gàng và rõ ràng.</string>
+    <string name="wallet_form_title">Thiết lập ví của bạn</string>
+    <string name="wallet_form_subtitle">Tạo hoặc cập nhật ví để quản lý số dư và dòng tiền chính xác hơn.</string>
+    <string name="wallet_balance_hint">Bạn có thể nhập số dư hiện tại để bắt đầu theo dõi ví ngay từ hôm nay.</string>
     <string name="statistics_wallet_selector_all">Tổng cộng</string>
     <string name="statistics_previous_period">Kỳ trước</string>
     <string name="statistics_next_period">Kỳ sau</string>
@@ -257,6 +306,15 @@
     <string name="section_account">Tài khoản</string>
     <string name="section_data">Quản lý dữ liệu</string>
     <string name="section_display">Hiển thị</string>
+    <string name="settings_subtitle">Tùy chỉnh tài khoản, dữ liệu và giao diện theo cách bạn muốn.</string>
+    <string name="settings_account_summary">Quản lý hồ sơ và bảo mật</string>
+    <string name="settings_data_summary">Ví, danh mục và dữ liệu tài chính</string>
+    <string name="settings_profile_hint">Xem và cập nhật thông tin cá nhân</string>
+    <string name="settings_security_hint">Mã khóa, bảo mật và quyền truy cập</string>
+    <string name="settings_dark_mode_hint">Điều chỉnh giao diện sáng hoặc tối của ứng dụng</string>
+    <string name="settings_date_format_hint">Chọn định dạng ngày hiển thị trên toàn bộ ứng dụng</string>
+    <string name="settings_logout_title">Đăng xuất khỏi thiết bị này</string>
+    <string name="settings_logout_hint">Bạn có thể đăng nhập lại bất cứ lúc nào bằng tài khoản hiện tại.</string>
 
     <!-- Debt (Sổ nợ) -->
     <string name="debts">Sổ nợ</string>
@@ -296,6 +354,11 @@
     <plurals name="budget_days_left">
         <item quantity="one">Còn %d ngày</item>
         <item quantity="other">Còn %d ngày</item>
+    </plurals>
+
+    <plurals name="report_transaction_list_result_count">
+        <item quantity="one">%d kết quả</item>
+        <item quantity="other">%d kết quả</item>
     </plurals>
 
     <plurals name="budget_days_short">

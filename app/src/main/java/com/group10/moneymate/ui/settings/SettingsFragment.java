@@ -5,13 +5,19 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
+import com.group10.moneymate.BuildConfig;
+import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.FragmentSettingsBinding;
 import com.group10.moneymate.ui.auth.LoginActivity;
 
@@ -34,8 +40,39 @@ public class SettingsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
 
+        setupWindowInsets();
+        setupStaticUi();
         setupListeners();
         observeLogout();
+    }
+
+    private void setupWindowInsets() {
+        final int initialTopPadding = binding.scrollSettings.getPaddingTop();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollSettings, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            binding.scrollSettings.setPadding(
+                    binding.scrollSettings.getPaddingLeft(),
+                    initialTopPadding + systemBars.top,
+                    binding.scrollSettings.getPaddingRight(),
+                    binding.scrollSettings.getPaddingBottom()
+            );
+            return insets;
+        });
+    }
+
+    private void setupStaticUi() {
+        String[] dateFormats = getResources().getStringArray(R.array.date_formats);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                R.layout.item_moneymate_dropdown_option,
+                dateFormats
+        );
+        binding.dropdownDateFormat.setAdapter(adapter);
+        if (dateFormats.length > 0) {
+            binding.dropdownDateFormat.setText(dateFormats[0], false);
+        }
+        binding.dropdownDateFormat.setOnClickListener(v -> binding.dropdownDateFormat.showDropDown());
+        binding.tvVersion.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
     }
 
     private void setupListeners() {

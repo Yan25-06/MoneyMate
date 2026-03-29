@@ -161,7 +161,7 @@
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilWallet"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        style="@style/Widget.MoneyMate.TextInputLayout.ExposedDropdown"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
@@ -169,6 +169,7 @@
 
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView
                             android:id="@+id/dropdownWallet"
+                            style="@style/Widget.MoneyMate.AutoCompleteTextView"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="none"

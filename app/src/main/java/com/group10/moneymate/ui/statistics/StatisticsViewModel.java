@@ -217,6 +217,32 @@ public class StatisticsViewModel extends ViewModel {
         filterState.setValue(FilterState.createForPeriodType(periodType, current.getWalletId()));
     }
 
+    public void applyExternalFilter(@Nullable String walletId,
+                                    @Nullable String walletLabelValue,
+                                    long startDate,
+                                    long endDate,
+                                    @Nullable String periodTypeName) {
+        FilterState nextState;
+        PeriodType parsedPeriodType = parsePeriodType(periodTypeName);
+        if (parsedPeriodType == PeriodType.ALL) {
+            nextState = FilterState.createAll(walletId);
+        } else if (startDate > 0L && endDate > 0L && endDate >= startDate) {
+            if (parsedPeriodType != null && parsedPeriodType != PeriodType.CUSTOM) {
+                nextState = FilterState.fromExplicitRange(walletId, startDate, endDate, parsedPeriodType);
+            } else {
+                nextState = FilterState.createRange(walletId, startDate, endDate);
+            }
+        } else if (parsedPeriodType != null) {
+            nextState = FilterState.createForPeriodType(parsedPeriodType, walletId);
+        } else {
+            nextState = FilterState.createCurrentMonth(walletId);
+        }
+        filterState.setValue(nextState);
+        walletLabel.setValue(walletLabelValue == null || walletLabelValue.trim().isEmpty()
+                ? "Tổng cộng"
+                : walletLabelValue);
+    }
+
     @NonNull
     private LiveData<Double> normalizeDouble(@NonNull LiveData<Double> source) {
         MediatorLiveData<Double> result = new MediatorLiveData<>();
@@ -236,6 +262,18 @@ public class StatisticsViewModel extends ViewModel {
         MediatorLiveData<List<CategorySliceUiModel>> result = new MediatorLiveData<>();
         result.addSource(source, value -> result.setValue(mapCategorySlices(value)));
         return result;
+    }
+
+    @Nullable
+    private PeriodType parsePeriodType(@Nullable String periodTypeName) {
+        if (periodTypeName == null || periodTypeName.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return PeriodType.valueOf(periodTypeName);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     @NonNull
@@ -423,6 +461,39 @@ public class StatisticsViewModel extends ViewModel {
                     end.getMonthValue()
             );
             return new FilterState(walletId, startDate, endDate, label, PeriodType.CUSTOM);
+        }
+
+        @NonNull
+        public static FilterState fromExplicitRange(@Nullable String walletId,
+                                                    long startDate,
+                                                    long endDate,
+                                                    @NonNull PeriodType periodType) {
+            LocalDate start = toLocalDate(startDate);
+            LocalDate end = toLocalDate(endDate);
+            String label;
+            switch (periodType) {
+                case DAY:
+                    label = formatDayLabel(start);
+                    break;
+                case WEEK:
+                    label = formatWeekLabel(start, end);
+                    break;
+                case MONTH:
+                    label = formatMonthLabel(start);
+                    break;
+                case QUARTER:
+                    label = formatQuarterLabel(start);
+                    break;
+                case YEAR:
+                    label = formatYearLabel(start);
+                    break;
+                case ALL:
+                    return createAll(walletId);
+                case CUSTOM:
+                default:
+                    return createRange(walletId, startDate, endDate);
+            }
+            return new FilterState(walletId, startDate, endDate, label, periodType);
         }
 
         @NonNull

@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
@@ -28,6 +29,8 @@ import com.group10.moneymate.databinding.FragmentAddEditBudgetBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.utils.Constants;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -249,7 +252,7 @@ public class AddEditBudgetFragment extends Fragment {
         }
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
-                android.R.layout.simple_dropdown_item_1line,
+                R.layout.item_moneymate_dropdown_option,
                 labels
         );
         binding.dropdownWallet.setAdapter(adapter);
@@ -348,7 +351,9 @@ public class AddEditBudgetFragment extends Fragment {
             }
         }
 
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        new MaterialAlertDialogBuilder(
+                new ContextThemeWrapper(requireContext(), R.style.ThemeOverlay_MoneyMate_MaterialAlertDialog)
+        )
                 .setTitle(R.string.budget_category_picker_title)
                 .setSingleChoiceItems(categoryNames, checkedItem, (dialog, which) -> {
                     if (which == 0) {
@@ -371,6 +376,7 @@ public class AddEditBudgetFragment extends Fragment {
         MaterialDatePicker.Builder<androidx.core.util.Pair<Long, Long>> builder =
                 MaterialDatePicker.Builder.dateRangePicker();
         builder.setTitleText(R.string.date);
+        builder.setTheme(R.style.ThemeOverlay_MoneyMate_MaterialDatePicker);
         builder.setSelection(new androidx.core.util.Pair<>(selectedStartDate, selectedEndDate));
         MaterialDatePicker<androidx.core.util.Pair<Long, Long>> picker = builder.build();
         picker.addOnPositiveButtonClickListener(selection -> {

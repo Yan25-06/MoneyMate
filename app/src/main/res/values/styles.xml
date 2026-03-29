@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="ShapeAppearanceOverlay.MoneyMate.Field" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">18dp</item>
+    </style>
+
+    <style name="Widget.MoneyMate.TextInputLayout.Outlined" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">@color/moneymate_field_surface</item>
+        <item name="boxStrokeColor">@color/selector_moneymate_field_stroke</item>
+        <item name="hintTextColor">@color/selector_moneymate_field_hint</item>
+        <item name="placeholderTextColor">@color/moneymate_field_hint</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.MoneyMate.Field</item>
+        <item name="boxCollapsedPaddingTop">10dp</item>
+        <item name="android:textColorHint">@color/moneymate_field_hint</item>
+    </style>
+
+    <style name="Widget.MoneyMate.TextInputLayout.ExposedDropdown" parent="Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxBackgroundColor">@color/moneymate_field_surface</item>
+        <item name="boxStrokeColor">@color/selector_moneymate_field_stroke</item>
+        <item name="hintTextColor">@color/selector_moneymate_field_hint</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.MoneyMate.Field</item>
+        <item name="endIconTint">@color/moneymate_field_hint</item>
+        <item name="boxCollapsedPaddingTop">10dp</item>
+        <item name="simpleItemLayout">@layout/item_moneymate_dropdown_option</item>
+    </style>
+
+    <style name="Widget.MoneyMate.AutoCompleteTextView" parent="Widget.Material3.AutoCompleteTextView.OutlinedBox">
+        <item name="android:textColor">@color/moneymate_field_text</item>
+        <item name="android:textColorHint">@color/moneymate_field_hint</item>
+        <item name="android:popupBackground">@drawable/bg_moneymate_dropdown_popup</item>
+        <item name="android:dropDownVerticalOffset">8dp</item>
+        <item name="android:dropDownHorizontalOffset">0dp</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+
+    <style name="ThemeOverlay.MoneyMate.MaterialDatePicker" parent="ThemeOverlay.Material3.MaterialCalendar">
+        <item name="colorPrimary">@color/moneymate_picker_accent</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/moneymate_field_text</item>
+        <item name="colorOnSurfaceVariant">@color/moneymate_field_hint</item>
+        <item name="materialCalendarStyle">@style/Widget.MoneyMate.MaterialCalendar</item>
+        <item name="materialCalendarHeaderLayout">@style/Widget.MoneyMate.MaterialCalendar.HeaderLayout</item>
+        <item name="materialCalendarHeaderDivider">@color/statistics_card_stroke</item>
+        <item name="materialCalendarHeaderSelection">@style/TextAppearance.Material3.TitleLarge</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.MoneyMate.MaterialCalendar.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.MoneyMate.MaterialCalendar.Button.Text</item>
+    </style>
+
+    <style name="Widget.MoneyMate.MaterialCalendar" parent="Widget.Material3.MaterialCalendar">
+        <item name="android:background">@color/white</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.MoneyMate.Field</item>
+    </style>
+
+    <style name="Widget.MoneyMate.MaterialCalendar.HeaderLayout" parent="Widget.Material3.MaterialCalendar.HeaderLayout">
+        <item name="android:background">@color/moneymate_picker_header_background</item>
+    </style>
+
+    <style name="Widget.MoneyMate.MaterialCalendar.Button" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/moneymate_picker_accent</item>
+    </style>
+
+    <style name="Widget.MoneyMate.MaterialCalendar.Button.Text" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/statistics_text_secondary</item>
+    </style>
+
+    <style name="ThemeOverlay.MoneyMate.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/moneymate_field_text</item>
+        <item name="colorPrimary">@color/moneymate_picker_accent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearanceOverlay.MoneyMate.Field</item>
+    </style>
+
+</resources>

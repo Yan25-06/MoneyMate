@@ -3,6 +3,7 @@
     <style name="Base.Theme.MoneyMate" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <item name="android:colorBackground">@color/white</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.MoneyMate.MaterialAlertDialog</item>
     </style>
 
     <style name="Theme.MoneyMate" parent="Base.Theme.MoneyMate" />

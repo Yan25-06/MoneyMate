@@ -1,6 +1,5 @@
 package com.group10.moneymate.ui.statistics;
 
-import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -51,6 +50,7 @@ import com.group10.moneymate.databinding.FragmentIncomeExpenseDetailBinding;
 import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
 import com.group10.moneymate.models.TransactionType;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -519,13 +519,13 @@ public class IncomeExpenseDetailFragment extends Fragment {
     }
 
     private void openPeriodTransactions(@NonNull IncomeExpenseDetailViewModel.PeriodSummaryUiModel item) {
-        IncomeExpenseDetailFragmentDirections.ActionStatisticsDetailFragmentToTransactionListFragment action =
-                IncomeExpenseDetailFragmentDirections.actionStatisticsDetailFragmentToTransactionListFragment();
-        action.setStatisticsWalletId(viewModel.getCurrentFilterState().getWalletId());
-        action.setStatisticsStartDate(item.getStartDate());
-        action.setStatisticsEndDate(item.getEndDate());
-        action.setStatisticsTransactionType(viewModel.isNetMode() ? null : viewModel.getSelectedTransactionType().name());
-        action.setStatisticsCategoryId(null);
+        IncomeExpenseDetailFragmentDirections.ActionStatisticsDetailFragmentToReportTransactionListFragment action =
+                IncomeExpenseDetailFragmentDirections.actionStatisticsDetailFragmentToReportTransactionListFragment();
+        action.setWalletId(viewModel.getCurrentFilterState().getWalletId());
+        action.setStartDate(item.getStartDate());
+        action.setEndDate(item.getEndDate());
+        action.setTransactionType(viewModel.isNetMode() ? null : viewModel.getSelectedTransactionType().name());
+        action.setCategoryId(null);
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }
 
@@ -718,14 +718,12 @@ public class IncomeExpenseDetailFragment extends Fragment {
 
     private void showSingleDatePicker(@NonNull LocalDate initialDate,
                                       @NonNull DateSelectedCallback callback) {
-        new DatePickerDialog(
-                requireContext(),
-                (view, year, month, dayOfMonth) ->
-                        callback.onDateSelected(LocalDate.of(year, month + 1, dayOfMonth)),
-                initialDate.getYear(),
-                initialDate.getMonthValue() - 1,
-                initialDate.getDayOfMonth()
-        ).show();
+        MoneyMateDatePickerHelper.showSingleDatePicker(
+                this,
+                initialDate,
+                "statistics_detail_single_date",
+                callback::onDateSelected
+        );
     }
 
     private void renderDateButton(@NonNull TextView textView, @NonNull LocalDate date) {

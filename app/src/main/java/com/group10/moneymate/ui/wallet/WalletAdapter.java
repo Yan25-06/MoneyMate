@@ -1,12 +1,15 @@
 package com.group10.moneymate.ui.wallet;
 
-import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -59,8 +62,18 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
 
         void bind(WalletEntity wallet) {
             binding.tvName.setText(wallet.getName());
+            binding.tvType.setText(getTypeText(binding.getRoot().getContext(), wallet.getType()));
             binding.tvBalance.setText(CurrencyFormatter.format(wallet.getBalance(), "VND"));
             binding.ivIcon.setImageResource(getTypeIcon(wallet.getType()));
+            int accentColor = parseColorOrDefault(
+                    wallet.getColorHex(),
+                    ContextCompat.getColor(binding.getRoot().getContext(), R.color.statistics_wallet_icon)
+            );
+            binding.cvIcon.setCardBackgroundColor(applyAlpha(accentColor, 0.14f));
+            binding.ivIcon.setImageTintList(ColorStateList.valueOf(accentColor));
+            binding.tvBalance.setTextColor(wallet.getBalance() < 0
+                    ? ContextCompat.getColor(binding.getRoot().getContext(), R.color.expense_red)
+                    : ContextCompat.getColor(binding.getRoot().getContext(), R.color.statistics_text_primary));
 
             binding.btnMenu.setOnClickListener(v -> showPopupMenu(v, wallet));
         }
@@ -88,7 +101,7 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
         }
     }
 
-    private String getTypeText(Context context, String type) {
+    private String getTypeText(android.content.Context context, String type) {
         if ("BANK".equals(type)) {
             return context.getString(R.string.wallet_type_bank);
         }
@@ -106,6 +119,22 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
             return R.drawable.outline_credit_card_24;
         }
         return R.drawable.outline_payments_24;
+    }
+
+    private int applyAlpha(int color, float alphaFraction) {
+        int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+    }
+
+    private int parseColorOrDefault(@Nullable String colorHex, int defaultColor) {
+        if (colorHex == null || colorHex.trim().isEmpty()) {
+            return defaultColor;
+        }
+        try {
+            return Color.parseColor(colorHex);
+        } catch (IllegalArgumentException ignored) {
+            return defaultColor;
+        }
     }
 
     private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK =

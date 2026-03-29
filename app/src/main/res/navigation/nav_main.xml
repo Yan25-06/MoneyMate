@@ -72,7 +72,65 @@
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
-        <action android:id="@+id/action_transactionList_to_addEdit" app:destination="@id/addEditTransactionFragment" />
+        <action
+            android:id="@+id/action_transactionListFragment_to_statisticsFragment"
+            app:destination="@id/statisticsFragment" />
+        <action
+            android:id="@+id/action_transactionListFragment_to_transactionDetailFragment"
+            app:destination="@id/transactionDetailFragment" />
+        <action
+            android:id="@+id/action_transactionListFragment_to_budgetWalletPickerFragment"
+            app:destination="@id/budgetWalletPickerFragment"
+            app:enterAnim="@anim/slide_in_up"
+            app:popExitAnim="@anim/slide_out_down" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/transactionDetailFragment"
+        android:name="com.group10.moneymate.ui.transaction.TransactionDetailFragment"
+        android:label="@string/transactions"
+        tools:layout="@layout/fragment_transaction_detail">
+        <argument
+            android:name="transactionId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_transactionDetailFragment_to_addEditTransactionFragment"
+            app:destination="@id/addEditTransactionFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/reportTransactionListFragment"
+        android:name="com.group10.moneymate.ui.transaction.ReportTransactionListFragment"
+        android:label="@string/report_transaction_list_title"
+        tools:layout="@layout/fragment_report_transaction_list">
+        <argument
+            android:name="walletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="categoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="startDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="endDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="transactionType"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_reportTransactionListFragment_to_transactionDetailFragment"
+            app:destination="@id/transactionDetailFragment" />
     </fragment>
 
     <fragment
@@ -94,6 +152,29 @@
         android:name="com.group10.moneymate.ui.statistics.StatisticsOverviewFragment"
         android:label="@string/statistics"
         tools:layout="@layout/fragment_statistics">
+        <argument
+            android:name="filterWalletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="filterWalletLabel"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="filterStartDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="filterEndDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="filterPeriodType"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
         <action
             android:id="@+id/action_statisticsFragment_to_statisticsDetailFragment"
             app:destination="@id/statisticsDetailFragment" />
@@ -138,8 +219,8 @@
             android:id="@+id/action_statisticsDetailFragment_to_statisticsCategoryDetailFragment"
             app:destination="@id/statisticsCategoryDetailFragment" />
         <action
-            android:id="@+id/action_statisticsDetailFragment_to_transactionListFragment"
-            app:destination="@id/transactionListFragment" />
+            android:id="@+id/action_statisticsDetailFragment_to_reportTransactionListFragment"
+            app:destination="@id/reportTransactionListFragment" />
     </fragment>
 
     <fragment
@@ -170,37 +251,8 @@
             android:defaultValue="@null"
             app:nullable="true" />
         <action
-            android:id="@+id/action_statisticsCategoryDetailFragment_to_statisticsCategoryDayDetailFragment"
-            app:destination="@id/statisticsCategoryDayDetailFragment" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/statisticsCategoryDayDetailFragment"
-        android:name="com.group10.moneymate.ui.statistics.StatisticsCategoryDayDetailFragment"
-        android:label="@string/statistics"
-        tools:layout="@layout/fragment_statistics_category_day_detail">
-        <argument
-            android:name="walletId"
-            app:argType="string"
-            android:defaultValue="@null"
-            app:nullable="true" />
-        <argument
-            android:name="startDate"
-            app:argType="long"
-            android:defaultValue="0L" />
-        <argument
-            android:name="endDate"
-            app:argType="long"
-            android:defaultValue="0L" />
-        <argument
-            android:name="transactionType"
-            app:argType="string"
-            android:defaultValue="EXPENSE" />
-        <argument
-            android:name="categoryId"
-            app:argType="string"
-            android:defaultValue="@null"
-            app:nullable="true" />
+            android:id="@+id/action_statisticsCategoryDetailFragment_to_reportTransactionListFragment"
+            app:destination="@id/reportTransactionListFragment" />
     </fragment>
 
     <!-- Settings -->
