@@ -61,7 +61,7 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
             binding.tvName.setText(wallet.getName());
             binding.tvBalance.setText(CurrencyFormatter.format(wallet.getBalance(), "VND"));
             binding.ivIcon.setImageResource(getTypeIcon(wallet.getType()));
-
+            binding.tvType.setText(getTypeText(binding.getRoot().getContext(), wallet.getType()));
             binding.btnMenu.setOnClickListener(v -> showPopupMenu(v, wallet));
         }
 

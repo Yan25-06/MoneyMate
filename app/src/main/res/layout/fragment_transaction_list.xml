@@ -4,16 +4,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     android:fitsSystemWindows="true">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_transactions"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="16dp"
-        android:paddingBottom="80dp"
-        android:paddingHorizontal="8dp"
-        android:clipToPadding="false" />
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"
+        android:paddingTop="8dp" />
 
     <TextView
         android:id="@+id/tv_empty"
@@ -21,17 +21,20 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:text="@string/empty_transactions"
-        android:textSize="16sp"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textColor="@color/budget_text_secondary"
+        android:textSize="@dimen/text_medium"
         android:visibility="gone" />
 
+    <!-- FAB: backgroundTint từ ?attr/colorPrimary = green sau theme override -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
+        android:contentDescription="@string/add_transaction"
         android:src="@drawable/outline_add_24"
-        android:contentDescription="@string/add_transaction" />
+        app:backgroundTint="@color/color_accent"
+        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -3,8 +3,24 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="md_theme_primary">#6750A4</color>
+
     <color name="green_500">#4CAF50</color>
     <color name="red_500">#F44336</color>
+
+    <!-- Global tokens (đồng bộ với Budget palette) -->
+    <color name="color_accent">#4CAF50</color>
+    <color name="color_accent_light">#C2FFC2</color>
+    <color name="color_accent_dark">#134917</color>
+    <color name="color_accent_pressed">#388E3C</color>
+    <color name="color_text_primary">#111827</color>
+    <color name="color_text_secondary">#6B7280</color>
+    <color name="color_surface_variant">#F5F6FA</color>
+    <color name="color_card_stroke">#EEF0F4</color>
+    <color name="color_nav_indicator">#F3F4F6</color>
+    <color name="color_nav_icon_active">#111827</color>
+    <color name="color_nav_icon_inactive">#6B7280</color>
+
+    <!-- Budget tokens (giữ nguyên) -->
     <color name="budget_safe_green">#4CAF50</color>
     <color name="budget_warning_orange">#FB8C00</color>
     <color name="budget_danger_red">#F44336</color>

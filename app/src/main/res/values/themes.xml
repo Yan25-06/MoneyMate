@@ -1,9 +1,23 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+
     <style name="Base.Theme.MoneyMate" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
         <item name="android:colorBackground">@color/white</item>
+
+        <!-- Override M3 seed → toàn bộ ?attr/colorPrimary = green -->
+        <item name="colorPrimary">@color/color_accent</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/color_accent_light</item>
+        <item name="colorOnPrimaryContainer">@color/color_accent_dark</item>
+
+        <!-- Surface = trắng thuần như Budget screen -->
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/color_text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/color_text_secondary</item>
+        <item name="colorSurfaceContainerHigh">@color/color_surface_variant</item>
+        <item name="colorSurfaceContainerLow">@color/white</item>
+        <item name="colorOutlineVariant">@color/color_card_stroke</item>
     </style>
 
     <style name="Theme.MoneyMate" parent="Base.Theme.MoneyMate" />
+
 </resources>

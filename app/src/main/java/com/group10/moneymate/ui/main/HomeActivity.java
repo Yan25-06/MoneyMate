@@ -26,6 +26,7 @@ public class HomeActivity extends AppCompatActivity {
             R.id.homeFragment,
             R.id.transactionListFragment,
             R.id.budgetListFragment,
+            R.id.statisticsFragment,
             R.id.settingsFragment
     ));
 
