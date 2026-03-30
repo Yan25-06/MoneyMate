@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
@@ -19,7 +20,7 @@ public class WalletViewModel extends AndroidViewModel {
 
     private final AppContainer container;
     private final String userId;
-    private final LiveData<List<WalletEntity>> wallets;
+    private final LiveData<List<WalletWithBalance>> wallets;
     private final LiveData<Double> totalBalance;
 
     public WalletViewModel(@NonNull Application application) {
@@ -29,11 +30,11 @@ public class WalletViewModel extends AndroidViewModel {
 
         userId = container.authRepository.getCurrentUserId();
 
-        wallets = container.walletRepository.getAllByUser(userId);
+        wallets = container.walletRepository.getAllByUserWithBalance(userId);
         totalBalance = container.walletRepository.getTotalBalance(userId);
     }
 
-    public LiveData<List<WalletEntity>> getWallets() {
+    public LiveData<List<WalletWithBalance>> getWallets() {
         return wallets;
     }
 
@@ -43,6 +44,10 @@ public class WalletViewModel extends AndroidViewModel {
 
     public LiveData<WalletEntity> getWalletById(String walletId) {
         return container.walletRepository.getById(walletId);
+    }
+
+    public LiveData<WalletWithBalance> getWalletWithBalanceById(String walletId) {
+        return container.walletRepository.getByIdWithBalance(walletId);
     }
 
     public void addWallet(String name, WalletType type, double balance, @NonNull String iconName) {
@@ -82,5 +87,9 @@ public class WalletViewModel extends AndroidViewModel {
 
     public void archiveWallet(WalletEntity wallet) {
         container.walletRepository.archive(wallet);
+    }
+
+    public void restoreWallet(WalletEntity wallet) {
+        container.walletRepository.restore(wallet);
     }
 }

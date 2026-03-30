@@ -18,16 +18,14 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.group10.moneymate.R;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
-import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.DialogStatisticsCustomRangeBinding;
 import com.group10.moneymate.databinding.FragmentTransactionListBinding;
 import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
@@ -39,6 +37,7 @@ import com.group10.moneymate.utils.WalletSelectorButtonHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -59,8 +58,9 @@ public class TransactionListFragment extends Fragment {
     private TransactionListFragmentArgs navArgs;
     private StatisticsViewModel.FilterState currentFilterState;
     private final List<TransactionEntity> allTransactions = new ArrayList<>();
-    private final Map<String, WalletEntity> walletMap = new HashMap<>();
+    private final Map<String, WalletWithBalance> walletMap = new HashMap<>();
     private final Map<String, CategoryEntity> categoryMap = new HashMap<>();
+    private TransactionTimeGroupAdapter transactionGroupAdapter;
     private List<AggregateBudgetFilter> aggregateBudgetFilters = new ArrayList<>();
     @Nullable private String forcedCategoryId;
     @Nullable private String forcedTransactionType;
@@ -85,7 +85,9 @@ public class TransactionListFragment extends Fragment {
         forcedTransactionType = resolveForcedTransactionType(navArgs);
 
         binding.rvTransactions.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.rvTransactions.setAdapter(new ConcatAdapter());
+        transactionGroupAdapter = new TransactionTimeGroupAdapter();
+        transactionGroupAdapter.setOnTransactionClickListener(this::openTransactionDetail);
+        binding.rvTransactions.setAdapter(transactionGroupAdapter);
 
         applyWindowInsets();
         configureHeader();
@@ -114,17 +116,17 @@ public class TransactionListFragment extends Fragment {
     }
 
     private void observeReferenceData() {
-        viewModel.getWallets().observe(getViewLifecycleOwner(), wallets -> {
+        viewModel.getWalletsWithBalance().observe(getViewLifecycleOwner(), wallets -> {
             walletMap.clear();
             if (wallets != null) {
-                for (WalletEntity wallet : wallets) {
-                    walletMap.put(wallet.getId(), wallet);
+                for (WalletWithBalance wallet : wallets) {
+                    walletMap.put(wallet.getWallet().getId(), wallet);
                 }
             }
             renderScreen();
         });
-        viewModel.getExpenseCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
-        viewModel.getIncomeCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getExpenseCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getIncomeCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
     }
 
     private void observeTransactions() {
@@ -155,11 +157,12 @@ public class TransactionListFragment extends Fragment {
     }
 
     private void renderWalletSelector() {
-        WalletEntity selectedWallet = null;
+        com.group10.moneymate.data.local.entity.WalletEntity selectedWallet = null;
         String displayLabel = selectedWalletLabel;
         String walletId = currentFilterState.getWalletId();
         if (walletId != null) {
-            selectedWallet = walletMap.get(walletId);
+            WalletWithBalance selectedWalletItem = walletMap.get(walletId);
+            selectedWallet = selectedWalletItem != null ? selectedWalletItem.getWallet() : null;
             if (displayLabel == null || displayLabel.trim().isEmpty()) {
                 displayLabel = selectedWallet != null
                         ? selectedWallet.getName()
@@ -179,16 +182,22 @@ public class TransactionListFragment extends Fragment {
     private void renderBalance() {
         double balance = 0d;
         if (currentFilterState.getWalletId() == null) {
-            for (WalletEntity wallet : walletMap.values()) {
-                balance += wallet.getBalance();
+            for (WalletWithBalance wallet : walletMap.values()) {
+                if (!wallet.getWallet().isExcluded()) {
+                    balance += wallet.getCurrentBalance();
+                }
             }
         } else {
-            WalletEntity wallet = walletMap.get(currentFilterState.getWalletId());
+            WalletWithBalance wallet = walletMap.get(currentFilterState.getWalletId());
             if (wallet != null) {
-                balance = wallet.getBalance();
+                balance = wallet.getCurrentBalance();
             }
         }
         binding.statisticsHeader.tvHeaderTotalAmount.setText(CurrencyFormatter.format(balance, "VND"));
+        binding.statisticsHeader.tvHeaderTotalAmount.setTextColor(ContextCompat.getColor(
+                requireContext(),
+                balance < 0d ? R.color.expense_red : R.color.statistics_text_primary
+        ));
     }
 
     @NonNull
@@ -257,54 +266,91 @@ public class TransactionListFragment extends Fragment {
         if (filtered.isEmpty()) {
             binding.rvTransactions.setVisibility(View.GONE);
             binding.tvEmpty.setVisibility(View.VISIBLE);
-            binding.rvTransactions.setAdapter(new ConcatAdapter());
+            transactionGroupAdapter.submitList(new ArrayList<>());
             return;
         }
         binding.rvTransactions.setVisibility(View.VISIBLE);
         binding.tvEmpty.setVisibility(View.GONE);
 
-        Map<String, LedgerSection> grouped = new LinkedHashMap<>();
+        Map<String, TransactionTimeBucket> grouped = new LinkedHashMap<>();
         for (TransactionEntity transaction : filtered) {
-            SectionMeta meta = resolveSectionMeta(transaction);
-            LedgerSection section = grouped.get(meta.key);
-            if (section == null) {
-                section = new LedgerSection(meta);
-                grouped.put(meta.key, section);
-            }
-            section.add(transaction);
+            TransactionTimeBucket bucket = resolveBucket(grouped, transaction);
+            bucket.add(transaction);
         }
 
-        List<LedgerSection> sections = new ArrayList<>(grouped.values());
-        sections.sort(Comparator.comparingLong(LedgerSection::getLatestTimestamp).reversed());
+        List<TransactionTimeBucket> buckets = new ArrayList<>(grouped.values());
+        buckets.sort((left, right) -> Long.compare(right.getSortMillis(), left.getSortMillis()));
 
-        List<RecyclerView.Adapter<?>> adapters = new ArrayList<>();
-        for (LedgerSection section : sections) {
-            section.transactions.sort((left, right) -> {
-                String leftWallet = resolveWalletName(left.getWalletId());
-                String rightWallet = resolveWalletName(right.getWalletId());
-                int walletCompare = leftWallet.compareToIgnoreCase(rightWallet);
-                if (walletCompare != 0) {
-                    return walletCompare;
-                }
-                return Long.compare(right.getTimestamp(), left.getTimestamp());
-            });
-            adapters.add(new LedgerSectionHeaderAdapter(section.toHeaderItem()));
-            TransactionAdapter adapter = new TransactionAdapter();
-            adapter.setWalletPresentationMap(buildWalletPresentationMap());
-            adapter.setOnTransactionClickListener(this::openTransactionDetail);
-            adapter.submitList(new ArrayList<>(section.transactions));
-            adapters.add(adapter);
+        List<TransactionTimeGroupAdapter.GroupItem> items = new ArrayList<>();
+        for (TransactionTimeBucket bucket : buckets) {
+            bucket.transactions.sort((left, right) -> Long.compare(right.getTimestamp(), left.getTimestamp()));
+            items.add(bucket.toGroupItem());
         }
-        binding.rvTransactions.setAdapter(new ConcatAdapter(adapters));
+        transactionGroupAdapter.submitList(items);
     }
 
     @NonNull
-    private Map<String, TransactionAdapter.WalletPresentation> buildWalletPresentationMap() {
-        Map<String, TransactionAdapter.WalletPresentation> map = new HashMap<>();
-        for (WalletEntity wallet : walletMap.values()) {
-            map.put(wallet.getId(), new TransactionAdapter.WalletPresentation(wallet.getType(), 0));
+    private TransactionTimeBucket resolveBucket(@NonNull Map<String, TransactionTimeBucket> grouped,
+                                                @NonNull TransactionEntity transaction) {
+        LocalDate date = Instant.ofEpochMilli(transaction.getTimestamp())
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        boolean groupByMonth = shouldGroupByMonth();
+        String key = groupByMonth
+                ? String.format(Locale.US, "%04d-%02d", date.getYear(), date.getMonthValue())
+                : date.toString();
+        TransactionTimeBucket bucket = grouped.get(key);
+        if (bucket != null) {
+            return bucket;
         }
-        return map;
+        bucket = new TransactionTimeBucket(key, date, groupByMonth);
+        grouped.put(key, bucket);
+        return bucket;
+    }
+
+    private boolean shouldGroupByMonth() {
+        StatisticsViewModel.PeriodType periodType = currentFilterState.getPeriodType();
+        return periodType == StatisticsViewModel.PeriodType.QUARTER
+                || periodType == StatisticsViewModel.PeriodType.YEAR
+                || periodType == StatisticsViewModel.PeriodType.ALL;
+    }
+
+    @NonNull
+    private TransactionTimeGroupAdapter.RowItem buildRowItem(@NonNull TransactionEntity transaction) {
+        CategoryEntity category = transaction.getCategoryId() != null
+                ? categoryMap.get(transaction.getCategoryId())
+                : null;
+        String type = transaction.getType();
+        int amountColor;
+        String amountLabel;
+        if ("INCOME".equals(type)) {
+            amountColor = ContextCompat.getColor(requireContext(), R.color.transfer_blue);
+            amountLabel = "+" + CurrencyFormatter.format(transaction.getAmount(), "VND");
+        } else if ("EXPENSE".equals(type)) {
+            amountColor = ContextCompat.getColor(requireContext(), R.color.expense_red);
+            amountLabel = "-" + CurrencyFormatter.format(transaction.getAmount(), "VND");
+        } else {
+            amountColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
+            amountLabel = CurrencyFormatter.format(transaction.getAmount(), "VND");
+        }
+
+        String title = category != null ? category.getName() : getString(R.string.ledger_section_unknown);
+        String subtitle = transaction.getNote() != null && !transaction.getNote().trim().isEmpty()
+                ? transaction.getNote()
+                : getString(R.string.transaction_detail_no_note);
+        int iconRes = IconProvider.resolveCategoryIconByType(
+                requireContext(),
+                category != null ? category.getIconName() : null,
+                type
+        );
+        return new TransactionTimeGroupAdapter.RowItem(
+                transaction,
+                iconRes,
+                title,
+                subtitle,
+                amountLabel,
+                amountColor
+        );
     }
 
     private void openTransactionDetail(@NonNull TransactionEntity transaction) {
@@ -567,44 +613,6 @@ public class TransactionListFragment extends Fragment {
     }
 
     @NonNull
-    private SectionMeta resolveSectionMeta(@NonNull TransactionEntity transaction) {
-        if ("TRANSFER".equals(transaction.getType())) {
-            int accent = ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary);
-            return new SectionMeta("transfer", getString(R.string.ledger_section_transfer), R.drawable.outline_payments_24, accent, accent);
-        }
-        CategoryEntity category = transaction.getCategoryId() != null ? categoryMap.get(transaction.getCategoryId()) : null;
-        int accent = ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
-        int iconRes = IconProvider.resolveCategoryIconByType(
-                requireContext(),
-                category != null ? category.getIconName() : null,
-                transaction.getType()
-        );
-        String title = category != null ? category.getName() : getString(R.string.ledger_section_unknown);
-        return new SectionMeta(transaction.getCategoryId() != null ? transaction.getCategoryId() : transaction.getType(), title, iconRes, accent, accent);
-    }
-
-    @NonNull
-    private Map<String, String> buildWalletNameMap() {
-        Map<String, String> walletNames = new HashMap<>();
-        for (Map.Entry<String, WalletEntity> entry : walletMap.entrySet()) {
-            WalletEntity wallet = entry.getValue();
-            if (wallet != null) {
-                walletNames.put(entry.getKey(), wallet.getName());
-            }
-        }
-        return walletNames;
-    }
-
-    @NonNull
-    private String resolveWalletName(@Nullable String walletId) {
-        if (walletId == null) {
-            return "";
-        }
-        WalletEntity wallet = walletMap.get(walletId);
-        return wallet != null ? wallet.getName() : "";
-    }
-
-    @NonNull
     private String formatSignedAmount(double amount) {
         if (amount < 0d) {
             return "-" + CurrencyFormatter.format(Math.abs(amount), "VND");
@@ -613,6 +621,22 @@ public class TransactionListFragment extends Fragment {
             return "+" + CurrencyFormatter.format(amount, "VND");
         }
         return CurrencyFormatter.format(0d, "VND");
+    }
+
+    @NonNull
+    private String formatNetAmount(double amount) {
+        if (amount < 0d) {
+            return "-" + CurrencyFormatter.format(Math.abs(amount), "VND");
+        }
+        return CurrencyFormatter.format(amount, "VND");
+    }
+
+    @NonNull
+    private String capitalize(@NonNull String value) {
+        if (value.isEmpty()) {
+            return value;
+        }
+        return value.substring(0, 1).toUpperCase(new Locale("vi", "VN")) + value.substring(1);
     }
 
     @NonNull
@@ -664,52 +688,76 @@ public class TransactionListFragment extends Fragment {
         }
     }
 
-    private static class SectionMeta {
+    private class TransactionTimeBucket {
         @NonNull private final String key;
-        @NonNull private final String title;
-        private final int iconResId;
-        private final int accentColor;
-        private final int containerColor;
-
-        private SectionMeta(@NonNull String key, @NonNull String title, int iconResId, int accentColor, int containerColor) {
-            this.key = key;
-            this.title = title;
-            this.iconResId = iconResId;
-            this.accentColor = accentColor;
-            this.containerColor = containerColor;
-        }
-    }
-
-    private class LedgerSection {
-        @NonNull private final SectionMeta meta;
+        @NonNull private final LocalDate anchorDate;
+        private final boolean monthBucket;
         @NonNull private final List<TransactionEntity> transactions = new ArrayList<>();
-        private long latestTimestamp;
-        private double total;
+        private double totalIncome;
+        private double totalExpense;
 
-        private LedgerSection(@NonNull SectionMeta meta) { this.meta = meta; }
+        private TransactionTimeBucket(@NonNull String key,
+                                      @NonNull LocalDate anchorDate,
+                                      boolean monthBucket) {
+            this.key = key;
+            this.anchorDate = monthBucket ? anchorDate.withDayOfMonth(1) : anchorDate;
+            this.monthBucket = monthBucket;
+        }
 
         private void add(@NonNull TransactionEntity transaction) {
             transactions.add(transaction);
-            latestTimestamp = Math.max(latestTimestamp, transaction.getTimestamp());
-            total += "EXPENSE".equals(transaction.getType()) ? -transaction.getAmount() : transaction.getAmount();
+            if ("INCOME".equals(transaction.getType())) {
+                totalIncome += transaction.getAmount();
+            } else if ("EXPENSE".equals(transaction.getType())) {
+                totalExpense += transaction.getAmount();
+            }
         }
 
-        private long getLatestTimestamp() { return latestTimestamp; }
+        private long getSortMillis() {
+            return anchorDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        }
 
         @NonNull
-        private LedgerSectionHeaderAdapter.SectionHeaderItem toHeaderItem() {
-            int amountColor = total < 0d
-                    ? ContextCompat.getColor(requireContext(), R.color.expense_red)
-                    : (total > 0d ? ContextCompat.getColor(requireContext(), R.color.transfer_blue)
-                    : ContextCompat.getColor(requireContext(), R.color.statistics_text_primary));
-            return new LedgerSectionHeaderAdapter.SectionHeaderItem(
-                    meta.title,
-                    getString(R.string.ledger_section_transaction_count, transactions.size()),
-                    formatSignedAmount(total),
-                    meta.iconResId,
-                    meta.accentColor,
-                    meta.containerColor,
-                    amountColor
+        private TransactionTimeGroupAdapter.GroupItem toGroupItem() {
+            List<TransactionTimeGroupAdapter.RowItem> rowItems = new ArrayList<>();
+            for (TransactionEntity transaction : transactions) {
+                rowItems.add(buildRowItem(transaction));
+            }
+
+            if (monthBucket) {
+                YearMonth yearMonth = YearMonth.from(anchorDate);
+                String primary = String.format(Locale.getDefault(), "%02d", yearMonth.getMonthValue());
+                String title = String.format(Locale.getDefault(), "Tháng %d", yearMonth.getMonthValue());
+                String subtitle = String.format(Locale.getDefault(), "năm %d", yearMonth.getYear());
+                return new TransactionTimeGroupAdapter.GroupItem(
+                        key,
+                        primary,
+                        title,
+                        subtitle,
+                        formatNetAmount(totalIncome - totalExpense),
+                        rowItems
+                );
+            }
+
+            LocalDate today = LocalDate.now();
+            String title;
+            if (anchorDate.equals(today)) {
+                title = getString(R.string.statistics_today);
+            } else if (anchorDate.equals(today.minusDays(1))) {
+                title = "Hôm qua";
+            } else {
+                title = capitalize(anchorDate.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, new Locale("vi", "VN")));
+            }
+            String subtitle = String.format(Locale.getDefault(), "tháng %d %d",
+                    anchorDate.getMonthValue(),
+                    anchorDate.getYear());
+            return new TransactionTimeGroupAdapter.GroupItem(
+                    key,
+                    String.valueOf(anchorDate.getDayOfMonth()),
+                    title,
+                    subtitle,
+                    formatNetAmount(totalIncome - totalExpense),
+                    rowItems
             );
         }
     }

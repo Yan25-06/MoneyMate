@@ -35,9 +35,9 @@ import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.google.android.material.button.MaterialButton;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
-import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentHomeBinding;
 import com.group10.moneymate.ui.main.HomeActivity;
 import com.group10.moneymate.utils.CurrencyFormatter;
@@ -69,7 +69,7 @@ public class HomeFragment extends Fragment {
     private List<CategorySumDTO> monthlyTopCategories = new ArrayList<>();
     private List<CategorySumDTO> weeklyTopCategories = new ArrayList<>();
     private List<TransactionEntity> recentTransactions = new ArrayList<>();
-    private List<WalletEntity> walletItems = new ArrayList<>();
+    private List<WalletWithBalance> walletItems = new ArrayList<>();
     private List<HomeViewModel.TrendPointUiModel> expenseTrendPoints = new ArrayList<>();
     private List<HomeViewModel.TrendPointUiModel> incomeTrendPoints = new ArrayList<>();
 
@@ -344,6 +344,7 @@ public class HomeFragment extends Fragment {
             binding.tvTotalBalance.setText(HIDDEN_BALANCE_MASK);
             binding.btnToggleBalanceVisibility.setImageResource(R.drawable.outline_visibility_off_24);
         }
+        binding.tvTotalBalance.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.black));
     }
 
     private void renderWalletBalanceVisibility() {

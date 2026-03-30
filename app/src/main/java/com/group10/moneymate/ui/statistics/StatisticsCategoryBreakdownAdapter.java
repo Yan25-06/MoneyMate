@@ -45,7 +45,8 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
                     return oldItem.getTotalAmount() == newItem.getTotalAmount()
                             && oldItem.getSharePercent() == newItem.getSharePercent()
                             && oldItem.getTransactionCount() == newItem.getTransactionCount()
-                            && oldItem.getCategoryName().equals(newItem.getCategoryName());
+                            && oldItem.getCategoryName().equals(newItem.getCategoryName())
+                            && oldItem.isCategoryDeleted() == newItem.isCategoryDeleted();
                 }
             };
 
@@ -96,7 +97,11 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
                   @ColorInt int amountAccentColor) {
             Context context = binding.getRoot().getContext();
 
-            binding.tvCategoryName.setText(item.getCategoryName());
+            String categoryLabel = item.getCategoryName();
+            if (item.isCategoryDeleted()) {
+                categoryLabel = categoryLabel + " " + context.getString(R.string.statistics_category_deleted_suffix);
+            }
+            binding.tvCategoryName.setText(categoryLabel);
             binding.tvCategoryAmount.setText(CurrencyFormatter.format(item.getTotalAmount(), "VND"));
             binding.tvCategoryPercent.setText(String.format(Locale.getDefault(), "%.0f%%", item.getSharePercent()));
             binding.tvCategoryMeta.setText(context.getString(

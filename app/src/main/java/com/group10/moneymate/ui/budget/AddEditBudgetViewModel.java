@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.data.repository.CategoryRepository;
@@ -21,8 +22,8 @@ public class AddEditBudgetViewModel extends ViewModel {
     private final BudgetRepository budgetRepository;
     private final String userId;
     private final LiveData<List<CategoryEntity>> expenseCategories;
-    private final LiveData<List<WalletEntity>> activeWallets;
-    private final LiveData<List<WalletEntity>> allWallets;
+    private final LiveData<List<WalletWithBalance>> activeWallets;
+    private final LiveData<List<WalletWithBalance>> allWallets;
 
     public AddEditBudgetViewModel(@NonNull BudgetRepository budgetRepository,
                                   @NonNull CategoryRepository categoryRepository,
@@ -31,19 +32,19 @@ public class AddEditBudgetViewModel extends ViewModel {
         this.budgetRepository = budgetRepository;
         this.userId = userId;
         this.expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
-        this.activeWallets = walletRepository.getActiveByUser(userId);
-        this.allWallets = walletRepository.getAllByUser(userId);
+        this.activeWallets = walletRepository.getActiveByUserWithBalance(userId);
+        this.allWallets = walletRepository.getAllByUserWithBalance(userId);
     }
 
     public LiveData<List<CategoryEntity>> getExpenseCategories() {
         return expenseCategories;
     }
 
-    public LiveData<List<WalletEntity>> getActiveWallets() {
+    public LiveData<List<WalletWithBalance>> getActiveWallets() {
         return activeWallets;
     }
 
-    public LiveData<List<WalletEntity>> getAllWallets() {
+    public LiveData<List<WalletWithBalance>> getAllWallets() {
         return allWallets;
     }
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@android:color/white"
@@ -65,6 +66,18 @@
             android:textAlignment="viewStart"
             android:textColor="@color/budget_text_secondary"
             android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvWalletArchivedNote"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="start"
+            android:textAlignment="viewStart"
+            android:textColor="@color/statistics_text_muted"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="Ví này đang lưu trữ, bạn có thể khôi phục nó để sử dụng." />
     </LinearLayout>
 
     <ImageButton

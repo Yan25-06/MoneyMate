@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.NetIncomeDTO;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
@@ -58,7 +59,7 @@ public class StatisticsViewModel extends ViewModel {
             if (state.getWalletId() == null) {
                 return normalizeDouble(walletRepository.getTotalBalance(userId));
             }
-            return mapWalletBalance(walletRepository.getById(state.getWalletId()));
+            return mapWalletBalance(walletRepository.getByIdWithBalance(state.getWalletId()));
         });
 
         selectedWallet = Transformations.switchMap(filterState, state -> {
@@ -263,9 +264,9 @@ public class StatisticsViewModel extends ViewModel {
     }
 
     @NonNull
-    private LiveData<Double> mapWalletBalance(@NonNull LiveData<WalletEntity> source) {
+    private LiveData<Double> mapWalletBalance(@NonNull LiveData<WalletWithBalance> source) {
         MediatorLiveData<Double> result = new MediatorLiveData<>();
-        result.addSource(source, wallet -> result.setValue(wallet != null ? wallet.getBalance() : 0d));
+        result.addSource(source, wallet -> result.setValue(wallet != null ? wallet.getCurrentBalance() : 0d));
         return result;
     }
 

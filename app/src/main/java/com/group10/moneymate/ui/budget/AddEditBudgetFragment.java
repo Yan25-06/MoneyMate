@@ -24,6 +24,7 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.databinding.FragmentAddEditBudgetBinding;
@@ -46,8 +47,8 @@ public class AddEditBudgetFragment extends Fragment {
 
     private final List<CategoryEntity> expenseCategories = new ArrayList<>();
     private final List<WalletOptionItem> walletOptions = new ArrayList<>();
-    private final List<WalletEntity> allWallets = new ArrayList<>();
-    private final List<WalletEntity> activeWallets = new ArrayList<>();
+    private final List<WalletWithBalance> allWallets = new ArrayList<>();
+    private final List<WalletWithBalance> activeWallets = new ArrayList<>();
     private CategoryEntity selectedCategory;
     private boolean selectedAllCategories;
     private BudgetEntity editingBudget;
@@ -247,18 +248,18 @@ public class AddEditBudgetFragment extends Fragment {
     }
 
     private void refreshWalletDropdown() {
-        List<WalletEntity> displayedWallets = new ArrayList<>(activeWallets);
+        List<WalletWithBalance> displayedWallets = new ArrayList<>(activeWallets);
         if (isEditMode && pendingWalletId != null) {
             boolean containsPending = false;
-            for (WalletEntity wallet : displayedWallets) {
-                if (pendingWalletId.equals(wallet.getId())) {
+            for (WalletWithBalance wallet : displayedWallets) {
+                if (pendingWalletId.equals(wallet.getWallet().getId())) {
                     containsPending = true;
                     break;
                 }
             }
             if (!containsPending) {
-                for (WalletEntity wallet : allWallets) {
-                    if (pendingWalletId.equals(wallet.getId())) {
+                for (WalletWithBalance wallet : allWallets) {
+                    if (pendingWalletId.equals(wallet.getWallet().getId())) {
                         displayedWallets.add(wallet);
                         break;
                     }
@@ -272,11 +273,11 @@ public class AddEditBudgetFragment extends Fragment {
                 getString(R.string.budget_wallet_scope_total),
                 totalWalletBalance
         ));
-        for (WalletEntity wallet : displayedWallets) {
+        for (WalletWithBalance wallet : displayedWallets) {
             walletOptions.add(new WalletOptionItem(
-                    wallet.getId(),
-                    wallet.getName(),
-                    wallet.getBalance()
+                    wallet.getWallet().getId(),
+                    wallet.getWallet().getName(),
+                    wallet.getCurrentBalance()
             ));
         }
 

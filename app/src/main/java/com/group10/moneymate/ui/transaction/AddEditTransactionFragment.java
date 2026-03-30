@@ -430,7 +430,7 @@ public class AddEditTransactionFragment extends Fragment {
             updateCategorySelectionUi();
             return;
         }
-        selectedCategorySource = viewModel.getCategoryById(selectedCategoryId);
+        selectedCategorySource = viewModel.getCategoryByIdIncludingDeleted(selectedCategoryId);
         selectedCategoryObserver = category -> {
             if (category == null) {
                 return;

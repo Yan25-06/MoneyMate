@@ -10,19 +10,19 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 
 import com.group10.moneymate.R;
-import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.databinding.ItemHomeWalletBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 
 import java.util.Objects;
 
-public class HomeWalletAdapter extends ListAdapter<WalletEntity, HomeWalletAdapter.ViewHolder> {
+public class HomeWalletAdapter extends ListAdapter<WalletWithBalance, HomeWalletAdapter.ViewHolder> {
 
     private static final String HIDDEN_BALANCE_MASK = "********";
 
     public interface OnWalletClickListener {
-        void onWalletClick(@NonNull WalletEntity wallet);
+        void onWalletClick(@NonNull WalletWithBalance wallet);
     }
 
     @Nullable
@@ -68,7 +68,8 @@ public class HomeWalletAdapter extends ListAdapter<WalletEntity, HomeWalletAdapt
             this.clickListener = clickListener;
         }
 
-        void bind(@NonNull WalletEntity wallet, boolean balancesVisible) {
+        void bind(@NonNull WalletWithBalance item, boolean balancesVisible) {
+            com.group10.moneymate.data.local.entity.WalletEntity wallet = item.getWallet();
             binding.cvWalletIcon.setCardBackgroundColor(
                     ContextCompat.getColor(binding.getRoot().getContext(), android.R.color.white)
             );
@@ -80,11 +81,15 @@ public class HomeWalletAdapter extends ListAdapter<WalletEntity, HomeWalletAdapt
             binding.ivWalletIcon.setImageTintList(null);
             binding.tvWalletName.setText(wallet.getName());
             binding.tvWalletBalance.setText(balancesVisible
-                    ? CurrencyFormatter.format(wallet.getBalance(), "VND")
+                    ? CurrencyFormatter.format(item.getCurrentBalance(), "VND")
                     : HIDDEN_BALANCE_MASK);
+            binding.tvWalletBalance.setTextColor(ContextCompat.getColor(
+                    binding.getRoot().getContext(),
+                    item.getCurrentBalance() < 0 ? R.color.expense_red : R.color.statistics_text_primary
+            ));
             binding.getRoot().setOnClickListener(v -> {
                 if (clickListener != null) {
-                    clickListener.onWalletClick(wallet);
+                    clickListener.onWalletClick(item);
                 }
             });
         }
@@ -92,20 +97,22 @@ public class HomeWalletAdapter extends ListAdapter<WalletEntity, HomeWalletAdapt
 
     }
 
-    private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<WalletEntity>() {
+    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<WalletWithBalance>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
-                    return Objects.equals(oldItem.getId(), newItem.getId());
+                public boolean areItemsTheSame(@NonNull WalletWithBalance oldItem,
+                                               @NonNull WalletWithBalance newItem) {
+                    return Objects.equals(oldItem.getWallet().getId(), newItem.getWallet().getId());
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
-                    return Objects.equals(oldItem.getName(), newItem.getName())
-                            && Objects.equals(oldItem.getType(), newItem.getType())
-                            && oldItem.getBalance() == newItem.getBalance()
-                            && oldItem.isArchived() == newItem.isArchived()
-                            && Objects.equals(oldItem.getIconName(), newItem.getIconName());
+                public boolean areContentsTheSame(@NonNull WalletWithBalance oldItem,
+                                                  @NonNull WalletWithBalance newItem) {
+                    return Objects.equals(oldItem.getWallet().getName(), newItem.getWallet().getName())
+                            && Objects.equals(oldItem.getWallet().getType(), newItem.getWallet().getType())
+                            && oldItem.getCurrentBalance() == newItem.getCurrentBalance()
+                            && oldItem.getWallet().isArchived() == newItem.getWallet().isArchived()
+                            && Objects.equals(oldItem.getWallet().getIconName(), newItem.getWallet().getIconName());
                 }
             };
 }

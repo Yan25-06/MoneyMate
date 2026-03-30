@@ -130,10 +130,7 @@ public class CategoryReportFragment extends Fragment {
         binding.statisticsHeader.btnHeaderSecondarySelector.setVisibility(View.VISIBLE);
         binding.statisticsHeader.btnHeaderSecondarySelector.setText(R.string.statistics_group_selector_title);
         binding.statisticsHeader.btnHeaderSecondarySelector.setIconResource(R.drawable.outline_account_tree_24);
-        binding.statisticsHeader.btnHeaderSecondarySelector.setIconTint(ContextCompat.getColorStateList(
-                requireContext(),
-                R.color.statistics_text_primary
-        ));
+        binding.statisticsHeader.btnHeaderSecondarySelector.setIconTint(null);
         binding.statisticsHeader.layoutPeriodNavigator.setVisibility(View.VISIBLE);
         binding.btnToggleComparison.setText(R.string.statistics_detail_compare_show);
         binding.layoutComparisonSummary.getRoot().setVisibility(View.GONE);
@@ -171,7 +168,7 @@ public class CategoryReportFragment extends Fragment {
         });
         binding.btnModeDetail.setOnClickListener(v -> switchContentMode(CategoryContentMode.DETAIL));
         binding.btnModeTrend.setOnClickListener(v -> switchContentMode(CategoryContentMode.TREND));
-        categoryAdapter.setOnItemClickListener(this::openLeafDetail);
+        categoryAdapter.setOnItemClickListener(this::openSingleCategoryReport);
         trendPeriodsAdapter.setOnItemClickListener(this::openPeriodTransactions);
     }
 
@@ -195,12 +192,7 @@ public class CategoryReportFragment extends Fragment {
             binding.statisticsHeader.btnHeaderSecondarySelector.setIconResource(
                     IconProvider.resolveCategoryIcon(requireContext(), category.getIconName())
             );
-            int tintColor = IconProvider.getCategoryColor(
-                    requireContext(),
-                    category.getCategoryId(),
-                    viewModel.getSelectedTransactionType() != TransactionType.INCOME
-            );
-            binding.statisticsHeader.btnHeaderSecondarySelector.setIconTint(ColorStateList.valueOf(tintColor));
+            binding.statisticsHeader.btnHeaderSecondarySelector.setIconTint(null);
         });
 
         viewModel.getTotalAmount().observe(getViewLifecycleOwner(), amount -> {
@@ -225,7 +217,7 @@ public class CategoryReportFragment extends Fragment {
             binding.tvHighlightAverageValue.setTextColor(accentColor);
         });
 
-        viewModel.getChildCategoryItems().observe(getViewLifecycleOwner(), items -> {
+        viewModel.getBranchCategoryItems().observe(getViewLifecycleOwner(), items -> {
             List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel> safeItems =
                     items != null ? items : new ArrayList<>();
             categoryAdapter.submitList(safeItems, this::updateEmptyState);
@@ -289,7 +281,7 @@ public class CategoryReportFragment extends Fragment {
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }
 
-    private void openLeafDetail(@NonNull IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel item) {
+    private void openSingleCategoryReport(@NonNull IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel item) {
         if (item.getCategoryId() == null) {
             return;
         }
@@ -316,6 +308,7 @@ public class CategoryReportFragment extends Fragment {
         action.setEndDate(item.getEndDate());
         action.setTransactionType(viewModel.getSelectedTransactionType().name());
         action.setCategoryId(viewModel.getSelectedCategoryId());
+        action.setIncludeChildCategories(true);
         action.setReportTitle(viewModel.getSelectedCategory().getValue() != null
                 ? viewModel.getSelectedCategory().getValue().getCategoryName()
                 : null);

@@ -103,6 +103,10 @@ public class CategoryRepository {
         return categoryDao.getCategoriesByType(userId, type);
     }
 
+    public LiveData<List<CategoryEntity>> getCategoriesByTypeIncludingDeleted(String userId, String type) {
+        return categoryDao.getCategoriesByTypeIncludingDeleted(userId, type);
+    }
+
     public LiveData<List<CategoryEntity>> getCategoriesByTypeAndWallet(String userId,
                                                                        String type,
                                                                        @Nullable String walletId) {
@@ -121,12 +125,22 @@ public class CategoryRepository {
         return categoryDao.getParentCategoriesWithChildrenByTypeAndWallet(userId, type, walletId);
     }
 
+    public LiveData<List<CategoryEntity>> getParentCategoriesWithChildrenByTypeAndWalletIncludingDeleted(String userId,
+                                                                                                          String type,
+                                                                                                          @Nullable String walletId) {
+        return categoryDao.getParentCategoriesWithChildrenByTypeAndWalletIncludingDeleted(userId, type, walletId);
+    }
+
     public LiveData<List<CategoryEntity>> getChildrenByParent(String userId, String parentId) {
         return categoryDao.getChildrenByParent(userId, parentId);
     }
 
     public LiveData<CategoryEntity> getCategoryById(String id) {
         return categoryDao.getCategoryById(id);
+    }
+
+    public LiveData<CategoryEntity> getCategoryByIdIncludingDeleted(String id) {
+        return categoryDao.getCategoryByIdIncludingDeleted(id);
     }
 
     // ─── Write (AppDatabase.databaseWriteExecutor) ────────────────────────────
@@ -181,7 +195,7 @@ public class CategoryRepository {
                 postValidationResult(callback, validationResult);
                 return;
             }
-            categoryDao.softDelete(category.getId(), System.currentTimeMillis());
+            categoryDao.softDeleteCascade(category.getId(), System.currentTimeMillis());
             postValidationResult(callback, CategoryValidationResult.success());
         });
     }
@@ -327,7 +341,7 @@ public class CategoryRepository {
     }
 
     /**
-     * Soft delete — chỉ áp dụng cho danh mục tùy chỉnh (isDefault = false).
+     * Soft delete cascade cho danh mục tùy chỉnh.
      * Danh mục mặc định không thể xóa.
      */
     public void deleteCategory(CategoryEntity category) {
@@ -349,14 +363,6 @@ public class CategoryRepository {
             return CategoryValidationResult.failure(
                     CategoryValidationError.DEFAULT_CATEGORY_CANNOT_DELETE,
                     "category.validation.default_cannot_delete"
-            );
-        }
-
-        int activeChildren = categoryDao.countActiveChildrenSync(category.getId(), category.getUserId());
-        if (activeChildren > 0) {
-            return CategoryValidationResult.failure(
-                    CategoryValidationError.CANNOT_DELETE_WITH_CHILDREN,
-                    "category.validation.cannot_delete_with_children"
             );
         }
         return CategoryValidationResult.success();
@@ -512,7 +518,7 @@ public class CategoryRepository {
                                        @Nullable String userId,
                                        @NonNull ChildrenCheckCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            int count = categoryDao.countActiveChildrenSync(parentId, userId);
+            int count = categoryDao.countChildrenSync(parentId, userId);
             mainHandler.post(() -> callback.onResult(count > 0));
         });
     }

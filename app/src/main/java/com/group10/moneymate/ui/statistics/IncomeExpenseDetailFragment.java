@@ -584,7 +584,7 @@ public class IncomeExpenseDetailFragment extends Fragment {
         action.setWalletId(viewModel.getCurrentFilterState().getWalletId());
         action.setStartDate(item.getStartDate());
         action.setEndDate(item.getEndDate());
-        action.setTransactionType(viewModel.isNetMode() ? null : viewModel.getSelectedTransactionType().name());
+        action.setTransactionType(null);
         action.setCategoryId(null);
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }

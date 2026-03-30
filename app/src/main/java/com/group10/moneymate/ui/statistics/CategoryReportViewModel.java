@@ -46,7 +46,7 @@ public class CategoryReportViewModel extends ViewModel {
     private final MediatorLiveData<List<IncomeExpenseDetailViewModel.ComparisonPointUiModel>> comparisonPoints =
             new MediatorLiveData<>(new ArrayList<>());
     private final MediatorLiveData<ChildQuery> childQuery = new MediatorLiveData<>();
-    private final LiveData<List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel>> childCategoryItems;
+    private final LiveData<List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel>> branchCategoryItems;
 
     private LiveData<Double> totalAmountSource;
     private LiveData<List<DailyTrendDTO>> currentBranchDailySource;
@@ -85,7 +85,7 @@ public class CategoryReportViewModel extends ViewModel {
         LiveData<List<CategoryOptionUiModel>> categoryOptionsSource = Transformations.switchMap(
                 filterState,
                 state -> Transformations.map(
-                        categoryRepository.getParentCategoriesWithChildrenByTypeAndWallet(
+                        categoryRepository.getParentCategoriesWithChildrenByTypeAndWalletIncludingDeleted(
                                 userId,
                                 selectedTransactionType.name(),
                                 state == null ? null : state.getWalletId()
@@ -103,12 +103,12 @@ public class CategoryReportViewModel extends ViewModel {
 
         childQuery.addSource(filterState, value -> refreshChildQuery());
         childQuery.addSource(selectedCategoryId, value -> refreshChildQuery());
-        childCategoryItems = Transformations.switchMap(childQuery, query -> {
+        branchCategoryItems = Transformations.switchMap(childQuery, query -> {
             if (query == null) {
                 return new MutableLiveData<>(new ArrayList<>());
             }
             return Transformations.map(
-                    transactionRepository.getChildCategorySums(
+                    transactionRepository.getCategoryBranchSums(
                             userId,
                             selectedTransactionType.name(),
                             query.filterState.getStartDate(),
@@ -145,8 +145,8 @@ public class CategoryReportViewModel extends ViewModel {
         return selectedCategory;
     }
 
-    public LiveData<List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel>> getChildCategoryItems() {
-        return childCategoryItems;
+    public LiveData<List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel>> getBranchCategoryItems() {
+        return branchCategoryItems;
     }
 
     public LiveData<Double> getTotalAmount() {
@@ -552,6 +552,7 @@ public class CategoryReportViewModel extends ViewModel {
                     item.getCategoryId(),
                     item.getCategoryName(),
                     item.getIconName(),
+                    item.isCategoryDeleted(),
                     item.getTotalAmount(),
                     share,
                     item.getTransactionCount()

@@ -5,6 +5,7 @@ public class CategorySumDTO {
     private String categoryId;
     private String categoryName;
     private String iconName;
+    private boolean categoryDeleted;
     private double totalAmount;
     private int transactionCount;
 
@@ -33,6 +34,14 @@ public class CategorySumDTO {
 
     public void setIconName(String iconName) {
         this.iconName = iconName;
+    }
+
+    public boolean isCategoryDeleted() {
+        return categoryDeleted;
+    }
+
+    public void setCategoryDeleted(boolean categoryDeleted) {
+        this.categoryDeleted = categoryDeleted;
     }
 
     public double getTotalAmount() {

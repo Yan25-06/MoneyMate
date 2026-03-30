@@ -83,10 +83,14 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
         }
 
         void bind(TransactionEntity transaction,
+                  @NonNull Map<String, CategoryPresentation> categoryPresentationMap,
                   @NonNull Map<String, WalletPresentation> walletPresentationMap) {
             Context context = binding.getRoot().getContext();
             double amount = transaction.getAmount();
             String type = transaction.getType();
+            CategoryPresentation categoryPresentation = transaction.getCategoryId() != null
+                    ? categoryPresentationMap.get(transaction.getCategoryId())
+                    : null;
             WalletPresentation walletPresentation = transaction.getWalletId() != null
                     ? walletPresentationMap.get(transaction.getWalletId())
                     : null;
@@ -102,7 +106,7 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
                 binding.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.statistics_text_secondary));
             }
 
-            applyWalletIcon(context, walletPresentation);
+            applyCategoryIcon(context, categoryPresentation, walletPresentation);
 
             String dateText = DateUtils.formatDate(transaction.getTimestamp());
             binding.tvDate.setText(dateText);
@@ -126,11 +130,17 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
             });
         }
 
-        private void applyWalletIcon(@NonNull Context context,
-                                     @Nullable WalletPresentation walletPresentation) {
-            int iconRes = resolveWalletIconRes(walletPresentation != null
-                    ? walletPresentation.getWalletType()
-                    : null);
+        private void applyCategoryIcon(@NonNull Context context,
+                                       @Nullable CategoryPresentation categoryPresentation,
+                                       @Nullable WalletPresentation walletPresentation) {
+            int iconRes;
+            if (categoryPresentation != null) {
+                iconRes = categoryPresentation.getIconRes();
+            } else {
+                iconRes = resolveWalletIconRes(walletPresentation != null
+                        ? walletPresentation.getWalletType()
+                        : null);
+            }
 
             binding.ivCategoryIcon.setImageResource(iconRes);
             binding.ivCategoryIcon.setImageTintList(null);
@@ -162,7 +172,7 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(getItem(position), walletPresentationMap);
+        holder.bind(getItem(position), categoryPresentationMap, walletPresentationMap);
     }
 
     public static class CategoryPresentation {

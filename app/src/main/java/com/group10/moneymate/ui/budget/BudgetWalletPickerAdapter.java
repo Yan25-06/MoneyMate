@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.group10.moneymate.R;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.ItemBudgetWalletPickerBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
@@ -17,7 +18,7 @@ import com.group10.moneymate.utils.IconProvider;
 
 import java.util.Objects;
 
-public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetWalletPickerAdapter.ViewHolder> {
+public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, BudgetWalletPickerAdapter.ViewHolder> {
 
     public interface Listener {
         void onSelect(@NonNull WalletEntity wallet);
@@ -60,9 +61,21 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetW
             this.binding = binding;
         }
 
-        void bind(@NonNull WalletEntity wallet) {
+        void bind(@NonNull WalletWithBalance item) {
+            WalletEntity wallet = item.getWallet();
+            boolean archived = wallet.isArchived();
             binding.tvWalletName.setText(wallet.getName());
-            binding.tvWalletBalance.setText(CurrencyFormatter.format(wallet.getBalance(), "VND"));
+            binding.tvWalletBalance.setText(CurrencyFormatter.format(item.getCurrentBalance(), "VND"));
+            binding.tvWalletBalance.setTextColor(ContextCompat.getColor(
+                    binding.getRoot().getContext(),
+                    archived
+                            ? R.color.statistics_text_muted
+                            : item.getCurrentBalance() < 0
+                            ? R.color.expense_red
+                            : R.color.statistics_text_primary
+            ));
+            binding.tvWalletArchivedNote.setVisibility(archived ? android.view.View.VISIBLE : android.view.View.GONE);
+            binding.tvWalletArchivedNote.setText(R.string.wallet_picker_archived_note);
             binding.ivWalletIcon.setImageResource(IconProvider.resolveWalletIcon(
                     binding.getRoot().getContext(),
                     wallet.getIconName(),
@@ -70,10 +83,18 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetW
             ));
             binding.ivWalletIcon.setImageTintList(null);
             boolean isSelected = wallet.getId().equals(selectedWalletId);
-            binding.vSelectedDot.setVisibility(isSelected ? android.view.View.VISIBLE : android.view.View.INVISIBLE);
+            binding.vSelectedDot.setVisibility(isSelected && !archived
+                    ? android.view.View.VISIBLE
+                    : android.view.View.INVISIBLE);
             binding.getRoot().setBackgroundResource(isSelected
                     ? R.drawable.bg_budget_wallet_picker_selected
                     : android.R.color.white);
+            binding.getRoot().setAlpha(archived ? 0.6f : 1f);
+            binding.ivWalletIcon.setAlpha(archived ? 0.55f : 1f);
+            binding.tvWalletName.setTextColor(ContextCompat.getColor(
+                    binding.getRoot().getContext(),
+                    archived ? R.color.statistics_text_muted : android.R.color.black
+            ));
             binding.btnEditWallet.setImageTintList(android.content.res.ColorStateList.valueOf(
                     ContextCompat.getColor(
                             binding.getRoot().getContext(),
@@ -81,7 +102,7 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetW
                     )
             ));
             binding.getRoot().setOnClickListener(v -> {
-                if (listener != null) {
+                if (!archived && listener != null) {
                     listener.onSelect(wallet);
                 }
             });
@@ -93,18 +114,20 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetW
         }
     }
 
-    private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<WalletEntity>() {
+    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<WalletWithBalance>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
-                    return Objects.equals(oldItem.getId(), newItem.getId());
+                public boolean areItemsTheSame(@NonNull WalletWithBalance oldItem,
+                                               @NonNull WalletWithBalance newItem) {
+                    return Objects.equals(oldItem.getWallet().getId(), newItem.getWallet().getId());
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
-                    return Objects.equals(oldItem.getName(), newItem.getName())
-                            && Objects.equals(oldItem.getType(), newItem.getType())
-                            && oldItem.getBalance() == newItem.getBalance();
+                public boolean areContentsTheSame(@NonNull WalletWithBalance oldItem,
+                                                  @NonNull WalletWithBalance newItem) {
+                    return Objects.equals(oldItem.getWallet().getName(), newItem.getWallet().getName())
+                            && Objects.equals(oldItem.getWallet().getType(), newItem.getWallet().getType())
+                            && oldItem.getCurrentBalance() == newItem.getCurrentBalance();
                 }
             };
 }

@@ -721,6 +721,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
                     dto.getCategoryId(),
                     dto.getCategoryName() != null ? dto.getCategoryName() : "Chưa phân loại",
                     dto.getIconName(),
+                    dto.isCategoryDeleted(),
                     dto.getTotalAmount(),
                     percent,
                     dto.getTransactionCount()
@@ -1154,6 +1155,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
         private final String categoryName;
         @Nullable
         private final String iconName;
+        private final boolean categoryDeleted;
         private final double totalAmount;
         private final double sharePercent;
         private final int transactionCount;
@@ -1161,12 +1163,14 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
         public CategoryBreakdownItemUiModel(@Nullable String categoryId,
                                             @NonNull String categoryName,
                                             @Nullable String iconName,
+                                            boolean categoryDeleted,
                                             double totalAmount,
                                             double sharePercent,
                                             int transactionCount) {
             this.categoryId = categoryId;
             this.categoryName = categoryName;
             this.iconName = iconName;
+            this.categoryDeleted = categoryDeleted;
             this.totalAmount = totalAmount;
             this.sharePercent = sharePercent;
             this.transactionCount = transactionCount;
@@ -1184,6 +1188,10 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
 
         public String getIconName() {
             return iconName;
+        }
+
+        public boolean isCategoryDeleted() {
+            return categoryDeleted;
         }
 
         public double getTotalAmount() {

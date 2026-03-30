@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -58,6 +59,11 @@ public class WalletListFragment extends Fragment {
             }
 
             @Override
+            public void onRestore(WalletEntity wallet) {
+                showRestoreConfirmDialog(wallet);
+            }
+
+            @Override
             public void onDelete(WalletEntity wallet) {
                 showDeleteConfirmDialog(wallet);
             }
@@ -70,6 +76,9 @@ public class WalletListFragment extends Fragment {
         viewModel.getTotalBalance().observe(getViewLifecycleOwner(), total -> {
             double value = total == null ? 0d : total;
             binding.tvTotalWalletBalance.setText(CurrencyFormatter.format(value, "VND"));
+            binding.tvTotalWalletBalance.setTextColor(requireContext().getColor(
+                    value < 0d ? R.color.expense_red : R.color.statistics_text_primary
+            ));
         });
 
         binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
@@ -100,7 +109,11 @@ public class WalletListFragment extends Fragment {
                 .setTitle(R.string.delete_wallet_title)
                 .setMessage(getString(R.string.delete_wallet_message, wallet.getName()))
                 .setNegativeButton(R.string.common_cancel, null)
-                .setPositiveButton(R.string.delete_wallet, (dialogInterface, which) -> viewModel.deleteWallet(wallet))
+                .setPositiveButton(R.string.delete_wallet, (dialogInterface, which) -> {
+                    viewModel.deleteWallet(wallet);
+                    refreshWalletList();
+                    Toast.makeText(requireContext(), R.string.wallet_deleted, Toast.LENGTH_SHORT).show();
+                })
                 .show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
                 .setTextColor(requireContext().getColor(R.color.budget_danger_red));
@@ -116,12 +129,42 @@ public class WalletListFragment extends Fragment {
                 .setTitle(R.string.archive_wallet_title)
                 .setMessage(getString(R.string.archive_wallet_message, wallet.getName()))
                 .setNegativeButton(R.string.common_cancel, null)
-                .setPositiveButton(R.string.archive_wallet, (dialogInterface, which) -> viewModel.archiveWallet(wallet))
+                .setPositiveButton(R.string.archive_wallet, (dialogInterface, which) -> {
+                    viewModel.archiveWallet(wallet);
+                    refreshWalletList();
+                    Toast.makeText(requireContext(), R.string.wallet_archived, Toast.LENGTH_SHORT).show();
+                })
                 .show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
                 .setTextColor(requireContext().getColor(R.color.moneymate_picker_accent));
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
                 .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
+    }
+
+    private void showRestoreConfirmDialog(WalletEntity wallet) {
+        AlertDialog dialog = new MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.ThemeOverlay_MoneyMate_MaterialAlertDialog
+        )
+                .setTitle(R.string.restore_wallet_title)
+                .setMessage(getString(R.string.restore_wallet_message, wallet.getName()))
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.restore_wallet, (dialogInterface, which) -> {
+                    viewModel.restoreWallet(wallet);
+                    refreshWalletList();
+                    Toast.makeText(requireContext(), R.string.wallet_restored, Toast.LENGTH_SHORT).show();
+                })
+                .show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(requireContext().getColor(R.color.transfer_blue));
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
+    }
+
+    private void refreshWalletList() {
+        if (binding != null && binding.rvWallets.getAdapter() != null) {
+            binding.rvWallets.getAdapter().notifyDataSetChanged();
+        }
     }
 
     @Override

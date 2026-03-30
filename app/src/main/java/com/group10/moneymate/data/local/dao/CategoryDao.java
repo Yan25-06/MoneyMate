@@ -3,10 +3,10 @@ package com.group10.moneymate.data.local.dao;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
-import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Transaction;
 import androidx.room.Update;
 
 import com.group10.moneymate.data.local.entity.CategoryEntity;
@@ -24,9 +24,6 @@ public interface CategoryDao {
     @Update
     void updateCategory(CategoryEntity category);
 
-    @Delete
-    void deleteCategory(CategoryEntity category);
-
     @Query("SELECT * FROM categories WHERE (user_id = :userId OR is_default = 1) " +
             "AND is_deleted = 0 " +
             "AND parent_id IS NULL " +
@@ -40,6 +37,11 @@ public interface CategoryDao {
             "AND parent_id IS NULL " +
             "ORDER BY is_default DESC, name ASC")
     LiveData<List<CategoryEntity>> getCategoriesByType(String userId, String type);
+
+    @Query("SELECT * FROM categories WHERE (user_id = :userId OR is_default = 1) " +
+            "AND type = :type " +
+            "ORDER BY is_default DESC, name ASC")
+    LiveData<List<CategoryEntity>> getCategoriesByTypeIncludingDeleted(String userId, String type);
 
     @Query("SELECT * FROM categories WHERE (user_id = :userId OR is_default = 1) " +
             "AND type = :type " +
@@ -77,6 +79,21 @@ public interface CategoryDao {
                                                                                   String type,
                                                                                   @Nullable String walletId);
 
+    @Query("SELECT * FROM categories root " +
+            "WHERE (root.user_id = :userId OR root.is_default = 1) " +
+            "AND root.type = :type " +
+            "AND root.parent_id IS NULL " +
+            "AND (:walletId IS NULL OR root.wallet_id IS NULL OR root.wallet_id = :walletId) " +
+            "AND EXISTS (" +
+            "    SELECT 1 FROM categories child " +
+            "    WHERE child.parent_id = root.id " +
+            "    AND (child.user_id = :userId OR child.is_default = 1)" +
+            ") " +
+            "ORDER BY root.is_default DESC, root.name ASC")
+    LiveData<List<CategoryEntity>> getParentCategoriesWithChildrenByTypeAndWalletIncludingDeleted(String userId,
+                                                                                                  String type,
+                                                                                                  @Nullable String walletId);
+
     @Query("SELECT * FROM categories WHERE (user_id = :userId OR is_default = 1) " +
             "AND type = :type " +
             "AND is_deleted = 0 " +
@@ -103,6 +120,9 @@ public interface CategoryDao {
     LiveData<CategoryEntity> getCategoryById(String id);
 
     @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
+    LiveData<CategoryEntity> getCategoryByIdIncludingDeleted(String id);
+
+    @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
     CategoryEntity getCategoryByIdSync(String id);
 
     @Query("SELECT * FROM categories WHERE id = :id " +
@@ -116,18 +136,25 @@ public interface CategoryDao {
             "AND (:userId IS NULL OR user_id = :userId OR is_default = 1)")
     int countActiveChildrenSync(String parentId, @Nullable String userId);
 
+    @Query("SELECT COUNT(*) FROM categories WHERE parent_id = :parentId " +
+            "AND (:userId IS NULL OR user_id = :userId OR is_default = 1)")
+    int countChildrenSync(String parentId, @Nullable String userId);
+
     @Query("SELECT * FROM categories WHERE is_default = 1 AND is_deleted = 0")
     List<CategoryEntity> getDefaultCategories();
 
     @Query("SELECT COUNT(*) FROM categories WHERE is_default = 1")
     int getDefaultCategoryCount();
 
-    @Query("UPDATE categories SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
-    void softDelete(String id, long updatedAt);
+    @Transaction
+    @Query("UPDATE categories SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
+            "WHERE id = :id OR parent_id = :id")
+    void softDeleteCascade(String id, long updatedAt);
 
     @Query("SELECT * FROM categories WHERE user_id = :userId AND sync_status != 0")
     List<CategoryEntity> getPendingSyncCategories(String userId);
 
-    @Query("DELETE FROM categories WHERE user_id = :userId AND is_default = 0")
-    void deleteAllCustomByUser(String userId);
+    @Query("UPDATE categories SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
+            "WHERE user_id = :userId AND is_default = 0")
+    void softDeleteAllCustomByUser(String userId, long updatedAt);
 }

@@ -131,6 +131,7 @@
     <string name="btn_cancel">Hủy</string>
     <string name="category_added">Đã thêm danh mục</string>
     <string name="category_updated">Đã cập nhật danh mục</string>
+    <string name="category_deleted">Đã xóa danh mục</string>
     <string name="error_name_required">Vui lòng nhập tên</string>
     <string name="edit_category">Sửa danh mục</string>
     <string name="category_type_label">Loại</string>
@@ -303,6 +304,7 @@
     <string name="statistics_detail_empty_child_categories">Không có nhóm con trong nhóm đã chọn</string>
     <string name="statistics_detail_empty_transactions">Không có giao dịch trong nhóm đã chọn</string>
     <string name="statistics_detail_category_meta">%1$d giao dịch</string>
+    <string name="statistics_category_deleted_suffix">(Đã xóa)</string>
     <string name="statistics_category_detail_placeholder">Level 3 sẽ hiển thị drill-down theo danh mục</string>
     <string name="statistics_category_day_detail_placeholder">Level 4 sẽ hiển thị giao dịch theo cụm ngày</string>
     <string name="statistics_period_sheet_title">Khoảng thời gian</string>
@@ -327,6 +329,16 @@
     <string name="archive_wallet">Lưu trữ ví</string>
     <string name="archive_wallet_title">Lưu trữ ví</string>
     <string name="archive_wallet_message">Bạn có chắc muốn lưu trữ ví "%1$s"? Ví này sẽ không còn xuất hiện khi tạo giao dịch hoặc ngân sách mới.</string>
+    <string name="wallet_archived">Đã lưu trữ ví</string>
+    <string name="restore_wallet">Khôi phục ví</string>
+    <string name="restore_wallet_title">Khôi phục ví</string>
+    <string name="restore_wallet_message">Bạn có chắc muốn khôi phục ví "%1$s"? Ví này sẽ xuất hiện trở lại khi tạo giao dịch hoặc ngân sách mới.</string>
+    <string name="wallet_restored">Đã khôi phục ví</string>
+    <string name="wallet_deleted">Đã xóa ví</string>
+    <string name="wallet_archived_badge">Đã lưu trữ</string>
+    <string name="budget_wallet_archived_badge">Ví đã lưu trữ</string>
+    <string name="budget_wallet_archived_short">Lưu trữ</string>
+    <string name="wallet_picker_archived_note">Ví này đang lưu trữ, bạn có thể khôi phục nó để sử dụng.</string>
     <string name="default_currency_zero">0 ₫</string>
 
     <!-- Profile -->

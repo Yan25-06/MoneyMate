@@ -59,6 +59,7 @@ public class ReportTransactionListFragment extends Fragment {
     private final Map<String, CategoryEntity> categoryMap = new HashMap<>();
     private boolean useOtherBudgetSource;
     private boolean statisticsLeafMode;
+    private boolean includeChildCategories;
     private long currentStartDate;
     private long currentEndDate;
 
@@ -78,6 +79,7 @@ public class ReportTransactionListFragment extends Fragment {
         navArgs = ReportTransactionListFragmentArgs.fromBundle(getArguments() != null ? getArguments() : new Bundle());
         useOtherBudgetSource = Constants.isOtherCategoryId(navArgs.getCategoryId());
         statisticsLeafMode = navArgs.getStatisticsLeafMode();
+        includeChildCategories = navArgs.getIncludeChildCategories();
         currentStartDate = navArgs.getStartDate();
         currentEndDate = navArgs.getEndDate();
 
@@ -125,8 +127,8 @@ public class ReportTransactionListFragment extends Fragment {
             }
             renderScreen();
         });
-        viewModel.getExpenseCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
-        viewModel.getIncomeCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getExpenseCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getIncomeCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
     }
 
     private void mergeCategories(@Nullable List<CategoryEntity> categories) {
@@ -172,10 +174,14 @@ public class ReportTransactionListFragment extends Fragment {
             if (navArgs.getWalletId() != null && !navArgs.getWalletId().equals(transaction.getWalletId())) {
                 continue;
             }
-            if (!useOtherBudgetSource
-                    && navArgs.getCategoryId() != null
-                    && !navArgs.getCategoryId().equals(transaction.getCategoryId())) {
-                continue;
+            if (!useOtherBudgetSource && navArgs.getCategoryId() != null) {
+                if (includeChildCategories) {
+                    if (!belongsToCategoryBranch(transaction, navArgs.getCategoryId())) {
+                        continue;
+                    }
+                } else if (!navArgs.getCategoryId().equals(transaction.getCategoryId())) {
+                    continue;
+                }
             }
             if (navArgs.getTransactionType() != null
                     && !navArgs.getTransactionType().trim().isEmpty()
@@ -292,6 +298,18 @@ public class ReportTransactionListFragment extends Fragment {
 
     private void configureMode() {
         binding.btnDateFilter.setVisibility(statisticsLeafMode ? View.VISIBLE : View.GONE);
+    }
+
+    private boolean belongsToCategoryBranch(@NonNull TransactionEntity transaction,
+                                            @NonNull String rootCategoryId) {
+        if (rootCategoryId.equals(transaction.getCategoryId())) {
+            return true;
+        }
+        if (transaction.getCategoryId() == null) {
+            return false;
+        }
+        CategoryEntity category = categoryMap.get(transaction.getCategoryId());
+        return category != null && rootCategoryId.equals(category.getParentId());
     }
 
     private void showDateRangePicker() {

@@ -181,6 +181,7 @@ public class BudgetViewModel extends ViewModel {
                     resolveCategoryIcon(budgetHolder[0], categoryHolder[0]),
                     spentHolder[0],
                     resolveWalletName(budgetHolder[0], walletHolder[0]),
+                    walletHolder[0] != null && walletHolder[0].isArchived(),
                     BudgetUiUtils.isActiveToday(budgetHolder[0])
             ));
         };
@@ -502,6 +503,7 @@ public class BudgetViewModel extends ViewModel {
                 resolveCategoryIcon(budgetEntity, categoryEntity),
                 spentAmount,
                 resolveWalletName(budgetEntity, walletEntity),
+                walletEntity != null && walletEntity.isArchived(),
                 BudgetUiUtils.isActiveToday(budgetEntity)
         );
     }

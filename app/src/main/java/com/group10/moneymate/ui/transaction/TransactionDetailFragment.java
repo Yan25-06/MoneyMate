@@ -128,8 +128,8 @@ public class TransactionDetailFragment extends Fragment {
             }
             renderTransaction();
         });
-        viewModel.getExpenseCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
-        viewModel.getIncomeCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getExpenseCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getIncomeCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
     }
 
     private void mergeCategories(@Nullable List<CategoryEntity> categories) {

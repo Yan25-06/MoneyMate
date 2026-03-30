@@ -6,13 +6,12 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
-import androidx.lifecycle.Transformations;
 
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
-import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
@@ -33,7 +32,7 @@ public class HomeViewModel extends AndroidViewModel {
 
     private final TransactionRepository transactionRepository;
     private final String userId;
-    private final LiveData<List<WalletEntity>> wallets;
+    private final LiveData<List<WalletWithBalance>> wallets;
     private final LiveData<Double> totalBalance;
     private final LiveData<List<TransactionEntity>> recentTransactions;
     private final LiveData<Double> monthlyIncome;
@@ -82,20 +81,10 @@ public class HomeViewModel extends AndroidViewModel {
         userId = container.authRepository.getCurrentUserId();
         transactionRepository = container.transactionRepository;
 
-        wallets = container.walletRepository.getAllByUser(userId);
+        wallets = container.walletRepository.getAllByUserWithBalance(userId);
         expenseCategories = container.categoryRepository.getCategoriesByType(userId, "EXPENSE");
         incomeCategories = container.categoryRepository.getCategoriesByType(userId, "INCOME");
-        totalBalance = Transformations.map(wallets, walletList -> {
-            double total = 0.0;
-            if (walletList != null) {
-                for (WalletEntity wallet : walletList) {
-                    if (!wallet.isExcluded()) {
-                        total += wallet.getBalance();
-                    }
-                }
-            }
-            return total;
-        });
+        totalBalance = container.walletRepository.getTotalBalance(userId);
 
         recentTransactions = container.transactionRepository.getRecentTransactions(userId, 4);
 
@@ -387,7 +376,7 @@ public class HomeViewModel extends AndroidViewModel {
                 .toEpochMilli() - 1L;
     }
 
-    public LiveData<List<WalletEntity>> getWallets() {
+    public LiveData<List<WalletWithBalance>> getWallets() {
         return wallets;
     }
 

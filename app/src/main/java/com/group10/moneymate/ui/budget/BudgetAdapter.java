@@ -48,6 +48,7 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
                             && oldItem.getBudgetEntity().getStartDate() == newItem.getBudgetEntity().getStartDate()
                             && oldItem.getBudgetEntity().getEndDate() == newItem.getBudgetEntity().getEndDate()
                             && oldItem.getSpentAmount() == newItem.getSpentAmount()
+                            && oldItem.isWalletArchived() == newItem.isWalletArchived()
                             && oldItem.isActive() == newItem.isActive()
                             && oldItem.getCategoryName().equals(newItem.getCategoryName())
                             && oldItem.getWalletName().equals(newItem.getWalletName())
@@ -85,9 +86,11 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
             float percent = item.getPercent();
             int progress = Math.max(0, Math.min(100, Math.round(percent)));
             @ColorInt int progressColor = resolveProgressColor(context, item);
+            boolean walletArchived = item.isWalletArchived();
 
             binding.tvCategory.setText(item.getCategoryName());
             binding.tvWalletScope.setText(item.getWalletName());
+            binding.tvWalletArchivedBadge.setVisibility(walletArchived ? View.VISIBLE : View.GONE);
             binding.tvPeriod.setText(BudgetUiUtils.formatDateRange(
                     item.getBudgetEntity().getStartDate(),
                     item.getBudgetEntity().getEndDate()
@@ -108,6 +111,13 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
             binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
                     ContextCompat.getColor(context, android.R.color.white)
             ));
+            binding.tvWalletScope.setTextColor(ContextCompat.getColor(
+                    context,
+                    walletArchived ? R.color.statistics_text_muted : R.color.budget_text_secondary
+            ));
+            binding.progressBudget.setAlpha(walletArchived ? 0.72f : 1f);
+            binding.vTodayMarker.setAlpha(walletArchived ? 0.72f : 1f);
+            binding.tvToday.setAlpha(walletArchived ? 0.72f : 1f);
 
             if (item.isOverspent()) {
                 binding.tvRemaining.setText(context.getString(
@@ -126,6 +136,11 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
             binding.vTodayMarker.setVisibility(item.isActive() ? View.VISIBLE : View.GONE);
             if (item.isActive()) {
                 positionTodayMarker(item);
+            }
+            if (walletArchived) {
+                binding.tvToday.setText(R.string.budget_wallet_archived_badge);
+            } else {
+                binding.tvToday.setText(R.string.budget_today);
             }
 
             itemView.setOnClickListener(v -> {

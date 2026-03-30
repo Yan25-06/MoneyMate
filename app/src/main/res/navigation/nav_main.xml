@@ -134,6 +134,10 @@
             android:defaultValue="@null"
             app:nullable="true" />
         <argument
+            android:name="includeChildCategories"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
             android:name="statisticsLeafMode"
             app:argType="boolean"
             android:defaultValue="false" />

@@ -47,7 +47,6 @@ public class AddEditCategoryFragment extends Fragment {
     private String selectedParentId;
     @Nullable
     private String selectedParentLabel;
-    private boolean hasChildren;
     @Nullable
     private LiveData<List<CategoryEntity>> childrenSource;
     @Nullable
@@ -160,10 +159,6 @@ public class AddEditCategoryFragment extends Fragment {
         if (existingCategory == null) {
             return;
         }
-        if (hasChildren) {
-            showCannotDeleteDialog(existingCategory.getName());
-            return;
-        }
         showDeleteConfirmDialog(existingCategory.getName());
     }
 
@@ -185,6 +180,7 @@ public class AddEditCategoryFragment extends Fragment {
                 .setView(dialogBinding.getRoot())
                 .setNegativeButton(R.string.btn_cancel, null)
                 .setPositiveButton(R.string.btn_delete, (dialogInterface, which) -> {
+                    pendingCategoryAction = CategoryViewModel.CategoryAction.DELETE;
                     viewModel.deleteCategory(existingCategory);
                 })
                 .show();
@@ -192,28 +188,6 @@ public class AddEditCategoryFragment extends Fragment {
                 .setTextColor(requireContext().getColor(R.color.budget_danger_red));
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
                 .setTextColor(requireContext().getColor(R.color.budget_text_secondary));
-    }
-
-    private void showCannotDeleteDialog(@NonNull String name) {
-        DialogCategoryActionBinding dialogBinding = DialogCategoryActionBinding.inflate(
-                LayoutInflater.from(requireContext())
-        );
-        dialogBinding.ivDialogIcon.setImageResource(R.drawable.outline_warning_amber_24);
-        dialogBinding.ivDialogIcon.setImageTintList(ColorStateList.valueOf(
-                requireContext().getColor(R.color.budget_warning_orange)
-        ));
-        dialogBinding.tvDialogTitle.setText(R.string.category_delete_blocked_title);
-        dialogBinding.tvDialogMessage.setText(getString(R.string.category_delete_blocked_message, name));
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(
-                requireContext(),
-                R.style.ThemeOverlay_MoneyMate_CategoryDialog
-        )
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton(R.string.btn_acknowledge, null)
-                .show();
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setTextColor(requireContext().getColor(R.color.budget_text_primary));
     }
 
     private void observeParentSelectionResult() {
@@ -317,18 +291,6 @@ public class AddEditCategoryFragment extends Fragment {
             binding.tvTypeLabel.setText(Constants.TYPE_INCOME.equals(selectedType)
                     ? R.string.income
                     : R.string.expense);
-
-            observeChildren(category.getId());
-        });
-    }
-
-    private void observeChildren(@NonNull String categoryId) {
-        if (childrenSource != null) {
-            childrenSource.removeObservers(getViewLifecycleOwner());
-        }
-        childrenSource = viewModel.getChildrenByParent(categoryId);
-        childrenSource.observe(getViewLifecycleOwner(), children -> {
-            hasChildren = children != null && !children.isEmpty();
         });
     }
 
@@ -383,8 +345,10 @@ public class AddEditCategoryFragment extends Fragment {
 
             if (result.getAction() == CategoryViewModel.CategoryAction.UPDATE) {
                 Toast.makeText(requireContext(), R.string.category_updated, Toast.LENGTH_SHORT).show();
-            } else {
+            } else if (result.getAction() == CategoryViewModel.CategoryAction.ADD) {
                 Toast.makeText(requireContext(), R.string.category_added, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(requireContext(), R.string.category_deleted, Toast.LENGTH_SHORT).show();
             }
             pendingCategoryAction = null;
             viewModel.clearCategoryActionResult();
@@ -419,9 +383,6 @@ public class AddEditCategoryFragment extends Fragment {
         }
         if ("category.validation.default_cannot_delete".equals(errorKey)) {
             return getString(R.string.category_validation_default_cannot_delete);
-        }
-        if ("category.validation.cannot_delete_with_children".equals(errorKey)) {
-            return getString(R.string.category_validation_cannot_delete_with_children);
         }
         return getString(R.string.category_validation_generic_error);
     }
