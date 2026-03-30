@@ -50,6 +50,9 @@ import java.util.Map;
 
 public class ReportTransactionListFragment extends Fragment {
 
+    private static final String TYPE_EXPENSE = Constants.TYPE_EXPENSE;
+    private static final String TYPE_INCOME = Constants.TYPE_INCOME;
+
     private FragmentReportTransactionListBinding binding;
     private TransactionViewModel viewModel;
     private ReportTransactionListFragmentArgs navArgs;
@@ -167,28 +170,9 @@ public class ReportTransactionListFragment extends Fragment {
         List<TransactionEntity> source = useOtherBudgetSource ? budgetScopedTransactions : allTransactions;
         List<TransactionEntity> filtered = new ArrayList<>();
         for (TransactionEntity transaction : source) {
-            long timestamp = transaction.getTimestamp();
-            if (timestamp < currentStartDate || timestamp > currentEndDate) {
-                continue;
+            if (matchesFilters(transaction)) {
+                filtered.add(transaction);
             }
-            if (navArgs.getWalletId() != null && !navArgs.getWalletId().equals(transaction.getWalletId())) {
-                continue;
-            }
-            if (!useOtherBudgetSource && navArgs.getCategoryId() != null) {
-                if (includeChildCategories) {
-                    if (!belongsToCategoryBranch(transaction, navArgs.getCategoryId())) {
-                        continue;
-                    }
-                } else if (!navArgs.getCategoryId().equals(transaction.getCategoryId())) {
-                    continue;
-                }
-            }
-            if (navArgs.getTransactionType() != null
-                    && !navArgs.getTransactionType().trim().isEmpty()
-                    && !navArgs.getTransactionType().equals(transaction.getType())) {
-                continue;
-            }
-            filtered.add(transaction);
         }
         filtered.sort(Comparator.comparingLong(TransactionEntity::getTimestamp).reversed());
         return filtered;
@@ -205,9 +189,9 @@ public class ReportTransactionListFragment extends Fragment {
         double income = 0d;
         double expense = 0d;
         for (TransactionEntity transaction : filtered) {
-            if ("INCOME".equals(transaction.getType())) {
+            if (TYPE_INCOME.equals(transaction.getType())) {
                 income += transaction.getAmount();
-            } else if ("EXPENSE".equals(transaction.getType())) {
+            } else if (TYPE_EXPENSE.equals(transaction.getType())) {
                 expense += transaction.getAmount();
             }
         }
@@ -242,7 +226,7 @@ public class ReportTransactionListFragment extends Fragment {
                 grouped.put(date, section);
             }
             section.transactions.add(transaction);
-            section.netTotal += "EXPENSE".equals(transaction.getType())
+            section.netTotal += TYPE_EXPENSE.equals(transaction.getType())
                     ? -transaction.getAmount()
                     : transaction.getAmount();
         }
@@ -272,7 +256,7 @@ public class ReportTransactionListFragment extends Fragment {
             int accentColor = resolveAccentColor(type, category);
             String title = category != null
                     ? category.getName()
-                    : getString("TRANSFER".equals(type) ? R.string.ledger_section_transfer : R.string.ledger_section_unknown);
+                    : getFallbackCategoryName(type);
             String subtitle = transaction.getNote() != null && !transaction.getNote().trim().isEmpty()
                     ? transaction.getNote()
                     : getString(R.string.transaction_detail_no_note);
@@ -298,6 +282,36 @@ public class ReportTransactionListFragment extends Fragment {
 
     private void configureMode() {
         binding.btnDateFilter.setVisibility(statisticsLeafMode ? View.VISIBLE : View.GONE);
+    }
+
+    private boolean matchesFilters(@NonNull TransactionEntity transaction) {
+        long timestamp = transaction.getTimestamp();
+        if (timestamp < currentStartDate || timestamp > currentEndDate) {
+            return false;
+        }
+        if (navArgs.getWalletId() != null && !navArgs.getWalletId().equals(transaction.getWalletId())) {
+            return false;
+        }
+        if (!matchesCategoryFilter(transaction)) {
+            return false;
+        }
+        return matchesTransactionType(transaction);
+    }
+
+    private boolean matchesCategoryFilter(@NonNull TransactionEntity transaction) {
+        if (useOtherBudgetSource || navArgs.getCategoryId() == null) {
+            return true;
+        }
+        if (includeChildCategories) {
+            return belongsToCategoryBranch(transaction, navArgs.getCategoryId());
+        }
+        return navArgs.getCategoryId().equals(transaction.getCategoryId());
+    }
+
+    private boolean matchesTransactionType(@NonNull TransactionEntity transaction) {
+        return navArgs.getTransactionType() == null
+                || navArgs.getTransactionType().trim().isEmpty()
+                || navArgs.getTransactionType().equals(transaction.getType());
     }
 
     private boolean belongsToCategoryBranch(@NonNull TransactionEntity transaction,
@@ -455,7 +469,7 @@ public class ReportTransactionListFragment extends Fragment {
 
     @NonNull
     private String formatItemAmount(double amount, @Nullable String type) {
-        if ("EXPENSE".equals(type)) {
+        if (TYPE_EXPENSE.equals(type)) {
             return "-" + CurrencyFormatter.format(amount, "VND");
         }
         return CurrencyFormatter.format(amount, "VND");
@@ -471,13 +485,20 @@ public class ReportTransactionListFragment extends Fragment {
 
     @ColorInt
     private int resolveAccentColor(@Nullable String type, @Nullable CategoryEntity category) {
-        if ("INCOME".equals(type)) {
+        if (TYPE_INCOME.equals(type)) {
             return ContextCompat.getColor(requireContext(), R.color.transfer_blue);
         }
-        if ("EXPENSE".equals(type)) {
+        if (TYPE_EXPENSE.equals(type)) {
             return ContextCompat.getColor(requireContext(), R.color.expense_red);
         }
         return ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
+    }
+
+    @NonNull
+    private String getFallbackCategoryName(@Nullable String type) {
+        return getString("TRANSFER".equals(type)
+                ? R.string.ledger_section_transfer
+                : R.string.ledger_section_unknown);
     }
 
     private void applyWindowInsets() {

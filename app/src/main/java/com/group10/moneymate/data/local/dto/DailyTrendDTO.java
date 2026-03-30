@@ -8,6 +8,7 @@ public class DailyTrendDTO {
     private int transactionCount;
 
     public DailyTrendDTO() {
+        // Required for Room/SQLite cursor mapping.
     }
 
     public long getPeriodStart() {

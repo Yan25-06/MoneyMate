@@ -135,7 +135,6 @@ public class StatisticsOverviewFragment extends Fragment {
         binding.statisticsHeader.btnNextPeriod.setOnClickListener(v -> viewModel.shiftCurrentPeriod(1));
         binding.statisticsHeader.tvPeriodPrevious.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-2));
         binding.statisticsHeader.tvPeriodCurrent.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
-        binding.statisticsHeader.tvPeriodNext.setOnClickListener(v -> UnitAction.run());
         binding.statisticsHeader.btnDateFilter.setOnClickListener(v -> showDateRangePicker());
         binding.statisticsHeader.btnWalletSelector.setOnClickListener(v -> openWalletPicker());
     }
@@ -537,13 +536,5 @@ public class StatisticsOverviewFragment extends Fragment {
 
     private interface DateSelectedCallback {
         void onDateSelected(@NonNull LocalDate date);
-    }
-
-    private static final class UnitAction {
-        private UnitAction() {
-        }
-
-        private static void run() {
-        }
     }
 }

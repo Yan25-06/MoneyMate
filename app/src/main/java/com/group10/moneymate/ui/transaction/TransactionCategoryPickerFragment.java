@@ -56,7 +56,7 @@ public class TransactionCategoryPickerFragment extends Fragment {
         TransactionCategoryPickerFragmentArgs args =
                 TransactionCategoryPickerFragmentArgs.fromBundle(getArguments() == null ? new Bundle() : getArguments());
         selectedCategoryId = args.getSelectedCategoryId();
-        selectedType = args.getTransactionType() == null ? Constants.TYPE_EXPENSE : args.getTransactionType();
+        selectedType = resolveSelectedType(args.getTransactionType());
         lockToExpense = args.getLockToExpense();
         showAllCategories = args.getShowAllCategories();
         hideDebtTab = args.getHideDebtTab();
@@ -195,9 +195,7 @@ public class TransactionCategoryPickerFragment extends Fragment {
         if (lockToExpense) {
             return;
         }
-        int tabIndex = Constants.TYPE_INCOME.equals(selectedType) ? 1
-                : TransactionCategoryPickerViewModel.TYPE_DEBT.equals(selectedType) && !hideDebtTab ? 2
-                : 0;
+        int tabIndex = resolveTabIndex();
         TabLayout.Tab tab = binding.tabCategoryType.getTabAt(tabIndex);
         if (tab != null) {
             tab.select();
@@ -213,23 +211,55 @@ public class TransactionCategoryPickerFragment extends Fragment {
         }
 
         if (item.isDebt()) {
-            selectedDebtType = item.getDebtType();
-            adapter.setSelectedDebtType(selectedDebtType);
-            previous.getSavedStateHandle().set(RESULT_DEBT_TYPE, selectedDebtType == null ? null : selectedDebtType.name());
-            previous.getSavedStateHandle().set(RESULT_CATEGORY_ID, null);
-            previous.getSavedStateHandle().set(RESULT_ALL_CATEGORIES, false);
-            previous.getSavedStateHandle().set(RESULT_CATEGORY_TYPE,
-                    selectedDebtType == DebtType.BORROW ? Constants.TYPE_INCOME : Constants.TYPE_EXPENSE);
+            handleDebtSelection(previous, item.getDebtType());
         } else if (item.getGroup() != null) {
-            selectedCategoryId = item.getGroup().getRoot().getId();
-            adapter.setSelectedCategoryId(selectedCategoryId);
-            previous.getSavedStateHandle().set(RESULT_CATEGORY_ID, selectedCategoryId);
-            previous.getSavedStateHandle().set(RESULT_CATEGORY_TYPE, selectedType);
-            previous.getSavedStateHandle().set(RESULT_DEBT_TYPE, null);
-            previous.getSavedStateHandle().set(RESULT_ALL_CATEGORIES, false);
+            handleCategorySelection(previous, item.getGroup().getRoot().getId());
         }
 
         navController.navigateUp();
+    }
+
+    @NonNull
+    private String resolveSelectedType(@Nullable String transactionType) {
+        return transactionType == null ? Constants.TYPE_EXPENSE : transactionType;
+    }
+
+    private int resolveTabIndex() {
+        if (Constants.TYPE_INCOME.equals(selectedType)) {
+            return 1;
+        }
+        if (TransactionCategoryPickerViewModel.TYPE_DEBT.equals(selectedType) && !hideDebtTab) {
+            return 2;
+        }
+        return 0;
+    }
+
+    private void handleDebtSelection(@NonNull NavBackStackEntry previous,
+                                     @Nullable DebtType debtType) {
+        selectedDebtType = debtType;
+        adapter.setSelectedDebtType(selectedDebtType);
+        previous.getSavedStateHandle().set(
+                RESULT_DEBT_TYPE,
+                selectedDebtType == null ? null : selectedDebtType.name()
+        );
+        previous.getSavedStateHandle().set(RESULT_CATEGORY_ID, null);
+        previous.getSavedStateHandle().set(RESULT_ALL_CATEGORIES, false);
+        previous.getSavedStateHandle().set(RESULT_CATEGORY_TYPE, resolveDebtTransactionType(debtType));
+    }
+
+    private void handleCategorySelection(@NonNull NavBackStackEntry previous,
+                                         @NonNull String categoryId) {
+        selectedCategoryId = categoryId;
+        adapter.setSelectedCategoryId(selectedCategoryId);
+        previous.getSavedStateHandle().set(RESULT_CATEGORY_ID, selectedCategoryId);
+        previous.getSavedStateHandle().set(RESULT_CATEGORY_TYPE, selectedType);
+        previous.getSavedStateHandle().set(RESULT_DEBT_TYPE, null);
+        previous.getSavedStateHandle().set(RESULT_ALL_CATEGORIES, false);
+    }
+
+    @NonNull
+    private String resolveDebtTransactionType(@Nullable DebtType debtType) {
+        return debtType == DebtType.BORROW ? Constants.TYPE_INCOME : Constants.TYPE_EXPENSE;
     }
 
     @Override

@@ -36,9 +36,7 @@ public class AppContainer {
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());
         categoryRepository    = new CategoryRepository(database.categoryDao());
-        // TransactionRepository vẫn nhận walletDao để giữ wiring ổn định,
-        // còn số dư ví giờ được tính động từ transactions.
-        transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao());
+        transactionRepository = new TransactionRepository(database.transactionDao());
         this.budgetRepository = new BudgetRepository(database.budgetDao());
         debtRepository        = new DebtRepository(database.debtDao());
         eventRepository       = new EventRepository(database.eventDao());

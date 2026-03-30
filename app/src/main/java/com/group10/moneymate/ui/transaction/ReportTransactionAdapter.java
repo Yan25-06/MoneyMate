@@ -22,6 +22,10 @@ import java.util.Objects;
 
 public class ReportTransactionAdapter extends ListAdapter<TransactionEntity, ReportTransactionAdapter.ViewHolder> {
 
+    private static final String TYPE_INCOME = "INCOME";
+    private static final String TYPE_EXPENSE = "EXPENSE";
+    private static final String TYPE_TRANSFER = "TRANSFER";
+
     public interface OnTransactionClickListener {
         void onTransactionClick(@NonNull TransactionEntity transaction);
     }
@@ -155,18 +159,35 @@ public class ReportTransactionAdapter extends ListAdapter<TransactionEntity, Rep
 
         @NonNull
         static TransactionPresentation fallback(@NonNull Context context, @Nullable String type) {
-            int accent = ContextCompat.getColor(
-                    context,
-                    "INCOME".equals(type) ? R.color.transfer_blue : ("EXPENSE".equals(type) ? R.color.expense_red : R.color.statistics_text_secondary)
-            );
+            int accent = ContextCompat.getColor(context, resolveAccentColor(type));
             return new TransactionPresentation(
-                    "INCOME".equals(type) ? R.drawable.outline_attach_money_24 : ("TRANSFER".equals(type) ? R.drawable.outline_payments_24 : R.drawable.ic_category_spending),
+                    resolveIcon(type),
                     accent,
                     context.getString(R.string.ledger_section_unknown),
                     context.getString(R.string.transaction_detail_no_note),
                     CurrencyFormatter.format(0d, "VND"),
                     accent
             );
+        }
+
+        private static int resolveAccentColor(@Nullable String type) {
+            if (TYPE_INCOME.equals(type)) {
+                return R.color.transfer_blue;
+            }
+            if (TYPE_EXPENSE.equals(type)) {
+                return R.color.expense_red;
+            }
+            return R.color.statistics_text_secondary;
+        }
+
+        private static int resolveIcon(@Nullable String type) {
+            if (TYPE_INCOME.equals(type)) {
+                return R.drawable.outline_attach_money_24;
+            }
+            if (TYPE_TRANSFER.equals(type)) {
+                return R.drawable.outline_payments_24;
+            }
+            return R.drawable.ic_category_spending;
         }
     }
 

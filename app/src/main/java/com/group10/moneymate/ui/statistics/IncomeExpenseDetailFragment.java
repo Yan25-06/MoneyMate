@@ -20,8 +20,6 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavBackStackEntry;
-import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -61,9 +59,6 @@ import java.util.List;
 import java.util.Locale;
 
 public class IncomeExpenseDetailFragment extends Fragment {
-
-    private static final String RESULT_SELECTED_WALLET_ID = "result_selected_wallet_id";
-    private static final String RESULT_SELECTED_WALLET_LABEL = "result_selected_wallet_label";
 
     private FragmentIncomeExpenseDetailBinding binding;
     private IncomeExpenseDetailViewModel viewModel;
@@ -668,29 +663,6 @@ public class IncomeExpenseDetailFragment extends Fragment {
             return insets;
         });
         ViewCompat.requestApplyInsets(binding.statisticsHeader.getRoot());
-    }
-
-    private void observeWalletPickerResult() {
-        NavController navController = Navigation.findNavController(binding.getRoot());
-        NavBackStackEntry currentBackStackEntry = navController.getCurrentBackStackEntry();
-        if (currentBackStackEntry == null) {
-            return;
-        }
-        currentBackStackEntry.getSavedStateHandle()
-                .<String>getLiveData(RESULT_SELECTED_WALLET_ID)
-                .observe(getViewLifecycleOwner(), walletId -> {
-                    String walletLabel = currentBackStackEntry.getSavedStateHandle().get(RESULT_SELECTED_WALLET_LABEL);
-                    viewModel.updateWalletFilter(walletId, walletLabel);
-                    currentBackStackEntry.getSavedStateHandle().remove(RESULT_SELECTED_WALLET_ID);
-                    currentBackStackEntry.getSavedStateHandle().remove(RESULT_SELECTED_WALLET_LABEL);
-                });
-    }
-
-    private void openWalletPicker() {
-        IncomeExpenseDetailFragmentDirections.ActionStatisticsDetailFragmentToBudgetWalletPickerFragment action =
-                IncomeExpenseDetailFragmentDirections.actionStatisticsDetailFragmentToBudgetWalletPickerFragment();
-        action.setSelectedWalletId(viewModel.getCurrentFilterState().getWalletId());
-        Navigation.findNavController(binding.getRoot()).navigate(action);
     }
 
     private void showDateRangePicker() {

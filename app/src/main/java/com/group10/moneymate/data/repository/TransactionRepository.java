@@ -6,7 +6,6 @@ import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.TransactionDao;
-import com.group10.moneymate.data.local.dao.WalletDao;
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
 import com.group10.moneymate.data.local.dto.NetIncomeDTO;
@@ -24,7 +23,7 @@ public class TransactionRepository {
 
     private final TransactionDao transactionDao;
 
-    public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
+    public TransactionRepository(TransactionDao transactionDao) {
         this.transactionDao = transactionDao;
     }
 

@@ -35,6 +35,10 @@ import java.util.Map;
 
 public class TransactionDetailFragment extends Fragment {
 
+    private static final String TYPE_INCOME = "INCOME";
+    private static final String TYPE_EXPENSE = "EXPENSE";
+    private static final String TYPE_TRANSFER = "TRANSFER";
+
     private FragmentTransactionDetailBinding binding;
     private TransactionViewModel viewModel;
     private TransactionDetailFragmentArgs navArgs;
@@ -165,9 +169,7 @@ public class TransactionDetailFragment extends Fragment {
 
         String type = transaction.getType();
         int iconRes = resolveIconRes(category, type);
-        String categoryName = category != null
-                ? category.getName()
-                : getString("TRANSFER".equals(type) ? R.string.ledger_section_transfer : R.string.ledger_section_unknown);
+        String categoryName = resolveCategoryName(category, type);
 
         binding.ivCategoryIcon.setImageResource(iconRes);
         binding.ivCategoryIcon.setImageTintList(null);
@@ -186,10 +188,10 @@ public class TransactionDetailFragment extends Fragment {
 
     @NonNull
     private String formatAmount(double amount, @Nullable String type) {
-        if ("INCOME".equals(type)) {
+        if (TYPE_INCOME.equals(type)) {
             return "+" + CurrencyFormatter.format(amount, "VND");
         }
-        if ("EXPENSE".equals(type)) {
+        if (TYPE_EXPENSE.equals(type)) {
             return "-" + CurrencyFormatter.format(amount, "VND");
         }
         return CurrencyFormatter.format(amount, "VND");
@@ -209,13 +211,23 @@ public class TransactionDetailFragment extends Fragment {
     }
 
     private int resolveAmountColor(@Nullable String type) {
-        if ("INCOME".equals(type)) {
+        if (TYPE_INCOME.equals(type)) {
             return ContextCompat.getColor(requireContext(), R.color.income_green);
         }
-        if ("EXPENSE".equals(type)) {
+        if (TYPE_EXPENSE.equals(type)) {
             return ContextCompat.getColor(requireContext(), R.color.expense_red);
         }
         return ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
+    }
+
+    @NonNull
+    private String resolveCategoryName(@Nullable CategoryEntity category, @Nullable String type) {
+        if (category != null) {
+            return category.getName();
+        }
+        return getString(TYPE_TRANSFER.equals(type)
+                ? R.string.ledger_section_transfer
+                : R.string.ledger_section_unknown);
     }
 
     @Override

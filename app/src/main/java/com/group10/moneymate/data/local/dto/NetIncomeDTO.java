@@ -10,6 +10,7 @@ public class NetIncomeDTO {
     private int transactionCount;
 
     public NetIncomeDTO() {
+        // Required for Room/SQLite cursor mapping.
     }
 
     public long getPeriodStart() {

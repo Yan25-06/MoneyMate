@@ -30,6 +30,7 @@ import com.group10.moneymate.databinding.DialogStatisticsCustomRangeBinding;
 import com.group10.moneymate.databinding.FragmentTransactionListBinding;
 import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
 import com.group10.moneymate.ui.statistics.StatisticsViewModel;
+import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
@@ -52,6 +53,8 @@ public class TransactionListFragment extends Fragment {
 
     private static final String RESULT_SELECTED_WALLET_ID = "result_selected_wallet_id";
     private static final String RESULT_SELECTED_WALLET_LABEL = "result_selected_wallet_label";
+    private static final String TYPE_INCOME = Constants.TYPE_INCOME;
+    private static final String TYPE_EXPENSE = Constants.TYPE_EXPENSE;
 
     private FragmentTransactionListBinding binding;
     private TransactionViewModel viewModel;
@@ -246,9 +249,9 @@ public class TransactionListFragment extends Fragment {
         double income = 0d;
         double expense = 0d;
         for (TransactionEntity transaction : filtered) {
-            if ("INCOME".equals(transaction.getType())) {
+            if (TYPE_INCOME.equals(transaction.getType())) {
                 income += transaction.getAmount();
-            } else if ("EXPENSE".equals(transaction.getType())) {
+            } else if (TYPE_EXPENSE.equals(transaction.getType())) {
                 expense += transaction.getAmount();
             }
         }
@@ -272,20 +275,7 @@ public class TransactionListFragment extends Fragment {
         binding.rvTransactions.setVisibility(View.VISIBLE);
         binding.tvEmpty.setVisibility(View.GONE);
 
-        Map<String, TransactionTimeBucket> grouped = new LinkedHashMap<>();
-        for (TransactionEntity transaction : filtered) {
-            TransactionTimeBucket bucket = resolveBucket(grouped, transaction);
-            bucket.add(transaction);
-        }
-
-        List<TransactionTimeBucket> buckets = new ArrayList<>(grouped.values());
-        buckets.sort((left, right) -> Long.compare(right.getSortMillis(), left.getSortMillis()));
-
-        List<TransactionTimeGroupAdapter.GroupItem> items = new ArrayList<>();
-        for (TransactionTimeBucket bucket : buckets) {
-            bucket.transactions.sort((left, right) -> Long.compare(right.getTimestamp(), left.getTimestamp()));
-            items.add(bucket.toGroupItem());
-        }
+        List<TransactionTimeGroupAdapter.GroupItem> items = buildGroupItems(filtered);
         transactionGroupAdapter.submitList(items);
     }
 
@@ -313,44 +303,6 @@ public class TransactionListFragment extends Fragment {
         return periodType == StatisticsViewModel.PeriodType.QUARTER
                 || periodType == StatisticsViewModel.PeriodType.YEAR
                 || periodType == StatisticsViewModel.PeriodType.ALL;
-    }
-
-    @NonNull
-    private TransactionTimeGroupAdapter.RowItem buildRowItem(@NonNull TransactionEntity transaction) {
-        CategoryEntity category = transaction.getCategoryId() != null
-                ? categoryMap.get(transaction.getCategoryId())
-                : null;
-        String type = transaction.getType();
-        int amountColor;
-        String amountLabel;
-        if ("INCOME".equals(type)) {
-            amountColor = ContextCompat.getColor(requireContext(), R.color.transfer_blue);
-            amountLabel = "+" + CurrencyFormatter.format(transaction.getAmount(), "VND");
-        } else if ("EXPENSE".equals(type)) {
-            amountColor = ContextCompat.getColor(requireContext(), R.color.expense_red);
-            amountLabel = "-" + CurrencyFormatter.format(transaction.getAmount(), "VND");
-        } else {
-            amountColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
-            amountLabel = CurrencyFormatter.format(transaction.getAmount(), "VND");
-        }
-
-        String title = category != null ? category.getName() : getString(R.string.ledger_section_unknown);
-        String subtitle = transaction.getNote() != null && !transaction.getNote().trim().isEmpty()
-                ? transaction.getNote()
-                : getString(R.string.transaction_detail_no_note);
-        int iconRes = IconProvider.resolveCategoryIconByType(
-                requireContext(),
-                category != null ? category.getIconName() : null,
-                type
-        );
-        return new TransactionTimeGroupAdapter.RowItem(
-                transaction,
-                iconRes,
-                title,
-                subtitle,
-                amountLabel,
-                amountColor
-        );
     }
 
     private void openTransactionDetail(@NonNull TransactionEntity transaction) {
@@ -587,7 +539,7 @@ public class TransactionListFragment extends Fragment {
         if (args.getStatisticsTransactionType() != null) {
             return args.getStatisticsTransactionType();
         }
-        return (args.getBudgetStartDate() > 0L && args.getBudgetEndDate() > 0L) ? "EXPENSE" : null;
+        return (args.getBudgetStartDate() > 0L && args.getBudgetEndDate() > 0L) ? TYPE_EXPENSE : null;
     }
 
     private boolean shouldUseStatisticsFilter(@NonNull TransactionListFragmentArgs args) {
@@ -667,6 +619,25 @@ public class TransactionListFragment extends Fragment {
 
     private interface DateSelectedCallback { void onDateSelected(@NonNull LocalDate date); }
 
+    @NonNull
+    private List<TransactionTimeGroupAdapter.GroupItem> buildGroupItems(@NonNull List<TransactionEntity> filtered) {
+        Map<String, TransactionTimeBucket> grouped = new LinkedHashMap<>();
+        for (TransactionEntity transaction : filtered) {
+            TransactionTimeBucket bucket = resolveBucket(grouped, transaction);
+            bucket.add(transaction);
+        }
+
+        List<TransactionTimeBucket> buckets = new ArrayList<>(grouped.values());
+        buckets.sort((left, right) -> Long.compare(right.getSortMillis(), left.getSortMillis()));
+
+        List<TransactionTimeGroupAdapter.GroupItem> items = new ArrayList<>();
+        for (TransactionTimeBucket bucket : buckets) {
+            bucket.sortTransactions();
+            items.add(bucket.toGroupItem());
+        }
+        return items;
+    }
+
     private static class AggregateBudgetFilter {
         @NonNull private final String categoryId;
         @Nullable private final String walletId;
@@ -706,9 +677,9 @@ public class TransactionListFragment extends Fragment {
 
         private void add(@NonNull TransactionEntity transaction) {
             transactions.add(transaction);
-            if ("INCOME".equals(transaction.getType())) {
+            if (TYPE_INCOME.equals(transaction.getType())) {
                 totalIncome += transaction.getAmount();
-            } else if ("EXPENSE".equals(transaction.getType())) {
+            } else if (TYPE_EXPENSE.equals(transaction.getType())) {
                 totalExpense += transaction.getAmount();
             }
         }
@@ -717,11 +688,35 @@ public class TransactionListFragment extends Fragment {
             return anchorDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
         }
 
+        private void sortTransactions() {
+            transactions.sort((left, right) -> Long.compare(right.getTimestamp(), left.getTimestamp()));
+        }
+
+        @NonNull
+        private TransactionTimeGroupAdapter.RowItem toRowItem(@NonNull TransactionEntity transaction) {
+            CategoryEntity category = transaction.getCategoryId() != null
+                    ? categoryMap.get(transaction.getCategoryId())
+                    : null;
+            String type = transaction.getType();
+            return new TransactionTimeGroupAdapter.RowItem(
+                    transaction,
+                    IconProvider.resolveCategoryIconByType(
+                            requireContext(),
+                            category != null ? category.getIconName() : null,
+                            type
+                    ),
+                    category != null ? category.getName() : getString(R.string.ledger_section_unknown),
+                    resolveSubtitle(transaction),
+                    resolveAmountLabel(transaction.getAmount(), type),
+                    ContextCompat.getColor(requireContext(), resolveAmountColor(type))
+            );
+        }
+
         @NonNull
         private TransactionTimeGroupAdapter.GroupItem toGroupItem() {
             List<TransactionTimeGroupAdapter.RowItem> rowItems = new ArrayList<>();
             for (TransactionEntity transaction : transactions) {
-                rowItems.add(buildRowItem(transaction));
+                rowItems.add(toRowItem(transaction));
             }
 
             if (monthBucket) {
@@ -759,6 +754,34 @@ public class TransactionListFragment extends Fragment {
                     formatNetAmount(totalIncome - totalExpense),
                     rowItems
             );
+        }
+
+        @NonNull
+        private String resolveSubtitle(@NonNull TransactionEntity transaction) {
+            return transaction.getNote() != null && !transaction.getNote().trim().isEmpty()
+                    ? transaction.getNote()
+                    : getString(R.string.transaction_detail_no_note);
+        }
+
+        @NonNull
+        private String resolveAmountLabel(double amount, @Nullable String type) {
+            if (TYPE_INCOME.equals(type)) {
+                return "+" + CurrencyFormatter.format(amount, "VND");
+            }
+            if (TYPE_EXPENSE.equals(type)) {
+                return "-" + CurrencyFormatter.format(amount, "VND");
+            }
+            return CurrencyFormatter.format(amount, "VND");
+        }
+
+        private int resolveAmountColor(@Nullable String type) {
+            if (TYPE_INCOME.equals(type)) {
+                return R.color.transfer_blue;
+            }
+            if (TYPE_EXPENSE.equals(type)) {
+                return R.color.expense_red;
+            }
+            return R.color.statistics_text_primary;
         }
     }
 }

@@ -52,7 +52,7 @@ public class ParentCategoryPickerFragment extends Fragment {
                 getArguments() == null ? new Bundle() : getArguments()
         );
         selectedParentId = args.getSelectedParentId();
-        selectedType = args.getCategoryType() == null ? Constants.TYPE_EXPENSE : args.getCategoryType();
+        selectedType = resolveSelectedType(args.getCategoryType());
         currentCategoryId = args.getCurrentCategoryId();
 
         binding.topAppBar.setNavigationOnClickListener(v ->
@@ -67,15 +67,8 @@ public class ParentCategoryPickerFragment extends Fragment {
 
         viewModel.setSelectedType(selectedType);
         viewModel.getCategories().observe(getViewLifecycleOwner(), categories -> {
-            List<com.group10.moneymate.data.local.entity.CategoryEntity> filtered = categories;
-            if (currentCategoryId != null && categories != null && !categories.isEmpty()) {
-                filtered = new ArrayList<>();
-                for (com.group10.moneymate.data.local.entity.CategoryEntity category : categories) {
-                    if (!currentCategoryId.equals(category.getId())) {
-                        filtered.add(category);
-                    }
-                }
-            }
+            List<com.group10.moneymate.data.local.entity.CategoryEntity> filtered =
+                    filterCurrentCategory(categories);
             adapter.submitList(filtered);
             boolean isEmpty = filtered == null || filtered.isEmpty();
             binding.tvEmpty.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
@@ -91,6 +84,27 @@ public class ParentCategoryPickerFragment extends Fragment {
             previous.getSavedStateHandle().set(RESULT_PARENT_LABEL, category.getName());
         }
         navController.navigateUp();
+    }
+
+    @NonNull
+    private String resolveSelectedType(@Nullable String categoryType) {
+        return categoryType == null ? Constants.TYPE_EXPENSE : categoryType;
+    }
+
+    @Nullable
+    private List<com.group10.moneymate.data.local.entity.CategoryEntity> filterCurrentCategory(
+            @Nullable List<com.group10.moneymate.data.local.entity.CategoryEntity> categories
+    ) {
+        if (currentCategoryId == null || categories == null || categories.isEmpty()) {
+            return categories;
+        }
+        List<com.group10.moneymate.data.local.entity.CategoryEntity> filtered = new ArrayList<>();
+        for (com.group10.moneymate.data.local.entity.CategoryEntity category : categories) {
+            if (!currentCategoryId.equals(category.getId())) {
+                filtered.add(category);
+            }
+        }
+        return filtered;
     }
 
     @Override

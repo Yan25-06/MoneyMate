@@ -10,6 +10,7 @@ public class CategorySumDTO {
     private int transactionCount;
 
     public CategorySumDTO() {
+        // Required for Room/SQLite cursor mapping.
     }
 
     public String getCategoryId() {

@@ -161,8 +161,4 @@ public class HomeActivity extends AppCompatActivity {
         updateSelectedTab(destinationId);
         return true;
     }
-
-    private float dpToPx(int dp) {
-        return dp * getResources().getDisplayMetrics().density;
-    }
 }

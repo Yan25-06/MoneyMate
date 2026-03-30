@@ -48,26 +48,7 @@ public class TransactionCategoryPickerViewModel extends AndroidViewModel {
         allWalletLabel = application.getString(R.string.category_wallet_scope_all);
 
         wallets = walletRepository.getAllByUser(userId);
-
-        items = Transformations.switchMap(filterState, filter -> {
-            if (TYPE_DEBT.equals(filter.type)) {
-                MutableLiveData<List<TransactionCategoryPickerItem>> debtItems = new MutableLiveData<>();
-                debtItems.setValue(buildDebtItems());
-                return debtItems;
-            }
-            LiveData<List<CategoryEntity>> source = categoryRepository.getCategoriesByTypeAndWallet(
-                    userId,
-                    filter.type,
-                    filter.walletId
-            );
-            androidx.lifecycle.MediatorLiveData<List<TransactionCategoryPickerItem>> result =
-                    new androidx.lifecycle.MediatorLiveData<>();
-            result.addSource(source, categories ->
-                    result.setValue(buildCategoryItems(categories, wallets.getValue())));
-            result.addSource(wallets, walletList ->
-                    result.setValue(buildCategoryItems(source.getValue(), walletList)));
-            return result;
-        });
+        items = Transformations.switchMap(filterState, this::createItemsSource);
     }
 
     public LiveData<List<TransactionCategoryPickerItem>> getItems() {
@@ -96,10 +77,10 @@ public class TransactionCategoryPickerViewModel extends AndroidViewModel {
 
     @NonNull
     private List<TransactionCategoryPickerItem> buildDebtItems() {
-        List<TransactionCategoryPickerItem> items = new ArrayList<>();
-        items.add(TransactionCategoryPickerItem.forDebt(DebtType.LEND));
-        items.add(TransactionCategoryPickerItem.forDebt(DebtType.BORROW));
-        return items;
+        List<TransactionCategoryPickerItem> debtItems = new ArrayList<>();
+        debtItems.add(TransactionCategoryPickerItem.forDebt(DebtType.LEND));
+        debtItems.add(TransactionCategoryPickerItem.forDebt(DebtType.BORROW));
+        return debtItems;
     }
 
     @NonNull
@@ -112,7 +93,53 @@ public class TransactionCategoryPickerViewModel extends AndroidViewModel {
 
         List<CategoryEntity> roots = new ArrayList<>();
         Map<String, List<CategoryEntity>> childrenByParent = new HashMap<>();
+        partitionCategories(categories, roots, childrenByParent);
 
+        roots.sort(defaultCategoryComparator());
+        for (CategoryEntity root : roots) {
+            results.add(buildRootItem(root, childrenByParent.get(root.getId()), walletList));
+        }
+
+        // Orphaned children (missing parent) are listed after roots to avoid hiding data.
+        for (Map.Entry<String, List<CategoryEntity>> entry : childrenByParent.entrySet()) {
+            if (containsRoot(roots, entry.getKey())) {
+                continue;
+            }
+            addOrphanedChildren(results, entry.getValue(), walletList);
+        }
+
+        return results;
+    }
+
+    @NonNull
+    private LiveData<List<TransactionCategoryPickerItem>> createItemsSource(@NonNull Filter filter) {
+        if (TYPE_DEBT.equals(filter.type)) {
+            MutableLiveData<List<TransactionCategoryPickerItem>> debtItems = new MutableLiveData<>();
+            debtItems.setValue(buildDebtItems());
+            return debtItems;
+        }
+        return createCategoryItemsSource(filter);
+    }
+
+    @NonNull
+    private LiveData<List<TransactionCategoryPickerItem>> createCategoryItemsSource(@NonNull Filter filter) {
+        LiveData<List<CategoryEntity>> source = categoryRepository.getCategoriesByTypeAndWallet(
+                userId,
+                filter.type,
+                filter.walletId
+        );
+        androidx.lifecycle.MediatorLiveData<List<TransactionCategoryPickerItem>> result =
+                new androidx.lifecycle.MediatorLiveData<>();
+        result.addSource(source, categories ->
+                result.setValue(buildCategoryItems(categories, wallets.getValue())));
+        result.addSource(wallets, walletList ->
+                result.setValue(buildCategoryItems(source.getValue(), walletList)));
+        return result;
+    }
+
+    private void partitionCategories(@NonNull List<CategoryEntity> categories,
+                                     @NonNull List<CategoryEntity> roots,
+                                     @NonNull Map<String, List<CategoryEntity>> childrenByParent) {
         for (CategoryEntity category : categories) {
             if (category == null) {
                 continue;
@@ -126,47 +153,54 @@ public class TransactionCategoryPickerViewModel extends AndroidViewModel {
                         .add(category);
             }
         }
+    }
 
-        roots.sort(defaultCategoryComparator());
-        for (CategoryEntity root : roots) {
-            List<TransactionCategoryPickerItem.CategoryChildItem> childItems = new ArrayList<>();
-            List<CategoryEntity> children = childrenByParent.get(root.getId());
-            if (children != null && !children.isEmpty()) {
-                children.sort(Comparator.comparing(CategoryEntity::getName, String::compareToIgnoreCase));
-                for (CategoryEntity child : children) {
-                    childItems.add(new TransactionCategoryPickerItem.CategoryChildItem(
-                            child,
-                            resolveWalletLabel(child, walletList)
-                    ));
-                }
-            }
-            results.add(TransactionCategoryPickerItem.forCategoryGroup(
-                    root,
-                    childItems,
-                    resolveWalletLabel(root, walletList)
+    @NonNull
+    private TransactionCategoryPickerItem buildRootItem(
+            @NonNull CategoryEntity root,
+            @Nullable List<CategoryEntity> children,
+            @Nullable List<com.group10.moneymate.data.local.entity.WalletEntity> walletList
+    ) {
+        return TransactionCategoryPickerItem.forCategoryGroup(
+                root,
+                buildChildItems(children, walletList),
+                resolveWalletLabel(root, walletList)
+        );
+    }
+
+    @NonNull
+    private List<TransactionCategoryPickerItem.CategoryChildItem> buildChildItems(
+            @Nullable List<CategoryEntity> children,
+            @Nullable List<com.group10.moneymate.data.local.entity.WalletEntity> walletList
+    ) {
+        List<TransactionCategoryPickerItem.CategoryChildItem> childItems = new ArrayList<>();
+        if (children == null || children.isEmpty()) {
+            return childItems;
+        }
+        children.sort(Comparator.comparing(CategoryEntity::getName, String::compareToIgnoreCase));
+        for (CategoryEntity child : children) {
+            childItems.add(new TransactionCategoryPickerItem.CategoryChildItem(
+                    child,
+                    resolveWalletLabel(child, walletList)
             ));
         }
+        return childItems;
+    }
 
-        // Orphaned children (missing parent) are listed after roots to avoid hiding data.
-        for (Map.Entry<String, List<CategoryEntity>> entry : childrenByParent.entrySet()) {
-            if (containsRoot(roots, entry.getKey())) {
-                continue;
-            }
-            List<CategoryEntity> children = entry.getValue();
-            if (children == null) {
-                continue;
-            }
-            children.sort(Comparator.comparing(CategoryEntity::getName, String::compareToIgnoreCase));
-            for (CategoryEntity child : children) {
-                results.add(TransactionCategoryPickerItem.forCategoryGroup(
-                        child,
-                        new ArrayList<>(),
-                        resolveWalletLabel(child, walletList)
-                ));
-            }
+    private void addOrphanedChildren(@NonNull List<TransactionCategoryPickerItem> results,
+                                     @Nullable List<CategoryEntity> children,
+                                     @Nullable List<com.group10.moneymate.data.local.entity.WalletEntity> walletList) {
+        if (children == null || children.isEmpty()) {
+            return;
         }
-
-        return results;
+        children.sort(Comparator.comparing(CategoryEntity::getName, String::compareToIgnoreCase));
+        for (CategoryEntity child : children) {
+            results.add(TransactionCategoryPickerItem.forCategoryGroup(
+                    child,
+                    new ArrayList<>(),
+                    resolveWalletLabel(child, walletList)
+            ));
+        }
     }
 
     @NonNull

@@ -64,20 +64,17 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
         void bind(@NonNull WalletWithBalance item) {
             WalletEntity wallet = item.getWallet();
             boolean archived = wallet.isArchived();
+            android.content.Context context = binding.getRoot().getContext();
             binding.tvWalletName.setText(wallet.getName());
             binding.tvWalletBalance.setText(CurrencyFormatter.format(item.getCurrentBalance(), "VND"));
             binding.tvWalletBalance.setTextColor(ContextCompat.getColor(
-                    binding.getRoot().getContext(),
-                    archived
-                            ? R.color.statistics_text_muted
-                            : item.getCurrentBalance() < 0
-                            ? R.color.expense_red
-                            : R.color.statistics_text_primary
+                    context,
+                    resolveBalanceTextColor(archived, item.getCurrentBalance())
             ));
             binding.tvWalletArchivedNote.setVisibility(archived ? android.view.View.VISIBLE : android.view.View.GONE);
             binding.tvWalletArchivedNote.setText(R.string.wallet_picker_archived_note);
             binding.ivWalletIcon.setImageResource(IconProvider.resolveWalletIcon(
-                    binding.getRoot().getContext(),
+                    context,
                     wallet.getIconName(),
                     wallet.getType()
             ));
@@ -86,19 +83,17 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
             binding.vSelectedDot.setVisibility(isSelected && !archived
                     ? android.view.View.VISIBLE
                     : android.view.View.INVISIBLE);
-            binding.getRoot().setBackgroundResource(isSelected
-                    ? R.drawable.bg_budget_wallet_picker_selected
-                    : android.R.color.white);
+            binding.getRoot().setBackgroundResource(resolveBackground(isSelected));
             binding.getRoot().setAlpha(archived ? 0.6f : 1f);
             binding.ivWalletIcon.setAlpha(archived ? 0.55f : 1f);
             binding.tvWalletName.setTextColor(ContextCompat.getColor(
-                    binding.getRoot().getContext(),
+                    context,
                     archived ? R.color.statistics_text_muted : android.R.color.black
             ));
             binding.btnEditWallet.setImageTintList(android.content.res.ColorStateList.valueOf(
                     ContextCompat.getColor(
-                            binding.getRoot().getContext(),
-                            isSelected ? R.color.budget_safe_green : R.color.budget_text_secondary
+                            context,
+                            resolveEditTint(isSelected)
                     )
             ));
             binding.getRoot().setOnClickListener(v -> {
@@ -111,6 +106,21 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
                     listener.onEdit(wallet);
                 }
             });
+        }
+
+        private int resolveBalanceTextColor(boolean archived, double balance) {
+            if (archived) {
+                return R.color.statistics_text_muted;
+            }
+            return balance < 0 ? R.color.expense_red : R.color.statistics_text_primary;
+        }
+
+        private int resolveBackground(boolean selected) {
+            return selected ? R.drawable.bg_budget_wallet_picker_selected : android.R.color.white;
+        }
+
+        private int resolveEditTint(boolean selected) {
+            return selected ? R.color.budget_safe_green : R.color.budget_text_secondary;
         }
     }
 

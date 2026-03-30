@@ -497,18 +497,6 @@ public class BudgetListFragment extends Fragment {
         binding.ivWalletFilterIcon.setVisibility(View.GONE);
     }
 
-    private boolean isGenericWalletWord(@NonNull String token) {
-        return "ví".equalsIgnoreCase(token) || "wallet".equalsIgnoreCase(token);
-    }
-
-    @NonNull
-    private String capitalizeFirst(@NonNull String value) {
-        if (value.isEmpty()) {
-            return value;
-        }
-        return value.substring(0, 1).toUpperCase() + value.substring(1);
-    }
-
     @Override
     public void onDestroyView() {
         cancelWalletRedirect();

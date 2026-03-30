@@ -3,6 +3,7 @@ package com.group10.moneymate.ui.home;
 import android.app.Application;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
@@ -15,6 +16,7 @@ import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.utils.Constants;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,6 +31,8 @@ import java.util.Map;
 public class HomeViewModel extends AndroidViewModel {
 
     private static final String DAILY_PERIOD_FORMAT = "%Y-%m-%d";
+    private static final String TYPE_EXPENSE = Constants.TYPE_EXPENSE;
+    private static final String TYPE_INCOME = Constants.TYPE_INCOME;
 
     private final TransactionRepository transactionRepository;
     private final String userId;
@@ -82,8 +86,8 @@ public class HomeViewModel extends AndroidViewModel {
         transactionRepository = container.transactionRepository;
 
         wallets = container.walletRepository.getAllByUserWithBalance(userId);
-        expenseCategories = container.categoryRepository.getCategoriesByType(userId, "EXPENSE");
-        incomeCategories = container.categoryRepository.getCategoriesByType(userId, "INCOME");
+        expenseCategories = container.categoryRepository.getCategoriesByType(userId, TYPE_EXPENSE);
+        incomeCategories = container.categoryRepository.getCategoriesByType(userId, TYPE_INCOME);
         totalBalance = container.walletRepository.getTotalBalance(userId);
 
         recentTransactions = container.transactionRepository.getRecentTransactions(userId, 4);
@@ -121,14 +125,14 @@ public class HomeViewModel extends AndroidViewModel {
 
         monthlyTopExpenseCategories = container.transactionRepository.getCategorySums(
                 userId,
-                "EXPENSE",
+                TYPE_EXPENSE,
                 currentMonthBounds[0],
                 currentMonthBounds[1],
                 null
         );
         weeklyTopExpenseCategories = container.transactionRepository.getCategorySums(
                 userId,
-                "EXPENSE",
+                TYPE_EXPENSE,
                 currentWeekBounds[0],
                 currentWeekBounds[1],
                 null
@@ -141,63 +145,25 @@ public class HomeViewModel extends AndroidViewModel {
         LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate visibleEnd = LocalDate.now();
 
-        expenseCurrentSource = transactionRepository.getAmountTrend(
-                userId,
-                "EXPENSE",
-                toStartMillis(currentMonth),
-                toEndMillis(visibleEnd),
-                null,
-                DAILY_PERIOD_FORMAT
-        );
-        expensePrevOneSource = buildPreviousMonthSource("EXPENSE", currentMonth.minusMonths(1));
-        expensePrevTwoSource = buildPreviousMonthSource("EXPENSE", currentMonth.minusMonths(2));
-        expensePrevThreeSource = buildPreviousMonthSource("EXPENSE", currentMonth.minusMonths(3));
+        expenseCurrentSource = createCurrentMonthSource(TYPE_EXPENSE, currentMonth, visibleEnd);
+        expensePrevOneSource = buildPreviousMonthSource(TYPE_EXPENSE, currentMonth.minusMonths(1));
+        expensePrevTwoSource = buildPreviousMonthSource(TYPE_EXPENSE, currentMonth.minusMonths(2));
+        expensePrevThreeSource = buildPreviousMonthSource(TYPE_EXPENSE, currentMonth.minusMonths(3));
 
-        incomeCurrentSource = transactionRepository.getAmountTrend(
-                userId,
-                "INCOME",
-                toStartMillis(currentMonth),
-                toEndMillis(visibleEnd),
-                null,
-                DAILY_PERIOD_FORMAT
-        );
-        incomePrevOneSource = buildPreviousMonthSource("INCOME", currentMonth.minusMonths(1));
-        incomePrevTwoSource = buildPreviousMonthSource("INCOME", currentMonth.minusMonths(2));
-        incomePrevThreeSource = buildPreviousMonthSource("INCOME", currentMonth.minusMonths(3));
+        incomeCurrentSource = createCurrentMonthSource(TYPE_INCOME, currentMonth, visibleEnd);
+        incomePrevOneSource = buildPreviousMonthSource(TYPE_INCOME, currentMonth.minusMonths(1));
+        incomePrevTwoSource = buildPreviousMonthSource(TYPE_INCOME, currentMonth.minusMonths(2));
+        incomePrevThreeSource = buildPreviousMonthSource(TYPE_INCOME, currentMonth.minusMonths(3));
 
-        expenseComparisonPoints.addSource(expenseCurrentSource, value -> {
-            latestExpenseCurrent = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("EXPENSE");
-        });
-        expenseComparisonPoints.addSource(expensePrevOneSource, value -> {
-            latestExpensePrevOne = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("EXPENSE");
-        });
-        expenseComparisonPoints.addSource(expensePrevTwoSource, value -> {
-            latestExpensePrevTwo = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("EXPENSE");
-        });
-        expenseComparisonPoints.addSource(expensePrevThreeSource, value -> {
-            latestExpensePrevThree = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("EXPENSE");
-        });
+        observeComparisonSource(expenseComparisonPoints, expenseCurrentSource, TYPE_EXPENSE, 0);
+        observeComparisonSource(expenseComparisonPoints, expensePrevOneSource, TYPE_EXPENSE, 1);
+        observeComparisonSource(expenseComparisonPoints, expensePrevTwoSource, TYPE_EXPENSE, 2);
+        observeComparisonSource(expenseComparisonPoints, expensePrevThreeSource, TYPE_EXPENSE, 3);
 
-        incomeComparisonPoints.addSource(incomeCurrentSource, value -> {
-            latestIncomeCurrent = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("INCOME");
-        });
-        incomeComparisonPoints.addSource(incomePrevOneSource, value -> {
-            latestIncomePrevOne = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("INCOME");
-        });
-        incomeComparisonPoints.addSource(incomePrevTwoSource, value -> {
-            latestIncomePrevTwo = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("INCOME");
-        });
-        incomeComparisonPoints.addSource(incomePrevThreeSource, value -> {
-            latestIncomePrevThree = value != null ? value : new ArrayList<>();
-            rebuildComparisonPoints("INCOME");
-        });
+        observeComparisonSource(incomeComparisonPoints, incomeCurrentSource, TYPE_INCOME, 0);
+        observeComparisonSource(incomeComparisonPoints, incomePrevOneSource, TYPE_INCOME, 1);
+        observeComparisonSource(incomeComparisonPoints, incomePrevTwoSource, TYPE_INCOME, 2);
+        observeComparisonSource(incomeComparisonPoints, incomePrevThreeSource, TYPE_INCOME, 3);
     }
 
     @NonNull
@@ -213,15 +179,39 @@ public class HomeViewModel extends AndroidViewModel {
         );
     }
 
+    @NonNull
+    private LiveData<List<DailyTrendDTO>> createCurrentMonthSource(@NonNull String type,
+                                                                   @NonNull LocalDate currentMonth,
+                                                                   @NonNull LocalDate visibleEnd) {
+        return transactionRepository.getAmountTrend(
+                userId,
+                type,
+                toStartMillis(currentMonth),
+                toEndMillis(visibleEnd),
+                null,
+                DAILY_PERIOD_FORMAT
+        );
+    }
+
+    private void observeComparisonSource(@NonNull MediatorLiveData<List<TrendPointUiModel>> target,
+                                         @NonNull LiveData<List<DailyTrendDTO>> source,
+                                         @NonNull String type,
+                                         int slot) {
+        target.addSource(source, value -> {
+            updateTrendCache(type, slot, value);
+            rebuildComparisonPoints(type);
+        });
+    }
+
     private void rebuildComparisonPoints(@NonNull String type) {
         LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate visibleEnd = LocalDate.now();
         int lastVisibleDay = visibleEnd.getDayOfMonth();
 
-        List<DailyTrendDTO> currentSource = "EXPENSE".equals(type) ? latestExpenseCurrent : latestIncomeCurrent;
-        List<DailyTrendDTO> prevOneSource = "EXPENSE".equals(type) ? latestExpensePrevOne : latestIncomePrevOne;
-        List<DailyTrendDTO> prevTwoSource = "EXPENSE".equals(type) ? latestExpensePrevTwo : latestIncomePrevTwo;
-        List<DailyTrendDTO> prevThreeSource = "EXPENSE".equals(type) ? latestExpensePrevThree : latestIncomePrevThree;
+        List<DailyTrendDTO> currentSource = getTrendCache(type, 0);
+        List<DailyTrendDTO> prevOneSource = getTrendCache(type, 1);
+        List<DailyTrendDTO> prevTwoSource = getTrendCache(type, 2);
+        List<DailyTrendDTO> prevThreeSource = getTrendCache(type, 3);
 
         Map<LocalDate, Double> currentMap = toDailyAmountMap(currentSource);
         Map<LocalDate, Double> prevOneMap = toDailyAmountMap(prevOneSource);
@@ -271,11 +261,64 @@ public class HomeViewModel extends AndroidViewModel {
             ));
         }
 
-        if ("EXPENSE".equals(type)) {
+        if (TYPE_EXPENSE.equals(type)) {
             expenseComparisonPoints.setValue(items);
         } else {
             incomeComparisonPoints.setValue(items);
         }
+    }
+
+    private void updateTrendCache(@NonNull String type,
+                                  int slot,
+                                  @Nullable List<DailyTrendDTO> value) {
+        List<DailyTrendDTO> safeValue = value != null ? value : new ArrayList<>();
+        if (TYPE_EXPENSE.equals(type)) {
+            if (slot == 0) {
+                latestExpenseCurrent = safeValue;
+            } else if (slot == 1) {
+                latestExpensePrevOne = safeValue;
+            } else if (slot == 2) {
+                latestExpensePrevTwo = safeValue;
+            } else {
+                latestExpensePrevThree = safeValue;
+            }
+            return;
+        }
+        if (slot == 0) {
+            latestIncomeCurrent = safeValue;
+        } else if (slot == 1) {
+            latestIncomePrevOne = safeValue;
+        } else if (slot == 2) {
+            latestIncomePrevTwo = safeValue;
+        } else {
+            latestIncomePrevThree = safeValue;
+        }
+    }
+
+    @NonNull
+    private List<DailyTrendDTO> getTrendCache(@NonNull String type, int slot) {
+        if (TYPE_EXPENSE.equals(type)) {
+            if (slot == 0) {
+                return latestExpenseCurrent;
+            }
+            if (slot == 1) {
+                return latestExpensePrevOne;
+            }
+            if (slot == 2) {
+                return latestExpensePrevTwo;
+            }
+            return latestExpensePrevThree;
+        }
+        if (slot == 0) {
+            return latestIncomeCurrent;
+        }
+        if (slot == 1) {
+            return latestIncomePrevOne;
+        }
+        if (slot == 2) {
+            return latestIncomePrevTwo;
+        }
+        return latestIncomePrevThree;
     }
 
     @NonNull

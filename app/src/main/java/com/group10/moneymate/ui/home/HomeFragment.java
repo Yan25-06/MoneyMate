@@ -40,6 +40,7 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.databinding.FragmentHomeBinding;
 import com.group10.moneymate.ui.main.HomeActivity;
+import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 
@@ -58,6 +59,8 @@ public class HomeFragment extends Fragment {
 
     private static final String HIDDEN_BALANCE_MASK = "*********";
     private static final ZoneId APP_ZONE = ZoneId.systemDefault();
+    private static final String TYPE_EXPENSE = Constants.TYPE_EXPENSE;
+    private static final String TYPE_INCOME = Constants.TYPE_INCOME;
 
     private FragmentHomeBinding binding;
     private HomeViewModel viewModel;
@@ -228,24 +231,42 @@ public class HomeFragment extends Fragment {
     }
 
     private void observeData() {
+        observeBalanceData();
+        observeWalletData();
+        observeCategoryData();
+        observeTransactionData();
+        observeExpenseData();
+        observeTrendData();
+        observeTopSpendingData();
+    }
+
+    private void observeBalanceData() {
         viewModel.getTotalBalance().observe(getViewLifecycleOwner(), total -> {
             currentTotalBalance = total != null ? total : 0.0;
             renderTotalBalanceText();
         });
+    }
 
+    private void observeWalletData() {
         viewModel.getWallets().observe(getViewLifecycleOwner(), wallets -> {
             walletItems = wallets != null ? wallets : new ArrayList<>();
             renderWallets();
         });
+    }
 
+    private void observeCategoryData() {
         viewModel.getExpenseCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
         viewModel.getIncomeCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
+    }
 
+    private void observeTransactionData() {
         viewModel.getRecentTransactions().observe(getViewLifecycleOwner(), transactions -> {
             recentTransactions = transactions != null ? transactions : new ArrayList<>();
             renderRecentTransactions();
         });
+    }
 
+    private void observeExpenseData() {
         viewModel.getMonthlyExpense().observe(getViewLifecycleOwner(), amount -> {
             currentMonthExpense = amount != null ? amount : 0.0;
             renderExpenseReportCard();
@@ -267,6 +288,9 @@ public class HomeFragment extends Fragment {
             currentMonthIncome = amount != null ? amount : 0.0;
             renderTrendMetrics();
         });
+    }
+
+    private void observeTrendData() {
         viewModel.getExpenseComparisonPoints().observe(getViewLifecycleOwner(), items -> {
             expenseTrendPoints = items != null ? items : new ArrayList<>();
             renderTrendChart();
@@ -275,7 +299,9 @@ public class HomeFragment extends Fragment {
             incomeTrendPoints = items != null ? items : new ArrayList<>();
             renderTrendChart();
         });
+    }
 
+    private void observeTopSpendingData() {
         viewModel.getMonthlyTopExpenseCategories().observe(getViewLifecycleOwner(), items -> {
             monthlyTopCategories = items != null ? items : new ArrayList<>();
             renderTopSpending();
@@ -328,9 +354,7 @@ public class HomeFragment extends Fragment {
                     category != null ? category.getName() : getString(R.string.ledger_section_unknown),
                     formatShortDate(transaction.getTimestamp()),
                     formatAmountLabel(transaction.getAmount(), type),
-                    "EXPENSE".equals(type)
-                            ? ContextCompat.getColor(requireContext(), R.color.expense_red)
-                            : ContextCompat.getColor(requireContext(), R.color.transfer_blue)
+                    ContextCompat.getColor(requireContext(), resolveRecentTransactionAmountColor(type))
             ));
         }
         recentTransactionAdapter.submitList(items);
@@ -419,9 +443,7 @@ public class HomeFragment extends Fragment {
         binding.tvReportChange.setText(changeText);
         binding.tvReportChange.setTextColor(ContextCompat.getColor(
                 requireContext(),
-                currentValue > previousValue ? R.color.expense_red
-                        : currentValue < previousValue ? R.color.income_green
-                        : R.color.statistics_text_secondary
+                resolveReportChangeColor(currentValue, previousValue)
         ));
         renderExpenseChart(previousValue, currentValue);
     }
@@ -587,10 +609,24 @@ public class HomeFragment extends Fragment {
 
     private void navigateToStatisticsForCurrentReport() {
         if (reportCardType == ReportCardType.TREND) {
-            navigateToStatistics(ExpenseRangeMode.MONTH, trendMetric == TrendMetric.EXPENSE ? "EXPENSE" : "INCOME");
+            navigateToStatistics(ExpenseRangeMode.MONTH, trendMetric == TrendMetric.EXPENSE ? TYPE_EXPENSE : TYPE_INCOME);
             return;
         }
-        navigateToStatistics(reportRangeMode, "EXPENSE");
+        navigateToStatistics(reportRangeMode, TYPE_EXPENSE);
+    }
+
+    private int resolveRecentTransactionAmountColor(@Nullable String type) {
+        return TYPE_EXPENSE.equals(type) ? R.color.expense_red : R.color.transfer_blue;
+    }
+
+    private int resolveReportChangeColor(double currentValue, double previousValue) {
+        if (currentValue > previousValue) {
+            return R.color.expense_red;
+        }
+        if (currentValue < previousValue) {
+            return R.color.income_green;
+        }
+        return R.color.statistics_text_secondary;
     }
 
     private void navigateToStatistics(@NonNull ExpenseRangeMode mode, @Nullable String transactionType) {

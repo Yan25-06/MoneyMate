@@ -51,86 +51,13 @@ public class StatisticsViewModel extends ViewModel {
         this.walletRepository = walletRepository;
         this.userId = userId;
         filterState.setValue(FilterState.createCurrentMonth(null));
-
-        headerBalance = Transformations.switchMap(filterState, state -> {
-            if (state == null) {
-                return new MutableLiveData<>(0d);
-            }
-            if (state.getWalletId() == null) {
-                return normalizeDouble(walletRepository.getTotalBalance(userId));
-            }
-            return mapWalletBalance(walletRepository.getByIdWithBalance(state.getWalletId()));
-        });
-
-        selectedWallet = Transformations.switchMap(filterState, state -> {
-            if (state == null || state.getWalletId() == null || state.getWalletId().trim().isEmpty()) {
-                return new MutableLiveData<>(null);
-            }
-            return walletRepository.getById(state.getWalletId());
-        });
-
-        netIncomeSummary = Transformations.switchMap(filterState, state -> {
-            if (state == null) {
-                return new MutableLiveData<>(null);
-            }
-            return transactionRepository.getNetIncomeSummary(
-                    userId,
-                    state.getStartDate(),
-                    state.getEndDate(),
-                    state.getWalletId(),
-                    state.getDisplayLabel()
-            );
-        });
-
-        totalIncomeAmount = Transformations.switchMap(filterState, state -> {
-            if (state == null) {
-                return new MutableLiveData<>(0d);
-            }
-            return normalizeDouble(transactionRepository.getTotalIncomeFiltered(
-                    userId,
-                    state.getStartDate(),
-                    state.getEndDate(),
-                    state.getWalletId()
-            ));
-        });
-
-        totalExpenseAmount = Transformations.switchMap(filterState, state -> {
-            if (state == null) {
-                return new MutableLiveData<>(0d);
-            }
-            return normalizeDouble(transactionRepository.getTotalExpenseFiltered(
-                    userId,
-                    state.getStartDate(),
-                    state.getEndDate(),
-                    state.getWalletId()
-            ));
-        });
-
-        incomeCategorySums = Transformations.switchMap(filterState, state -> {
-            if (state == null) {
-                return new MutableLiveData<>(new ArrayList<>());
-            }
-            return mapCategorySliceLiveData(transactionRepository.getCategorySums(
-                    userId,
-                    TransactionType.INCOME.name(),
-                    state.getStartDate(),
-                    state.getEndDate(),
-                    state.getWalletId()
-            ));
-        });
-
-        expenseCategorySums = Transformations.switchMap(filterState, state -> {
-            if (state == null) {
-                return new MutableLiveData<>(new ArrayList<>());
-            }
-            return mapCategorySliceLiveData(transactionRepository.getCategorySums(
-                    userId,
-                    TransactionType.EXPENSE.name(),
-                    state.getStartDate(),
-                    state.getEndDate(),
-                    state.getWalletId()
-            ));
-        });
+        headerBalance = createHeaderBalanceSource();
+        selectedWallet = createSelectedWalletSource();
+        netIncomeSummary = createNetIncomeSummarySource();
+        totalIncomeAmount = createTotalAmountSource(TransactionType.INCOME);
+        totalExpenseAmount = createTotalAmountSource(TransactionType.EXPENSE);
+        incomeCategorySums = createCategorySumSource(TransactionType.INCOME);
+        expenseCategorySums = createCategorySumSource(TransactionType.EXPENSE);
     }
 
     public LiveData<Double> getHeaderBalance() {
@@ -275,6 +202,84 @@ public class StatisticsViewModel extends ViewModel {
         MediatorLiveData<List<CategorySliceUiModel>> result = new MediatorLiveData<>();
         result.addSource(source, value -> result.setValue(mapCategorySlices(value)));
         return result;
+    }
+
+    @NonNull
+    private LiveData<Double> createHeaderBalanceSource() {
+        return Transformations.switchMap(filterState, state -> {
+            if (state == null) {
+                return new MutableLiveData<>(0d);
+            }
+            if (state.getWalletId() == null) {
+                return normalizeDouble(walletRepository.getTotalBalance(userId));
+            }
+            return mapWalletBalance(walletRepository.getByIdWithBalance(state.getWalletId()));
+        });
+    }
+
+    @NonNull
+    private LiveData<WalletEntity> createSelectedWalletSource() {
+        return Transformations.switchMap(filterState, state -> {
+            if (state == null || state.getWalletId() == null || state.getWalletId().trim().isEmpty()) {
+                return new MutableLiveData<>(null);
+            }
+            return walletRepository.getById(state.getWalletId());
+        });
+    }
+
+    @NonNull
+    private LiveData<NetIncomeDTO> createNetIncomeSummarySource() {
+        return Transformations.switchMap(filterState, state -> {
+            if (state == null) {
+                return new MutableLiveData<>(null);
+            }
+            return transactionRepository.getNetIncomeSummary(
+                    userId,
+                    state.getStartDate(),
+                    state.getEndDate(),
+                    state.getWalletId(),
+                    state.getDisplayLabel()
+            );
+        });
+    }
+
+    @NonNull
+    private LiveData<Double> createTotalAmountSource(@NonNull TransactionType transactionType) {
+        return Transformations.switchMap(filterState, state -> {
+            if (state == null) {
+                return new MutableLiveData<>(0d);
+            }
+            if (transactionType == TransactionType.INCOME) {
+                return normalizeDouble(transactionRepository.getTotalIncomeFiltered(
+                        userId,
+                        state.getStartDate(),
+                        state.getEndDate(),
+                        state.getWalletId()
+                ));
+            }
+            return normalizeDouble(transactionRepository.getTotalExpenseFiltered(
+                    userId,
+                    state.getStartDate(),
+                    state.getEndDate(),
+                    state.getWalletId()
+            ));
+        });
+    }
+
+    @NonNull
+    private LiveData<List<CategorySliceUiModel>> createCategorySumSource(@NonNull TransactionType transactionType) {
+        return Transformations.switchMap(filterState, state -> {
+            if (state == null) {
+                return new MutableLiveData<>(new ArrayList<>());
+            }
+            return mapCategorySliceLiveData(transactionRepository.getCategorySums(
+                    userId,
+                    transactionType.name(),
+                    state.getStartDate(),
+                    state.getEndDate(),
+                    state.getWalletId()
+            ));
+        });
     }
 
     @Nullable

@@ -25,6 +25,8 @@ import java.util.UUID;
  */
 public class CategoryRepository {
 
+    private static final String DEFAULT_CATEGORY_ICON_NAME = "ic_category_default";
+
     public interface CategoryValidationCallback {
         void onCompleted(@NonNull CategoryValidationResult result);
     }
@@ -209,7 +211,7 @@ public class CategoryRepository {
     private CategoryValidationResult prepareAndValidateForCreate(@NonNull CategoryEntity category) {
         category.setId(UUID.randomUUID().toString());
         if (category.getIconName().trim().isEmpty()) {
-            category.setIconName("ic_category_default");
+            category.setIconName(DEFAULT_CATEGORY_ICON_NAME);
         }
         CategoryValidationResult validationResult = validateHierarchyForCreate(category);
         if (!validationResult.isValid()) {
@@ -224,7 +226,7 @@ public class CategoryRepository {
     @NonNull
     private CategoryValidationResult prepareAndValidateForUpdate(@NonNull CategoryEntity category) {
         if (category.getIconName().trim().isEmpty()) {
-            category.setIconName("ic_category_default");
+            category.setIconName(DEFAULT_CATEGORY_ICON_NAME);
         }
         CategoryValidationResult validationResult = validateHierarchyForUpdate(category);
         if (!validationResult.isValid()) {
@@ -509,7 +511,7 @@ public class CategoryRepository {
     @NonNull
     private String resolveCategoryIconName(@Nullable String iconName) {
         if (iconName == null || iconName.trim().isEmpty()) {
-            return "ic_category_default";
+            return DEFAULT_CATEGORY_ICON_NAME;
         }
         return iconName;
     }

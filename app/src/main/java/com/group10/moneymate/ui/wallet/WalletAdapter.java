@@ -65,41 +65,45 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
         void bind(WalletWithBalance item) {
             WalletEntity wallet = item.getWallet();
             boolean archived = wallet.isArchived();
+            android.content.Context context = binding.getRoot().getContext();
             binding.tvName.setText(wallet.getName());
-            binding.tvType.setText(getTypeText(binding.getRoot().getContext(), wallet.getType()));
+            binding.tvType.setText(resolveTypeText(wallet.getType()));
             binding.tvBalance.setText(CurrencyFormatter.format(item.getCurrentBalance(), "VND"));
             binding.ivIcon.setImageResource(IconProvider.resolveWalletIcon(
-                    binding.getRoot().getContext(),
+                    context,
                     wallet.getIconName(),
                     wallet.getType()
             ));
-            int primaryTextColor = ContextCompat.getColor(binding.getRoot().getContext(),
-                    archived ? R.color.statistics_text_muted : R.color.statistics_text_primary);
-            int secondaryTextColor = ContextCompat.getColor(binding.getRoot().getContext(),
-                    R.color.statistics_text_secondary);
-            int mutedColor = ContextCompat.getColor(binding.getRoot().getContext(), R.color.statistics_text_muted);
-            int balanceColor = item.getCurrentBalance() < 0
-                    ? ContextCompat.getColor(binding.getRoot().getContext(),
-                    archived ? R.color.statistics_text_muted : R.color.expense_red)
+            applyArchivedStyle(context, archived, item.getCurrentBalance());
+            binding.btnMenu.setOnClickListener(v -> showPopupMenu(v, wallet));
+        }
+
+        private void applyArchivedStyle(@NonNull android.content.Context context,
+                                        boolean archived,
+                                        double currentBalance) {
+            int primaryTextColor = ContextCompat.getColor(
+                    context,
+                    archived ? R.color.statistics_text_muted : R.color.statistics_text_primary
+            );
+            int secondaryTextColor = ContextCompat.getColor(context, R.color.statistics_text_secondary);
+            int mutedColor = ContextCompat.getColor(context, R.color.statistics_text_muted);
+            int balanceColor = currentBalance < 0
+                    ? ContextCompat.getColor(context, archived ? R.color.statistics_text_muted : R.color.expense_red)
                     : primaryTextColor;
 
             binding.tvName.setTextColor(primaryTextColor);
             binding.tvType.setTextColor(archived ? mutedColor : secondaryTextColor);
             binding.tvBalance.setTextColor(balanceColor);
             binding.tvArchivedBadge.setVisibility(archived ? View.VISIBLE : View.GONE);
-            binding.cvIcon.setCardBackgroundColor(
-                    ContextCompat.getColor(
-                            binding.getRoot().getContext(),
-                            archived ? R.color.statistics_card_inner_bg : android.R.color.white
-                    )
-            );
+            binding.cvIcon.setCardBackgroundColor(ContextCompat.getColor(
+                    context,
+                    archived ? R.color.statistics_card_inner_bg : android.R.color.white
+            ));
             binding.ivIcon.setImageTintList(archived
                     ? android.content.res.ColorStateList.valueOf(mutedColor)
                     : null);
             binding.ivIcon.setAlpha(archived ? 0.72f : 1f);
             binding.getRoot().setAlpha(archived ? 0.78f : 1f);
-
-            binding.btnMenu.setOnClickListener(v -> showPopupMenu(v, wallet));
         }
 
         private void showPopupMenu(View anchor, WalletEntity wallet) {
@@ -137,18 +141,18 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
             });
             popupMenu.show();
         }
-    }
 
-    private String getTypeText(android.content.Context context, String type) {
-        if ("BANK".equals(type)) {
-            return context.getString(R.string.wallet_type_bank);
+        @NonNull
+        private String resolveTypeText(@Nullable String type) {
+            if ("BANK".equals(type)) {
+                return binding.getRoot().getContext().getString(R.string.wallet_type_bank);
+            }
+            if ("E_WALLET".equals(type)) {
+                return binding.getRoot().getContext().getString(R.string.wallet_type_ewallet);
+            }
+            return binding.getRoot().getContext().getString(R.string.wallet_type_cash);
         }
-        if ("E_WALLET".equals(type)) {
-            return context.getString(R.string.wallet_type_ewallet);
-        }
-        return context.getString(R.string.wallet_type_cash);
     }
-
 
     private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK =
             new DiffUtil.ItemCallback<WalletWithBalance>() {
