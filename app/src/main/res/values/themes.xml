@@ -3,8 +3,25 @@
     <style name="Base.Theme.MoneyMate" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <item name="android:colorBackground">@color/white</item>
+        <item name="colorPrimary">@color/moneymate_picker_accent</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/moneymate_picker_header_background</item>
+        <item name="colorOnPrimaryContainer">@color/moneymate_field_text</item>
+        <item name="colorSecondary">@color/transfer_blue</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/statistics_period_selected_background</item>
+        <item name="colorOnSecondaryContainer">@color/statistics_text_primary</item>
+        <item name="colorTertiary">@color/budget_warning_orange</item>
+        <item name="colorOnTertiary">@color/white</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/moneymate_field_text</item>
+        <item name="colorSurfaceContainer">@color/white</item>
+        <item name="colorSurfaceContainerHigh">@color/white</item>
+        <item name="colorOutline">@color/transaction_border</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.MoneyMate.MaterialAlertDialog</item>
+        <item name="popupMenuStyle">@style/Widget.MoneyMate.PopupMenu</item>
     </style>
+
 
     <style name="Theme.MoneyMate" parent="Base.Theme.MoneyMate" />
 </resources>

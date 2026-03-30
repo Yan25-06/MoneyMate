@@ -21,7 +21,8 @@ public class AddEditBudgetViewModel extends ViewModel {
     private final BudgetRepository budgetRepository;
     private final String userId;
     private final LiveData<List<CategoryEntity>> expenseCategories;
-    private final LiveData<List<WalletEntity>> wallets;
+    private final LiveData<List<WalletEntity>> activeWallets;
+    private final LiveData<List<WalletEntity>> allWallets;
 
     public AddEditBudgetViewModel(@NonNull BudgetRepository budgetRepository,
                                   @NonNull CategoryRepository categoryRepository,
@@ -30,15 +31,20 @@ public class AddEditBudgetViewModel extends ViewModel {
         this.budgetRepository = budgetRepository;
         this.userId = userId;
         this.expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
-        this.wallets = walletRepository.getAllByUser(userId);
+        this.activeWallets = walletRepository.getActiveByUser(userId);
+        this.allWallets = walletRepository.getAllByUser(userId);
     }
 
     public LiveData<List<CategoryEntity>> getExpenseCategories() {
         return expenseCategories;
     }
 
-    public LiveData<List<WalletEntity>> getWallets() {
-        return wallets;
+    public LiveData<List<WalletEntity>> getActiveWallets() {
+        return activeWallets;
+    }
+
+    public LiveData<List<WalletEntity>> getAllWallets() {
+        return allWallets;
     }
 
     public LiveData<BudgetEntity> getBudgetById(@NonNull String budgetId) {

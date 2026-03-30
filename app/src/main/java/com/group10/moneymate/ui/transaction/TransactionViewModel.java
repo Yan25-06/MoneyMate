@@ -22,6 +22,7 @@ import java.util.List;
 public class TransactionViewModel extends AndroidViewModel {
 
     private final TransactionRepository transactionRepository;
+    private final CategoryRepository categoryRepository;
     private final String userId;
 
     // ─── Transactions list ────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ public class TransactionViewModel extends AndroidViewModel {
 
     // ─── Wallets & Categories (cho picker) ───────────────────────────────────
     private final LiveData<List<WalletEntity>> wallets;
+    private final LiveData<List<WalletEntity>> activeWallets;
     private final LiveData<List<CategoryEntity>> expenseCategories;
     private final LiveData<List<CategoryEntity>> incomeCategories;
 
@@ -50,7 +52,7 @@ public class TransactionViewModel extends AndroidViewModel {
         MoneyMateApplication app = (MoneyMateApplication) application;
         transactionRepository = app.getAppContainer().transactionRepository;
         WalletRepository walletRepository = app.getAppContainer().walletRepository;
-        CategoryRepository categoryRepository = app.getAppContainer().categoryRepository;
+        categoryRepository = app.getAppContainer().categoryRepository;
 
         userId = app.getAppContainer().authRepository.getCurrentUserId();
 
@@ -74,6 +76,7 @@ public class TransactionViewModel extends AndroidViewModel {
         });
 
         wallets = walletRepository.getAllByUser(userId);
+        activeWallets = walletRepository.getActiveByUser(userId);
         expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
         incomeCategories  = categoryRepository.getCategoriesByType(userId, "INCOME");
     }
@@ -96,12 +99,20 @@ public class TransactionViewModel extends AndroidViewModel {
         return wallets;
     }
 
+    public LiveData<List<WalletEntity>> getActiveWallets() {
+        return activeWallets;
+    }
+
     public LiveData<List<CategoryEntity>> getExpenseCategories() {
         return expenseCategories;
     }
 
     public LiveData<List<CategoryEntity>> getIncomeCategories() {
         return incomeCategories;
+    }
+
+    public LiveData<CategoryEntity> getCategoryById(String id) {
+        return categoryRepository.getCategoryById(id);
     }
 
     public LiveData<TransactionEntity> getSelectedTransaction() {

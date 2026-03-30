@@ -107,6 +107,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.fragment.testing)
+    debugImplementation(libs.fragment.testing.manifest)
 
     implementation(libs.fragment.ktx)
     implementation(libs.navigation.fragment.ktx)

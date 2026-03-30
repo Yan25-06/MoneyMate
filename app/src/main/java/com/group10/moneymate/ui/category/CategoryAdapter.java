@@ -1,7 +1,7 @@
 package com.group10.moneymate.ui.category;
 
+import android.content.Context;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -10,21 +10,23 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.group10.moneymate.R;
-import com.group10.moneymate.data.local.entity.CategoryEntity;
-import com.group10.moneymate.databinding.ItemCategoryBinding;
+import com.group10.moneymate.databinding.ItemCategoryAddNewBinding;
+import com.group10.moneymate.databinding.ItemCategoryChildRowBinding;
+import com.group10.moneymate.databinding.ItemCategoryHierarchyBinding;
+import com.group10.moneymate.utils.IconProvider;
 
-public class CategoryAdapter extends ListAdapter<CategoryEntity, CategoryAdapter.ViewHolder> {
+public class CategoryAdapter extends ListAdapter<CategoryListItem, RecyclerView.ViewHolder> {
 
     public interface OnItemClickListener {
-        void onItemClick(CategoryEntity item);
+        void onItemClick(com.group10.moneymate.data.local.entity.CategoryEntity item);
     }
 
-    public interface OnItemDeleteListener {
-        void onItemDelete(CategoryEntity item);
+    public interface OnAddNewClickListener {
+        void onAddNewClick();
     }
 
     private OnItemClickListener clickListener;
-    private OnItemDeleteListener deleteListener;
+    private OnAddNewClickListener addNewClickListener;
 
     public CategoryAdapter() {
         super(DIFF_CALLBACK);
@@ -34,84 +36,130 @@ public class CategoryAdapter extends ListAdapter<CategoryEntity, CategoryAdapter
         this.clickListener = listener;
     }
 
-    public void setOnItemDeleteListener(OnItemDeleteListener listener) {
-        this.deleteListener = listener;
+    public void setOnAddNewClickListener(OnAddNewClickListener listener) {
+        this.addNewClickListener = listener;
     }
 
-    private static final DiffUtil.ItemCallback<CategoryEntity> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<CategoryEntity>() {
+    private static final DiffUtil.ItemCallback<CategoryListItem> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<CategoryListItem>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull CategoryEntity oldItem,
-                                               @NonNull CategoryEntity newItem) {
-                    return oldItem.getId().equals(newItem.getId());
+                public boolean areItemsTheSame(@NonNull CategoryListItem oldItem,
+                                               @NonNull CategoryListItem newItem) {
+                    return oldItem.getStableId().equals(newItem.getStableId());
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull CategoryEntity oldItem,
-                                                  @NonNull CategoryEntity newItem) {
-                    return oldItem.getId().equals(newItem.getId())
-                            && oldItem.getName().equals(newItem.getName())
-                            && oldItem.getIconResId().equals(newItem.getIconResId())
-                            && oldItem.getColorHex().equals(newItem.getColorHex())
-                            && oldItem.getType().equals(newItem.getType())
-                            && oldItem.isDefault() == newItem.isDefault();
+                public boolean areContentsTheSame(@NonNull CategoryListItem oldItem,
+                                                  @NonNull CategoryListItem newItem) {
+                    return oldItem.contentEquals(newItem);
                 }
             };
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ItemCategoryBinding binding = ItemCategoryBinding.inflate(
+    public int getItemViewType(int position) {
+        return getItem(position).getItemType() == CategoryListItem.ItemType.ADD_NEW
+                ? R.layout.item_category_add_new
+                : R.layout.item_category_hierarchy;
+    }
+
+    @NonNull
+    @Override
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == R.layout.item_category_add_new) {
+            ItemCategoryAddNewBinding binding = ItemCategoryAddNewBinding.inflate(
+                    LayoutInflater.from(parent.getContext()), parent, false);
+            return new AddNewViewHolder(binding);
+        }
+        ItemCategoryHierarchyBinding binding = ItemCategoryHierarchyBinding.inflate(
                 LayoutInflater.from(parent.getContext()), parent, false);
-        return new ViewHolder(binding);
+        return new CategoryViewHolder(binding);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(getItem(position));
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        CategoryListItem item = getItem(position);
+        if (holder instanceof AddNewViewHolder) {
+            ((AddNewViewHolder) holder).bind(addNewClickListener);
+        } else if (holder instanceof CategoryViewHolder) {
+            ((CategoryViewHolder) holder).bind(item, clickListener);
+        }
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder {
+    static class AddNewViewHolder extends RecyclerView.ViewHolder {
 
-        private final ItemCategoryBinding binding;
+        private final ItemCategoryAddNewBinding binding;
 
-        ViewHolder(ItemCategoryBinding binding) {
+        AddNewViewHolder(@NonNull ItemCategoryAddNewBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
         }
 
-        void bind(CategoryEntity item) {
-            binding.tvCategoryName.setText(item.getName());
-            int iconResId = binding.getRoot().getContext().getResources().getIdentifier(
-                    item.getIconResId(),
-                    "drawable",
-                    binding.getRoot().getContext().getPackageName()
-            );
-            binding.ivCategoryIcon.setImageResource(iconResId != 0 ? iconResId : R.drawable.ic_category_other);
+        void bind(OnAddNewClickListener listener) {
+            binding.getRoot().setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onAddNewClick();
+                }
+            });
+        }
+    }
 
-            // Badge "Mặc định" chỉ hiện với default category
-            binding.tvDefaultBadge.setVisibility(item.isDefault() ? View.VISIBLE : View.GONE);
+    static class CategoryViewHolder extends RecyclerView.ViewHolder {
+        private final ItemCategoryHierarchyBinding binding;
 
-            // Màu icon theo colorHex
-            try {
-                int color = android.graphics.Color.parseColor(item.getColorHex());
-                binding.ivCategoryIcon.setColorFilter(color);
-            } catch (IllegalArgumentException e) {
-                binding.ivCategoryIcon.setColorFilter(
-                        binding.getRoot().getContext()
-                                .getColor(R.color.md_theme_primary));
+        CategoryViewHolder(@NonNull ItemCategoryHierarchyBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        void bind(@NonNull CategoryListItem item, OnItemClickListener listener) {
+            com.group10.moneymate.data.local.entity.CategoryEntity rootCategory = item.getRootCategory();
+            if (rootCategory == null) {
+                return;
             }
+            Context context = binding.getRoot().getContext();
+            binding.tvCategoryName.setText(rootCategory.getName());
+            binding.tvCategoryWallets.setText(item.getWalletLabel());
+            int rootIcon = IconProvider.resolveCategoryIconByType(
+                    context,
+                    rootCategory.getIconName(),
+                    rootCategory.getType()
+            );
+            binding.ivCategoryIcon.setImageResource(rootIcon);
 
-            // Nút xóa: chỉ hiển thị với danh mục tùy chỉnh
-            binding.btnDelete.setVisibility(item.isDefault() ? View.GONE : View.VISIBLE);
-            binding.btnDelete.setOnClickListener(v -> {
-                if (deleteListener != null) deleteListener.onItemDelete(item);
+            boolean hasChildren = !item.getChildren().isEmpty();
+            binding.viewRootConnector.setVisibility(hasChildren ? android.view.View.VISIBLE : android.view.View.GONE);
+            binding.rootRow.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onItemClick(rootCategory);
+                }
             });
 
-            // Click để edit
-            itemView.setOnClickListener(v -> {
-                if (clickListener != null) clickListener.onItemClick(item);
-            });
+            binding.childContainer.removeAllViews();
+            if (hasChildren) {
+                for (CategoryListItem.CategoryChildItem child : item.getChildren()) {
+                    ItemCategoryChildRowBinding childBinding = ItemCategoryChildRowBinding.inflate(
+                            LayoutInflater.from(context),
+                            binding.childContainer,
+                            false
+                    );
+                    com.group10.moneymate.data.local.entity.CategoryEntity childCategory = child.getCategory();
+                    int childIcon = IconProvider.resolveCategoryIconByType(
+                            context,
+                            childCategory.getIconName(),
+                            childCategory.getType()
+                    );
+                    childBinding.ivChildIcon.setImageResource(childIcon);
+                    childBinding.tvChildName.setText(childCategory.getName());
+                    childBinding.tvChildWallets.setText(child.getWalletLabel());
+                    childBinding.getRoot().setOnClickListener(v -> {
+                        if (listener != null) {
+                            listener.onItemClick(childCategory);
+                        }
+                    });
+                    binding.childContainer.addView(childBinding.getRoot());
+                }
+            }
         }
     }
 }

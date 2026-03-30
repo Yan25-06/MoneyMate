@@ -108,6 +108,17 @@
     <string name="error_amount_positive">Số tiền phải lớn hơn 0</string>
     <string name="error_category_required">Vui lòng chọn danh mục</string>
     <string name="error_wallet_required">Vui lòng chọn ví</string>
+    <string name="common_empty_state">Danh sách đang trống.</string>
+    <string name="currency_vnd">VND</string>
+    <string name="transaction_pick_category_title">Chọn nhóm</string>
+    <string name="category_pick_icon_title">Chọn biểu tượng</string>
+    <string name="category_pick_parent_title">Chọn nhóm</string>
+    <string name="category_pick_placeholder">Chọn nhóm</string>
+    <string name="category_pick_hint">Chạm để chọn danh mục</string>
+    <string name="category_add_new">Thêm nhóm mới</string>
+    <string name="tab_expense">Khoản chi</string>
+    <string name="tab_income">Khoản thu</string>
+    <string name="tab_debt">Vay &amp; nợ</string>
 
     <!-- Category -->
     <string name="categories">Danh mục</string>
@@ -115,7 +126,7 @@
     <string name="hint_category_name">Tên danh mục</string>
     <string name="btn_pick_icon">Chọn biểu tượng</string>
     <string name="dialog_delete_title">Xóa danh mục</string>
-    <string name="dialog_delete_category_message">Bạn có chắc muốn xóa danh mục này?</string>
+    <string name="dialog_delete_category_message">Bạn có chắc muốn xóa nhóm này?</string>
     <string name="btn_delete">Xóa</string>
     <string name="btn_cancel">Hủy</string>
     <string name="category_added">Đã thêm danh mục</string>
@@ -124,10 +135,21 @@
     <string name="edit_category">Sửa danh mục</string>
     <string name="category_type_label">Loại</string>
     <string name="category_color_label">Màu sắc</string>
+    <string name="category_parent_label">Nhóm cha</string>
+    <string name="category_parent_none">Không có (nhóm gốc)</string>
     <string name="btn_pick_color">Chọn màu</string>
     <string name="badge_default">Mặc định</string>
-    <string name="empty_categories">Chưa có danh mục nào</string>
+    <string name="empty_categories">Chưa có nhóm nào</string>
     <string name="btn_update">Cập nhật</string>
+    <string name="category_validation_self_parent">Nhóm không thể là cha của chính nó.</string>
+    <string name="category_validation_parent_not_found">Không tìm thấy nhóm cha hợp lệ.</string>
+    <string name="category_validation_depth_limit_exceeded">Chỉ hỗ trợ tối đa 2 cấp danh mục.</string>
+    <string name="category_validation_type_mismatch">Nhóm cha và con phải cùng loại Thu/Chi.</string>
+    <string name="category_validation_wallet_scope_mismatch">Nhóm cha và con phải cùng phạm vi ví.</string>
+    <string name="category_validation_cannot_move_parent_with_children">Không thể gán nhóm này thành nhóm con vì đang có nhóm con.</string>
+    <string name="category_validation_default_cannot_delete">Không thể xóa nhóm mặc định.</string>
+    <string name="category_validation_cannot_delete_with_children">Không thể xóa nhóm này vì vẫn còn nhóm con.</string>
+    <string name="category_validation_generic_error">Không thể lưu thay đổi danh mục. Vui lòng kiểm tra lại.</string>
 
 
     <!-- Budget -->
@@ -179,6 +201,8 @@
     <string name="budget_save_action">Lưu</string>
     <string name="budget_edit_action">Sửa</string>
     <string name="budget_delete_action">Xóa</string>
+    <string name="budget_all_categories_exists">Bạn đã tạo ngân sách cho tất cả nhóm trong phạm vi này rồi.</string>
+    <string name="budget_other_categories_auto_only">Ngân sách “Các mục khác” sẽ được tạo tự động khi đủ điều kiện.</string>
     <string name="budget_spent_label">Đã chi</string>
     <string name="budget_left_label">Còn lại</string>
     <string name="budget_recommended_daily">Mức chi tiêu khuyến nghị mỗi ngày</string>
@@ -234,6 +258,7 @@
     <string name="wallet_form_title">Thiết lập ví của bạn</string>
     <string name="wallet_form_subtitle">Tạo hoặc cập nhật ví để quản lý số dư và dòng tiền chính xác hơn.</string>
     <string name="wallet_balance_hint">Bạn có thể nhập số dư hiện tại để bắt đầu theo dõi ví ngay từ hôm nay.</string>
+    <string name="wallet_pick_icon_title">Chọn biểu tượng ví</string>
     <string name="statistics_wallet_selector_all">Tổng cộng</string>
     <string name="statistics_previous_period">Kỳ trước</string>
     <string name="statistics_next_period">Kỳ sau</string>
@@ -244,6 +269,12 @@
     <string name="statistics_summary_placeholder">Sticky Header và tầng data thống kê đã sẵn sàng để nối vào biểu đồ Level 1.</string>
     <string name="statistics_net_income_title">Thu nhập ròng</string>
     <string name="statistics_category_report_title">Báo cáo theo nhóm</string>
+    <string name="statistics_group_report_title">Báo cáo theo nhóm</string>
+    <string name="statistics_group_selector_title">Chọn nhóm</string>
+    <string name="statistics_expense_detail_title">Chi tiết khoản chi</string>
+    <string name="statistics_income_detail_title">Chi tiết khoản thu</string>
+    <string name="statistics_leaf_detail_title">Chi tiết nhóm</string>
+    <string name="statistics_leaf_daily_list_title">Theo thời gian</string>
     <string name="statistics_income_label">Khoản thu</string>
     <string name="statistics_expense_label">Khoản chi</string>
     <string name="statistics_opening_balance">Số dư đầu</string>
@@ -267,7 +298,10 @@
     <string name="statistics_detail_chart_trend">Xu hướng</string>
     <string name="statistics_detail_chart_compare">So sánh</string>
     <string name="statistics_detail_category_list_title">Danh mục</string>
-    <string name="statistics_detail_empty_categories">Không có danh mục nào trong khoảng thời gian này</string>
+    <string name="statistics_detail_empty_categories">Không có nhóm nào trong khoảng thời gian này</string>
+    <string name="statistics_detail_empty_root_categories">Không có nhóm nào trong khoảng thời gian này</string>
+    <string name="statistics_detail_empty_child_categories">Không có nhóm con trong nhóm đã chọn</string>
+    <string name="statistics_detail_empty_transactions">Không có giao dịch trong nhóm đã chọn</string>
     <string name="statistics_detail_category_meta">%1$d giao dịch</string>
     <string name="statistics_category_detail_placeholder">Level 3 sẽ hiển thị drill-down theo danh mục</string>
     <string name="statistics_category_day_detail_placeholder">Level 4 sẽ hiển thị giao dịch theo cụm ngày</string>
@@ -290,6 +324,9 @@
     <string name="error_wallet_balance_invalid">Số dư không hợp lệ</string>
     <string name="delete_wallet_title">Xóa ví</string>
     <string name="delete_wallet_message">Bạn có chắc muốn xóa ví "%1$s"?</string>
+    <string name="archive_wallet">Lưu trữ ví</string>
+    <string name="archive_wallet_title">Lưu trữ ví</string>
+    <string name="archive_wallet_message">Bạn có chắc muốn lưu trữ ví "%1$s"? Ví này sẽ không còn xuất hiện khi tạo giao dịch hoặc ngân sách mới.</string>
     <string name="default_currency_zero">0 ₫</string>
 
     <!-- Profile -->
@@ -309,7 +346,7 @@
     <string name="section_display">Hiển thị</string>
     <string name="settings_subtitle">Tùy chỉnh tài khoản, dữ liệu và giao diện theo cách bạn muốn.</string>
     <string name="settings_account_summary">Quản lý hồ sơ và bảo mật</string>
-    <string name="settings_data_summary">Ví, danh mục và dữ liệu tài chính</string>
+    <string name="settings_data_summary">Ví, nhóm và dữ liệu tài chính</string>
     <string name="settings_profile_hint">Xem và cập nhật thông tin cá nhân</string>
     <string name="settings_security_hint">Mã khóa, bảo mật và quyền truy cập</string>
     <string name="settings_dark_mode_hint">Điều chỉnh giao diện sáng hoặc tối của ứng dụng</string>
@@ -366,4 +403,20 @@
         <item quantity="one">%d ngày</item>
         <item quantity="other">%d ngày</item>
     </plurals>
+
+    <string name="category_wallet_filter_label">Ví áp dụng</string>
+    <string name="category_wallet_scope_all">Tất cả các ví</string>
+    <string name="category_group_title">Nhóm</string>
+    <string name="category_add_new_label">Nhóm mới</string>
+    <string name="settings_groups_label">Nhóm</string>
+    <string name="edit_group">Sửa nhóm</string>
+    <string name="add_group">Thêm nhóm</string>
+    <string name="hint_group_name">Tên nhóm</string>
+    <string name="category_parent_pick_hint">Chọn nhóm cha</string>
+    <string name="category_wallets_title">Nhóm này đang hoạt động ở các ví dưới đây</string>
+    <string name="category_delete_confirm_title">Xóa danh mục này?</string>
+    <string name="category_delete_confirm_message">Bạn có chắc chắn muốn xóa danh mục %1$s? Danh mục này sẽ không còn hiển thị khi tạo giao dịch mới, nhưng các lịch sử thu chi cũ của bạn vẫn được giữ nguyên.</string>
+    <string name="category_delete_blocked_title">Không thể xóa danh mục!</string>
+    <string name="category_delete_blocked_message">Danh mục %1$s đang chứa các danh mục con bên trong. Vui lòng xóa hoặc di chuyển các danh mục con sang nơi khác trước khi thực hiện thao tác này.</string>
+    <string name="btn_acknowledge">Đã hiểu</string>
 </resources>

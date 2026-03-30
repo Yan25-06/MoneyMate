@@ -1,7 +1,5 @@
 package com.group10.moneymate.ui.wallet;
 
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +16,7 @@ import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.ItemWalletBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.util.Objects;
 
@@ -25,6 +24,7 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
 
     public interface WalletItemListener {
         void onEdit(WalletEntity wallet);
+        void onArchive(WalletEntity wallet);
         void onDelete(WalletEntity wallet);
     }
 
@@ -64,13 +64,15 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
             binding.tvName.setText(wallet.getName());
             binding.tvType.setText(getTypeText(binding.getRoot().getContext(), wallet.getType()));
             binding.tvBalance.setText(CurrencyFormatter.format(wallet.getBalance(), "VND"));
-            binding.ivIcon.setImageResource(getTypeIcon(wallet.getType()));
-            int accentColor = parseColorOrDefault(
-                    wallet.getColorHex(),
-                    ContextCompat.getColor(binding.getRoot().getContext(), R.color.statistics_wallet_icon)
+            binding.ivIcon.setImageResource(IconProvider.resolveWalletIcon(
+                    binding.getRoot().getContext(),
+                    wallet.getIconName(),
+                    wallet.getType()
+            ));
+            binding.cvIcon.setCardBackgroundColor(
+                    ContextCompat.getColor(binding.getRoot().getContext(), android.R.color.white)
             );
-            binding.cvIcon.setCardBackgroundColor(applyAlpha(accentColor, 0.14f));
-            binding.ivIcon.setImageTintList(ColorStateList.valueOf(accentColor));
+            binding.ivIcon.setImageTintList(null);
             binding.tvBalance.setTextColor(wallet.getBalance() < 0
                     ? ContextCompat.getColor(binding.getRoot().getContext(), R.color.expense_red)
                     : ContextCompat.getColor(binding.getRoot().getContext(), R.color.statistics_text_primary));
@@ -81,11 +83,18 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
         private void showPopupMenu(View anchor, WalletEntity wallet) {
             PopupMenu popupMenu = new PopupMenu(anchor.getContext(), anchor);
             popupMenu.getMenuInflater().inflate(R.menu.menu_wallet_item, popupMenu.getMenu());
+            popupMenu.getMenu().findItem(R.id.action_archive_wallet).setVisible(!wallet.isArchived());
             popupMenu.setOnMenuItemClickListener(item -> {
                 int itemId = item.getItemId();
                 if (itemId == R.id.action_edit_wallet) {
                     if (listener != null) {
                         listener.onEdit(wallet);
+                    }
+                    return true;
+                }
+                if (itemId == R.id.action_archive_wallet) {
+                    if (listener != null) {
+                        listener.onArchive(wallet);
                     }
                     return true;
                 }
@@ -111,31 +120,6 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
         return context.getString(R.string.wallet_type_cash);
     }
 
-    private int getTypeIcon(String type) {
-        if ("BANK".equals(type)) {
-            return R.drawable.outline_account_balance_24;
-        }
-        if ("E_WALLET".equals(type)) {
-            return R.drawable.outline_credit_card_24;
-        }
-        return R.drawable.outline_payments_24;
-    }
-
-    private int applyAlpha(int color, float alphaFraction) {
-        int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
-    }
-
-    private int parseColorOrDefault(@Nullable String colorHex, int defaultColor) {
-        if (colorHex == null || colorHex.trim().isEmpty()) {
-            return defaultColor;
-        }
-        try {
-            return Color.parseColor(colorHex);
-        } catch (IllegalArgumentException ignored) {
-            return defaultColor;
-        }
-    }
 
     private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK =
             new DiffUtil.ItemCallback<WalletEntity>() {
@@ -148,11 +132,12 @@ public class WalletAdapter extends ListAdapter<WalletEntity, WalletAdapter.Walle
                 public boolean areContentsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
                     return oldItem.getBalance() == newItem.getBalance()
                             && oldItem.isDeleted() == newItem.isDeleted()
+                            && oldItem.isArchived() == newItem.isArchived()
                             && oldItem.isExcluded() == newItem.isExcluded()
                             && oldItem.getSyncStatus() == newItem.getSyncStatus()
                             && Objects.equals(oldItem.getName(), newItem.getName())
                             && Objects.equals(oldItem.getType(), newItem.getType())
-                            && Objects.equals(oldItem.getColorHex(), newItem.getColorHex());
+                            && Objects.equals(oldItem.getIconName(), newItem.getIconName());
                 }
             };
 }

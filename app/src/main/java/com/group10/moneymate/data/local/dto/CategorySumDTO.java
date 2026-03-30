@@ -4,8 +4,7 @@ public class CategorySumDTO {
 
     private String categoryId;
     private String categoryName;
-    private String iconResId;
-    private String colorHex;
+    private String iconName;
     private double totalAmount;
     private int transactionCount;
 
@@ -28,20 +27,12 @@ public class CategorySumDTO {
         this.categoryName = categoryName;
     }
 
-    public String getIconResId() {
-        return iconResId;
+    public String getIconName() {
+        return iconName;
     }
 
-    public void setIconResId(String iconResId) {
-        this.iconResId = iconResId;
-    }
-
-    public String getColorHex() {
-        return colorHex;
-    }
-
-    public void setColorHex(String colorHex) {
-        this.colorHex = colorHex;
+    public void setIconName(String iconName) {
+        this.iconName = iconName;
     }
 
     public double getTotalAmount() {

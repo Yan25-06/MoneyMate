@@ -29,6 +29,23 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <TextView
+            android:id="@+id/tvHeaderTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textColor="@color/statistics_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnDateFilter"
+            app:layout_constraintStart_toEndOf="@id/btnHeaderBack"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Chi tiết khoản chi" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnWalletSelector"
             style="@style/Widget.Material3.Button.TonalButton"
@@ -75,7 +92,37 @@
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnHeaderSecondarySelector"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:insetBottom="0dp"
+        android:insetTop="0dp"
+        android:maxWidth="220dp"
+        android:maxLines="1"
+        android:minWidth="0dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="10dp"
+        android:text="@string/statistics_group_selector_title"
+        android:textAllCaps="false"
+        android:textColor="@color/statistics_text_primary"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:backgroundTint="@color/statistics_chip_background"
+        app:cornerRadius="18dp"
+        app:icon="@drawable/outline_account_tree_24"
+        app:iconGravity="textStart"
+        app:iconPadding="8dp"
+        app:iconTint="@color/statistics_text_primary"
+        app:rippleColor="@color/statistics_chip_ripple" />
+
     <LinearLayout
+        android:id="@+id/layoutHeaderSummary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
@@ -105,6 +152,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/layoutPeriodNavigator"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"

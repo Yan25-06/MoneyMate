@@ -1,6 +1,8 @@
 package com.group10.moneymate.ui.category;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,33 +11,49 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.navigation.Navigation;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavBackStackEntry;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.repository.CategoryRepository;
+import com.group10.moneymate.databinding.DialogCategoryActionBinding;
 import com.group10.moneymate.databinding.FragmentAddEditCategoryBinding;
+import com.group10.moneymate.ui.transaction.CategoryIconPickerFragment;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class AddEditCategoryFragment extends Fragment {
 
     private FragmentAddEditCategoryBinding binding;
     private CategoryViewModel viewModel;
-    private CategoryIconAdapter iconAdapter;
+    private CategoryWalletAdapter walletAdapter;
 
     private String categoryId;
     private CategoryEntity existingCategory;
 
-    private String selectedColorHex = "#9E9E9E";
     private String selectedIconResId = "ic_category_other";
+    @Nullable
+    private String selectedParentId;
+    @Nullable
+    private String selectedParentLabel;
+    private boolean hasChildren;
+    @Nullable
+    private LiveData<List<CategoryEntity>> childrenSource;
+    @Nullable
+    private CategoryViewModel.CategoryAction pendingCategoryAction;
+    @NonNull
+    private String selectedType = Constants.TYPE_EXPENSE;
 
     @Nullable
     @Override
@@ -51,127 +69,266 @@ public class AddEditCategoryFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(CategoryViewModel.class);
 
-        categoryId = AddEditCategoryFragmentArgs.fromBundle(getArguments()).getCategoryId();
+        Bundle args = getArguments() == null ? new Bundle() : getArguments();
+        AddEditCategoryFragmentArgs safeArgs = AddEditCategoryFragmentArgs.fromBundle(args);
+        categoryId = safeArgs.getCategoryId();
+        String initialType = safeArgs.getInitialType();
 
-        setupTypeToggle();
-        setupColorPreview();
-        setupIconGrid();
+        setupToolbar();
+        setupIconRow();
+        setupParentRow();
+        setupWalletList();
         setupSaveButton();
+        observeParentSelectionResult();
+        observeCategoryActionResult();
+
+        if (Constants.TYPE_INCOME.equals(initialType)) {
+            selectedType = Constants.TYPE_INCOME;
+        }
+        binding.tvTypeLabel.setText(Constants.TYPE_INCOME.equals(selectedType)
+                ? R.string.income
+                : R.string.expense);
+
         loadExistingCategoryIfNeeded();
-        updateColorPreview();
-        updateIconPreview();
+        observeWallets();
     }
 
-    private void setupTypeToggle() {
-        binding.rgType.check(R.id.rb_expense);
+    private void setupToolbar() {
+        binding.topAppBar.setNavigationOnClickListener(v ->
+                Navigation.findNavController(v).navigateUp());
+        if (categoryId != null) {
+            binding.topAppBar.inflateMenu(R.menu.menu_edit_category);
+            binding.topAppBar.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.action_delete) {
+                    handleDeleteClick();
+                    return true;
+                }
+                return false;
+            });
+        }
     }
 
-    private void setupColorPreview() {
-        binding.btnPickColor.setOnClickListener(v -> showColorPicker());
-    }
-
-    private void setupIconGrid() {
-        iconAdapter = new CategoryIconAdapter();
-        iconAdapter.submitList(buildIconItems());
-        iconAdapter.setSelectedIconResId(selectedIconResId);
-        iconAdapter.setTintColor(parseSelectedColor());
-        iconAdapter.setOnIconClickListener(item -> {
-            selectedIconResId = item.iconResId;
-            updateIconPreview();
+    private void setupIconRow() {
+        binding.etCategoryName.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        binding.ivCategoryIcon.setOnClickListener(v -> {
+            AddEditCategoryFragmentDirections.ActionAddEditCategoryFragmentToCategoryIconPickerFragment action =
+                    AddEditCategoryFragmentDirections.actionAddEditCategoryFragmentToCategoryIconPickerFragment();
+            action.setSelectedIconName(selectedIconResId);
+            Navigation.findNavController(v).navigate(action);
         });
-        binding.rvIconOptions.setLayoutManager(new GridLayoutManager(requireContext(), 4));
-        binding.rvIconOptions.setAdapter(iconAdapter);
-        binding.rvIconOptions.setNestedScrollingEnabled(false);
     }
 
-    private void showColorPicker() {
-        String[] colors = {
-                "#F44336", "#FF9800", "#FFEB3B", "#4CAF50",
-                "#2196F3", "#9C27B0", "#E91E63", "#00BCD4",
-                "#795548", "#607D8B", "#009688", "#3F51B5"
-        };
-        String[] colorNames = {
-                "Đỏ", "Cam", "Vàng", "Xanh lá",
-                "Xanh dương", "Tím", "Hồng", "Xanh ngọc",
-                "Nâu", "Xám xanh", "Ngọc lam", "Chàm"
-        };
+    private void setupParentRow() {
+        binding.layoutParentRow.setOnClickListener(v -> {
+            AddEditCategoryFragmentDirections.ActionAddEditCategoryFragmentToParentCategoryPickerFragment action =
+                    AddEditCategoryFragmentDirections.actionAddEditCategoryFragmentToParentCategoryPickerFragment();
+            action.setSelectedParentId(selectedParentId);
+            action.setCategoryType(selectedType);
+            action.setCurrentCategoryId(categoryId);
+            Navigation.findNavController(v).navigate(action);
+        });
+        updateParentRow();
+    }
 
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                .setTitle(R.string.btn_pick_color)
-                .setItems(colorNames, (dialog, which) -> {
-                    selectedColorHex = colors[which];
-                    updateColorPreview();
-                    updateIconPreview();
+    private void setupWalletList() {
+        walletAdapter = new CategoryWalletAdapter();
+        binding.rvWallets.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvWallets.setAdapter(walletAdapter);
+        binding.rvWallets.setNestedScrollingEnabled(false);
+    }
+
+    private void observeWallets() {
+        viewModel.getActiveWallets().observe(getViewLifecycleOwner(), wallets -> {
+            List<WalletEntity> items = wallets == null ? new ArrayList<>() : wallets;
+            if (existingCategory == null || existingCategory.getWalletId() == null) {
+                walletAdapter.submitList(items);
+                return;
+            }
+            List<WalletEntity> filtered = new ArrayList<>();
+            for (WalletEntity wallet : items) {
+                if (existingCategory.getWalletId().equals(wallet.getId())) {
+                    filtered.add(wallet);
+                    break;
+                }
+            }
+            walletAdapter.submitList(filtered.isEmpty() ? items : filtered);
+        });
+    }
+
+    private void handleDeleteClick() {
+        if (existingCategory == null) {
+            return;
+        }
+        if (hasChildren) {
+            showCannotDeleteDialog(existingCategory.getName());
+            return;
+        }
+        showDeleteConfirmDialog(existingCategory.getName());
+    }
+
+    private void showDeleteConfirmDialog(@NonNull String name) {
+        DialogCategoryActionBinding dialogBinding = DialogCategoryActionBinding.inflate(
+                LayoutInflater.from(requireContext())
+        );
+        dialogBinding.ivDialogIcon.setImageResource(R.drawable.outline_delete_24);
+        dialogBinding.ivDialogIcon.setImageTintList(ColorStateList.valueOf(
+                requireContext().getColor(R.color.budget_danger_red)
+        ));
+        dialogBinding.tvDialogTitle.setText(R.string.category_delete_confirm_title);
+        dialogBinding.tvDialogMessage.setText(getString(R.string.category_delete_confirm_message, name));
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.ThemeOverlay_MoneyMate_CategoryDialog
+        )
+                .setView(dialogBinding.getRoot())
+                .setNegativeButton(R.string.btn_cancel, null)
+                .setPositiveButton(R.string.btn_delete, (dialogInterface, which) -> {
+                    viewModel.deleteCategory(existingCategory);
                 })
                 .show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(requireContext().getColor(R.color.budget_danger_red));
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(requireContext().getColor(R.color.budget_text_secondary));
     }
 
-    private void updateColorPreview() {
-        binding.vColorPreview.setBackgroundColor(parseSelectedColor());
-        if (iconAdapter != null) {
-            iconAdapter.setTintColor(parseSelectedColor());
+    private void showCannotDeleteDialog(@NonNull String name) {
+        DialogCategoryActionBinding dialogBinding = DialogCategoryActionBinding.inflate(
+                LayoutInflater.from(requireContext())
+        );
+        dialogBinding.ivDialogIcon.setImageResource(R.drawable.outline_warning_amber_24);
+        dialogBinding.ivDialogIcon.setImageTintList(ColorStateList.valueOf(
+                requireContext().getColor(R.color.budget_warning_orange)
+        ));
+        dialogBinding.tvDialogTitle.setText(R.string.category_delete_blocked_title);
+        dialogBinding.tvDialogMessage.setText(getString(R.string.category_delete_blocked_message, name));
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.ThemeOverlay_MoneyMate_CategoryDialog
+        )
+                .setView(dialogBinding.getRoot())
+                .setPositiveButton(R.string.btn_acknowledge, null)
+                .show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(requireContext().getColor(R.color.budget_text_primary));
+    }
+
+    private void observeParentSelectionResult() {
+        NavBackStackEntry backStackEntry = Navigation.findNavController(requireView()).getCurrentBackStackEntry();
+        if (backStackEntry == null) {
+            return;
         }
+        backStackEntry.getSavedStateHandle()
+                .getLiveData(ParentCategoryPickerFragment.RESULT_PARENT_ID)
+                .observe(getViewLifecycleOwner(), value -> {
+                    if (value == null) {
+                        return;
+                    }
+                    selectedParentId = value.toString();
+                    updateParentRow();
+                    backStackEntry.getSavedStateHandle()
+                            .set(ParentCategoryPickerFragment.RESULT_PARENT_ID, null);
+                });
+
+        backStackEntry.getSavedStateHandle()
+                .getLiveData(ParentCategoryPickerFragment.RESULT_PARENT_LABEL)
+                .observe(getViewLifecycleOwner(), value -> {
+                    if (value == null) {
+                        return;
+                    }
+                    selectedParentLabel = value.toString();
+                    updateParentRow();
+                    backStackEntry.getSavedStateHandle()
+                            .set(ParentCategoryPickerFragment.RESULT_PARENT_LABEL, null);
+                });
+
+        backStackEntry.getSavedStateHandle()
+                .getLiveData(CategoryIconPickerFragment.RESULT_ICON_NAME)
+                .observe(getViewLifecycleOwner(), value -> {
+                    if (value == null) {
+                        return;
+                    }
+                    selectedIconResId = value.toString();
+                    updateIconPreview();
+                    backStackEntry.getSavedStateHandle()
+                            .set(CategoryIconPickerFragment.RESULT_ICON_NAME, null);
+                });
+    }
+
+    private void updateParentRow() {
+        if (selectedParentLabel != null && selectedParentId != null) {
+            binding.tvParentName.setText(selectedParentLabel);
+            binding.tvParentHint.setVisibility(View.GONE);
+            return;
+        }
+        if (selectedParentId != null) {
+            viewModel.getCategoryById(selectedParentId).observe(getViewLifecycleOwner(), parent -> {
+                if (parent == null) {
+                    return;
+                }
+                binding.tvParentName.setText(parent.getName());
+                binding.tvParentHint.setVisibility(View.GONE);
+            });
+            return;
+        }
+        binding.tvParentName.setText("");
+        binding.tvParentHint.setVisibility(View.VISIBLE);
     }
 
     private void updateIconPreview() {
-        int iconResId = requireContext().getResources().getIdentifier(
-                selectedIconResId,
-                "drawable",
-                requireContext().getPackageName()
-        );
-        if (iconResId == 0) {
-            iconResId = R.drawable.ic_category_other;
-        }
-        binding.ivIconPreview.setImageResource(iconResId);
-        binding.ivIconPreview.setColorFilter(parseSelectedColor());
-        binding.tvIconName.setText(findIconLabel(selectedIconResId));
-        if (iconAdapter != null) {
-            iconAdapter.setSelectedIconResId(selectedIconResId);
-        }
-    }
-
-    private int parseSelectedColor() {
-        try {
-            return android.graphics.Color.parseColor(selectedColorHex);
-        } catch (IllegalArgumentException ignored) {
-            return ContextCompat.getColor(requireContext(), R.color.md_theme_primary);
-        }
-    }
-
-    private void setupSaveButton() {
-        binding.btnSave.setOnClickListener(v -> saveCategory());
+        int iconResId = IconProvider.resolveCategoryIcon(requireContext(), selectedIconResId);
+        binding.ivCategoryIcon.setImageResource(iconResId);
     }
 
     private void loadExistingCategoryIfNeeded() {
         if (categoryId == null) {
+            binding.topAppBar.setTitle(R.string.add_group);
             binding.btnSave.setText(R.string.btn_save);
             return;
         }
 
+        binding.topAppBar.setTitle(R.string.edit_group);
         binding.btnSave.setText(R.string.btn_update);
         viewModel.getCategoryById(categoryId).observe(getViewLifecycleOwner(), category -> {
             if (category == null) {
                 return;
             }
+            if (existingCategory != null) {
+                return;
+            }
             existingCategory = category;
 
             binding.etCategoryName.setText(category.getName());
-            selectedColorHex = category.getColorHex();
-            selectedIconResId = category.getIconResId();
-            updateColorPreview();
+            selectedIconResId = category.getIconName() == null || category.getIconName().trim().isEmpty()
+                    ? "ic_category_other"
+                    : category.getIconName();
             updateIconPreview();
 
-            if (Constants.TYPE_INCOME.equals(category.getType())) {
-                binding.rgType.check(R.id.rb_income);
-            } else {
-                binding.rgType.check(R.id.rb_expense);
-            }
+            selectedParentId = normalizeNullable(category.getParentId());
+            selectedParentLabel = null;
+            updateParentRow();
 
-            if (category.isDefault()) {
-                binding.rgType.setEnabled(false);
-                binding.rbExpense.setEnabled(false);
-                binding.rbIncome.setEnabled(false);
-            }
+            selectedType = Constants.TYPE_INCOME.equals(category.getType())
+                    ? Constants.TYPE_INCOME
+                    : Constants.TYPE_EXPENSE;
+            binding.tvTypeLabel.setText(Constants.TYPE_INCOME.equals(selectedType)
+                    ? R.string.income
+                    : R.string.expense);
+
+            observeChildren(category.getId());
+        });
+    }
+
+    private void observeChildren(@NonNull String categoryId) {
+        if (childrenSource != null) {
+            childrenSource.removeObservers(getViewLifecycleOwner());
+        }
+        childrenSource = viewModel.getChildrenByParent(categoryId);
+        childrenSource.observe(getViewLifecycleOwner(), children -> {
+            hasChildren = children != null && !children.isEmpty();
         });
     }
 
@@ -181,60 +338,113 @@ public class AddEditCategoryFragment extends Fragment {
                 : "";
 
         if (TextUtils.isEmpty(name)) {
-            binding.tilCategoryName.setError(getString(R.string.error_name_required));
+            binding.etCategoryName.setError(getString(R.string.error_name_required));
             return;
         }
-        binding.tilCategoryName.setError(null);
-
-        String type = binding.rgType.getCheckedRadioButtonId() == R.id.rb_income
-                ? Constants.TYPE_INCOME
-                : Constants.TYPE_EXPENSE;
 
         if (existingCategory != null) {
             existingCategory.setName(name);
-            existingCategory.setColorHex(selectedColorHex);
-            existingCategory.setIconResId(selectedIconResId);
+            existingCategory.setIconName(selectedIconResId);
+            existingCategory.setParentId(selectedParentId);
             if (!existingCategory.isDefault()) {
-                existingCategory.setType(type);
+                existingCategory.setType(selectedType);
             }
+            pendingCategoryAction = CategoryViewModel.CategoryAction.UPDATE;
+            binding.btnSave.setEnabled(false);
             viewModel.updateCategory(existingCategory);
-            Toast.makeText(requireContext(), R.string.category_updated, Toast.LENGTH_SHORT).show();
         } else {
-            viewModel.addCategory(name, selectedIconResId, selectedColorHex, type);
-            Toast.makeText(requireContext(), R.string.category_added, Toast.LENGTH_SHORT).show();
+            pendingCategoryAction = CategoryViewModel.CategoryAction.ADD;
+            binding.btnSave.setEnabled(false);
+            viewModel.addCategory(name, selectedIconResId, "", selectedType, selectedParentId);
         }
+    }
 
-        Navigation.findNavController(requireView()).navigateUp();
+    private void setupSaveButton() {
+        binding.btnSave.setOnClickListener(v -> saveCategory());
+    }
+
+    private void observeCategoryActionResult() {
+        viewModel.getCategoryActionResult().observe(getViewLifecycleOwner(), result -> {
+            if (result == null || pendingCategoryAction == null) {
+                return;
+            }
+            if (result.getAction() != pendingCategoryAction) {
+                return;
+            }
+
+            binding.btnSave.setEnabled(true);
+            CategoryRepository.CategoryValidationResult validationResult = result.getValidationResult();
+            if (!validationResult.isValid()) {
+                showValidationError(validationResult);
+                pendingCategoryAction = null;
+                viewModel.clearCategoryActionResult();
+                return;
+            }
+
+            if (result.getAction() == CategoryViewModel.CategoryAction.UPDATE) {
+                Toast.makeText(requireContext(), R.string.category_updated, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(requireContext(), R.string.category_added, Toast.LENGTH_SHORT).show();
+            }
+            pendingCategoryAction = null;
+            viewModel.clearCategoryActionResult();
+            Navigation.findNavController(requireView()).navigateUp();
+        });
+    }
+
+    private void showValidationError(@NonNull CategoryRepository.CategoryValidationResult result) {
+        String message = mapValidationKeyToMessage(result.getErrorKey());
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
     }
 
     @NonNull
-    private List<CategoryIconAdapter.CategoryIconItem> buildIconItems() {
-        Map<String, String> uniqueItems = new LinkedHashMap<>();
-        for (Constants.DefaultCategory category : Constants.getDefaultCategories()) {
-            if (!uniqueItems.containsKey(category.iconResId)) {
-                uniqueItems.put(category.iconResId, category.name);
-            }
+    private String mapValidationKeyToMessage(@Nullable String errorKey) {
+        if ("category.validation.self_parent".equals(errorKey)) {
+            return getString(R.string.category_validation_self_parent);
         }
-
-        List<CategoryIconAdapter.CategoryIconItem> items = new ArrayList<>();
-        for (Map.Entry<String, String> entry : uniqueItems.entrySet()) {
-            items.add(new CategoryIconAdapter.CategoryIconItem(entry.getKey(), entry.getValue()));
+        if ("category.validation.parent_not_found".equals(errorKey)) {
+            return getString(R.string.category_validation_parent_not_found);
         }
-        return items;
+        if ("category.validation.depth_limit_exceeded".equals(errorKey)) {
+            return getString(R.string.category_validation_depth_limit_exceeded);
+        }
+        if ("category.validation.type_mismatch".equals(errorKey)) {
+            return getString(R.string.category_validation_type_mismatch);
+        }
+        if ("category.validation.wallet_scope_mismatch".equals(errorKey)) {
+            return getString(R.string.category_validation_wallet_scope_mismatch);
+        }
+        if ("category.validation.cannot_move_parent_with_children".equals(errorKey)) {
+            return getString(R.string.category_validation_cannot_move_parent_with_children);
+        }
+        if ("category.validation.default_cannot_delete".equals(errorKey)) {
+            return getString(R.string.category_validation_default_cannot_delete);
+        }
+        if ("category.validation.cannot_delete_with_children".equals(errorKey)) {
+            return getString(R.string.category_validation_cannot_delete_with_children);
+        }
+        return getString(R.string.category_validation_generic_error);
     }
 
     @NonNull
-    private String findIconLabel(@NonNull String iconResId) {
-        for (Constants.DefaultCategory category : Constants.getDefaultCategories()) {
-            if (iconResId.equals(category.iconResId)) {
-                return category.name;
-            }
+    private String getSelectedType() {
+        return selectedType;
+    }
+
+    @Nullable
+    private String normalizeNullable(@Nullable String value) {
+        if (value == null) {
+            return null;
         }
-        return getString(R.string.btn_pick_icon);
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Override
     public void onDestroyView() {
+        if (childrenSource != null) {
+            childrenSource.removeObservers(getViewLifecycleOwner());
+        }
         super.onDestroyView();
         binding = null;
     }

@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentWalletListBinding;
@@ -49,6 +50,11 @@ public class WalletListFragment extends Fragment {
                         WalletListFragmentDirections.actionWalletListToAddEdit();
                 action.setWalletId(wallet.getId());
                 Navigation.findNavController(view).navigate(action);
+            }
+
+            @Override
+            public void onArchive(WalletEntity wallet) {
+                showArchiveConfirmDialog(wallet);
             }
 
             @Override
@@ -87,12 +93,35 @@ public class WalletListFragment extends Fragment {
     }
 
     private void showDeleteConfirmDialog(WalletEntity wallet) {
-        new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.ThemeOverlay_MoneyMate_MaterialAlertDialog
+        )
                 .setTitle(R.string.delete_wallet_title)
                 .setMessage(getString(R.string.delete_wallet_message, wallet.getName()))
                 .setNegativeButton(R.string.common_cancel, null)
-                .setPositiveButton(R.string.delete_wallet, (dialog, which) -> viewModel.deleteWallet(wallet))
+                .setPositiveButton(R.string.delete_wallet, (dialogInterface, which) -> viewModel.deleteWallet(wallet))
                 .show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(requireContext().getColor(R.color.budget_danger_red));
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
+    }
+
+    private void showArchiveConfirmDialog(WalletEntity wallet) {
+        AlertDialog dialog = new MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.ThemeOverlay_MoneyMate_MaterialAlertDialog
+        )
+                .setTitle(R.string.archive_wallet_title)
+                .setMessage(getString(R.string.archive_wallet_message, wallet.getName()))
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.archive_wallet, (dialogInterface, which) -> viewModel.archiveWallet(wallet))
+                .show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(requireContext().getColor(R.color.moneymate_picker_accent));
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
     }
 
     @Override

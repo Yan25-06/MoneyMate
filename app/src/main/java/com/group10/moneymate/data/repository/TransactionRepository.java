@@ -1,5 +1,6 @@
 package com.group10.moneymate.data.repository;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
@@ -151,6 +152,62 @@ public class TransactionRepository {
         return transactionDao.getCategorySums(userId, type, startDate, endDate, walletId);
     }
 
+    public LiveData<List<CategorySumDTO>> getRootCategorySums(String userId,
+                                                              String type,
+                                                              long startDate,
+                                                              long endDate,
+                                                              @Nullable String walletId) {
+        return transactionDao.getRootCategorySums(userId, type, startDate, endDate, walletId);
+    }
+
+    public LiveData<List<CategorySumDTO>> getChildCategorySums(String userId,
+                                                               String type,
+                                                               long startDate,
+                                                               long endDate,
+                                                               @Nullable String walletId,
+                                                               @NonNull String parentCategoryId) {
+        return transactionDao.getChildCategorySums(
+                userId,
+                type,
+                startDate,
+                endDate,
+                walletId,
+                parentCategoryId
+        );
+    }
+
+    public LiveData<Double> getParentCategoryBranchTotalAmount(String userId,
+                                                               String type,
+                                                               @NonNull String parentCategoryId,
+                                                               long startDate,
+                                                               long endDate,
+                                                               @Nullable String walletId) {
+        return transactionDao.getParentCategoryBranchTotalAmount(
+                userId,
+                type,
+                parentCategoryId,
+                startDate,
+                endDate,
+                walletId
+        );
+    }
+
+    public LiveData<List<TransactionEntity>> getTransactionsForStatisticsDrillDown(String userId,
+                                                                                   String type,
+                                                                                   long startDate,
+                                                                                   long endDate,
+                                                                                   @Nullable String walletId,
+                                                                                   @NonNull String categoryId) {
+        return transactionDao.getTransactionsForStatisticsDrillDown(
+                userId,
+                type,
+                startDate,
+                endDate,
+                walletId,
+                categoryId
+        );
+    }
+
     public LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
                                                         String type,
                                                         long startDate,
@@ -171,6 +228,24 @@ public class TransactionRepository {
                 userId,
                 type,
                 categoryId,
+                startDate,
+                endDate,
+                walletId,
+                periodFormat
+        );
+    }
+
+    public LiveData<List<DailyTrendDTO>> getParentCategoryBranchAmountTrend(String userId,
+                                                                            String type,
+                                                                            @NonNull String parentCategoryId,
+                                                                            long startDate,
+                                                                            long endDate,
+                                                                            @Nullable String walletId,
+                                                                            String periodFormat) {
+        return transactionDao.getParentCategoryBranchAmountTrend(
+                userId,
+                type,
+                parentCategoryId,
                 startDate,
                 endDate,
                 walletId,

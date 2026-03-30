@@ -158,8 +158,7 @@ public interface TransactionDao {
 
     @Query("SELECT t.category_id AS categoryId, " +
             "COALESCE(c.name, 'Chưa phân loại') AS categoryName, " +
-            "COALESCE(c.icon_res_id, 'ic_category_other') AS iconResId, " +
-            "COALESCE(c.color_hex, '#9E9E9E') AS colorHex, " +
+            "COALESCE(c.icon_name, 'ic_category_default') AS iconName, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -172,13 +171,103 @@ public interface TransactionDao {
             "AND t.sync_status != 2 " +
             "AND t.type = :type " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY t.category_id, c.name, c.icon_res_id, c.color_hex " +
+            "GROUP BY t.category_id, c.name, c.icon_name " +
             "ORDER BY totalAmount DESC")
     LiveData<List<CategorySumDTO>> getCategorySums(String userId,
                                                    String type,
                                                    long startDate,
                                                    long endDate,
                                                    String walletId);
+
+    @Query("SELECT " +
+            "COALESCE(parent.id, c.id, t.category_id) AS categoryId, " +
+            "COALESCE(parent.name, c.name, 'Chưa phân loại') AS categoryName, " +
+            "COALESCE(parent.icon_name, c.icon_name, 'ic_category_default') AS iconName, " +
+            "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "LEFT JOIN categories c ON c.id = t.category_id " +
+            "AND c.is_deleted = 0 " +
+            "AND c.sync_status != 2 " +
+            "LEFT JOIN categories parent ON parent.id = c.parent_id " +
+            "AND parent.is_deleted = 0 " +
+            "AND parent.sync_status != 2 " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "GROUP BY COALESCE(parent.id, c.id, t.category_id), " +
+            "COALESCE(parent.name, c.name, 'Chưa phân loại'), " +
+            "COALESCE(parent.icon_name, c.icon_name, 'ic_category_default') " +
+            "ORDER BY totalAmount DESC")
+    LiveData<List<CategorySumDTO>> getRootCategorySums(String userId,
+                                                       String type,
+                                                       long startDate,
+                                                       long endDate,
+                                                       String walletId);
+
+    @Query("SELECT " +
+            "c.id AS categoryId, " +
+            "COALESCE(c.name, 'Chưa phân loại') AS categoryName, " +
+            "COALESCE(c.icon_name, 'ic_category_default') AS iconName, " +
+            "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "INNER JOIN categories c ON c.id = t.category_id " +
+            "AND c.is_deleted = 0 " +
+            "AND c.sync_status != 2 " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND c.parent_id = :parentCategoryId " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "GROUP BY c.id, c.name, c.icon_name " +
+            "ORDER BY totalAmount DESC")
+    LiveData<List<CategorySumDTO>> getChildCategorySums(String userId,
+                                                        String type,
+                                                        long startDate,
+                                                        long endDate,
+                                                        String walletId,
+                                                        String parentCategoryId);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0.0) " +
+            "FROM transactions t " +
+            "INNER JOIN categories c ON c.id = t.category_id " +
+            "AND c.is_deleted = 0 " +
+            "AND c.sync_status != 2 " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND (c.id = :parentCategoryId OR c.parent_id = :parentCategoryId) " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId)")
+    LiveData<Double> getParentCategoryBranchTotalAmount(String userId,
+                                                        String type,
+                                                        String parentCategoryId,
+                                                        long startDate,
+                                                        long endDate,
+                                                        String walletId);
+
+    @Query("SELECT * FROM transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND t.category_id = :categoryId " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "ORDER BY t.timestamp DESC")
+    LiveData<List<TransactionEntity>> getTransactionsForStatisticsDrillDown(String userId,
+                                                                            String type,
+                                                                            long startDate,
+                                                                            long endDate,
+                                                                            String walletId,
+                                                                            String categoryId);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
             "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
@@ -221,6 +310,31 @@ public interface TransactionDao {
                                                          long endDate,
                                                          String walletId,
                                                          String periodFormat);
+
+    @Query("SELECT MIN(t.timestamp) AS periodStart, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
+            "COUNT(t.id) AS transactionCount " +
+            "FROM transactions t " +
+            "INNER JOIN categories c ON c.id = t.category_id " +
+            "AND c.is_deleted = 0 " +
+            "AND c.sync_status != 2 " +
+            "WHERE t.user_id = :userId " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate " +
+            "AND t.is_deleted = 0 " +
+            "AND t.sync_status != 2 " +
+            "AND t.type = :type " +
+            "AND (c.id = :parentCategoryId OR c.parent_id = :parentCategoryId) " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "ORDER BY MIN(t.timestamp) ASC")
+    LiveData<List<DailyTrendDTO>> getParentCategoryBranchAmountTrend(String userId,
+                                                                     String type,
+                                                                     String parentCategoryId,
+                                                                     long startDate,
+                                                                     long endDate,
+                                                                     String walletId,
+                                                                     String periodFormat);
 
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions " +
             "WHERE user_id = :userId " +

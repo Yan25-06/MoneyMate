@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Filter;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -19,6 +20,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.navigation.NavBackStackEntry;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.group10.moneymate.R;
@@ -27,14 +29,14 @@ import com.group10.moneymate.databinding.FragmentAddEditWalletBinding;
 import com.group10.moneymate.models.WalletType;
 import com.group10.moneymate.utils.CurrencyFormatter;
 
-import java.util.Locale;
-
 public class AddEditWalletFragment extends Fragment {
 
     private FragmentAddEditWalletBinding binding;
     private WalletViewModel viewModel;
     private String walletId;
     private WalletEntity editingWallet;
+    private String selectedIconName = "ic_wallet_default";
+    private boolean hasInitializedEdit;
     private BottomNavigationView bottomNavigationView;
     private boolean isFormattingBalance;
 
@@ -58,6 +60,9 @@ public class AddEditWalletFragment extends Fragment {
         setupInsets();
         setupTypeDropdown();
         setupBalanceInput();
+        setupIconPicker();
+        observeIconSelection();
+        updateIconPreview();
 
         AddEditWalletFragmentArgs args = AddEditWalletFragmentArgs
                 .fromBundle(getArguments() == null ? new Bundle() : getArguments());
@@ -88,7 +93,6 @@ public class AddEditWalletFragment extends Fragment {
             return insets;
         });
     }
-
     private void setupBalanceInput() {
         binding.etBalance.addTextChangedListener(new TextWatcher() {
             @Override
@@ -125,7 +129,7 @@ public class AddEditWalletFragment extends Fragment {
                 getString(R.string.wallet_type_bank),
                 getString(R.string.wallet_type_ewallet)
         };
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+        ArrayAdapter<String> adapter = new NoFilterArrayAdapter(
                 requireContext(),
                 R.layout.item_moneymate_dropdown_option,
                 types
@@ -135,15 +139,91 @@ public class AddEditWalletFragment extends Fragment {
         binding.dropdownType.setOnClickListener(v -> binding.dropdownType.showDropDown());
     }
 
+    private static final class NoFilterArrayAdapter extends ArrayAdapter<String> {
+        private final String[] items;
+
+        NoFilterArrayAdapter(@NonNull android.content.Context context,
+                             int resource,
+                             @NonNull String[] items) {
+            super(context, resource, items);
+            this.items = items;
+        }
+
+        @NonNull
+        @Override
+        public Filter getFilter() {
+            return new Filter() {
+                @Override
+                protected FilterResults performFiltering(CharSequence constraint) {
+                    FilterResults results = new FilterResults();
+                    results.values = items;
+                    results.count = items.length;
+                    return results;
+                }
+
+                @Override
+                protected void publishResults(CharSequence constraint, FilterResults results) {
+                    notifyDataSetChanged();
+                }
+            };
+        }
+    }
+
+    private void setupIconPicker() {
+        binding.cardWalletIcon.setOnClickListener(v -> openIconPicker());
+        binding.ivWalletIcon.setOnClickListener(v -> openIconPicker());
+    }
+
+    private void openIconPicker() {
+        AddEditWalletFragmentDirections.ActionAddEditWalletFragmentToWalletIconPickerFragment action =
+                AddEditWalletFragmentDirections.actionAddEditWalletFragmentToWalletIconPickerFragment();
+        action.setSelectedIconName(selectedIconName);
+        Navigation.findNavController(binding.getRoot()).navigate(action);
+    }
+
+    private void observeIconSelection() {
+        NavBackStackEntry backStackEntry = Navigation.findNavController(requireView()).getCurrentBackStackEntry();
+        if (backStackEntry == null) {
+            return;
+        }
+        backStackEntry.getSavedStateHandle()
+                .getLiveData(WalletIconPickerFragment.RESULT_ICON_NAME)
+                .observe(getViewLifecycleOwner(), value -> {
+                    if (value == null) {
+                        return;
+                    }
+                    selectedIconName = value.toString();
+                    updateIconPreview();
+                    backStackEntry.getSavedStateHandle()
+                            .set(WalletIconPickerFragment.RESULT_ICON_NAME, null);
+                });
+    }
+
+    private void updateIconPreview() {
+        binding.ivWalletIcon.setImageResource(
+                com.group10.moneymate.utils.IconProvider.resolveWalletIcon(
+                        requireContext(),
+                        selectedIconName,
+                        editingWallet == null ? null : editingWallet.getType()
+                )
+        );
+    }
+
     private void loadEditingWallet(String id) {
         viewModel.getWalletById(id).observe(getViewLifecycleOwner(), wallet -> {
             if (wallet == null) {
                 return;
             }
+            if (hasInitializedEdit) {
+                return;
+            }
+            hasInitializedEdit = true;
             editingWallet = wallet;
             binding.etName.setText(wallet.getName());
             binding.etBalance.setText(CurrencyFormatter.formatInputAmount((long) wallet.getBalance()));
             binding.dropdownType.setText(typeToLabel(wallet.getType()), false);
+            selectedIconName = wallet.getIconName();
+            updateIconPreview();
         });
     }
 
@@ -174,9 +254,9 @@ public class AddEditWalletFragment extends Fragment {
         WalletType type = labelToType(typeLabel);
 
         if (editingWallet == null) {
-            viewModel.addWallet(name, type, balance);
+            viewModel.addWallet(name, type, balance, selectedIconName);
         } else {
-            viewModel.updateWallet(editingWallet, name, type, balance);
+            viewModel.updateWallet(editingWallet, name, type, balance, selectedIconName);
         }
 
         Toast.makeText(requireContext(), R.string.wallet_saved, Toast.LENGTH_SHORT).show();
@@ -217,5 +297,26 @@ public class AddEditWalletFragment extends Fragment {
         }
         super.onDestroyView();
         binding = null;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        applyPickedIconIfPresent();
+    }
+
+    private void applyPickedIconIfPresent() {
+        NavController navController = Navigation.findNavController(requireView());
+        NavBackStackEntry currentEntry = navController.getCurrentBackStackEntry();
+        if (currentEntry == null) {
+            return;
+        }
+        Object value = currentEntry.getSavedStateHandle().get(WalletIconPickerFragment.RESULT_ICON_NAME);
+        if (value == null) {
+            return;
+        }
+        selectedIconName = value.toString();
+        updateIconPreview();
+        currentEntry.getSavedStateHandle().set(WalletIconPickerFragment.RESULT_ICON_NAME, null);
     }
 }

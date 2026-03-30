@@ -12,19 +12,21 @@ import android.widget.TextView;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavBackStackEntry;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -45,7 +47,9 @@ import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.models.TransactionType;
+import com.group10.moneymate.ui.transaction.TransactionCategoryPickerFragment;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 
 import java.time.Instant;
@@ -59,10 +63,13 @@ public class CategoryReportFragment extends Fragment {
 
     private FragmentCategoryReportBinding binding;
     private CategoryReportViewModel viewModel;
-    private StatisticsPeriodSummaryAdapter dailyGroupsAdapter;
+    private StatisticsCategoryBreakdownAdapter categoryAdapter;
+    private StatisticsPeriodSummaryAdapter trendPeriodsAdapter;
     private AbsoluteCurrencyValueFormatter absoluteCurrencyValueFormatter;
     private CategoryContentMode categoryContentMode = CategoryContentMode.DETAIL;
     private boolean isComparisonVisible;
+    @Nullable
+    private IncomeExpenseDetailViewModel.ComparisonPointUiModel latestComparisonPoint;
 
     @Nullable
     @Override
@@ -77,8 +84,9 @@ public class CategoryReportFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        CategoryReportFragmentArgs args =
-                CategoryReportFragmentArgs.fromBundle(getArguments());
+        CategoryReportFragmentArgs args = CategoryReportFragmentArgs.fromBundle(
+                getArguments() == null ? new Bundle() : getArguments()
+        );
         AppContainer container = ((MoneyMateApplication) requireActivity().getApplication()).getAppContainer();
         CategoryReportViewModel.Factory factory = new CategoryReportViewModel.Factory(
                 container.transactionRepository,
@@ -91,34 +99,55 @@ public class CategoryReportFragment extends Fragment {
                 args.getCategoryId()
         );
         viewModel = new ViewModelProvider(this, factory).get(CategoryReportViewModel.class);
-        absoluteCurrencyValueFormatter = new AbsoluteCurrencyValueFormatter();
-        dailyGroupsAdapter = new StatisticsPeriodSummaryAdapter(
+        categoryAdapter = new StatisticsCategoryBreakdownAdapter();
+        categoryAdapter.setAmountAccentColor(ContextCompat.getColor(
+                requireContext(),
+                viewModel.getSelectedTransactionType() == TransactionType.INCOME
+                        ? R.color.transfer_blue
+                        : R.color.expense_red
+        ));
+        trendPeriodsAdapter = new StatisticsPeriodSummaryAdapter(
                 StatisticsPeriodSummaryAdapter.DisplayMode.SINGLE,
                 viewModel.getSelectedTransactionType()
         );
+        absoluteCurrencyValueFormatter = new AbsoluteCurrencyValueFormatter();
 
         applyWindowInsets();
         configureHeader();
-        configureRecyclerView();
+        configureRecyclerViews();
         configureCharts();
         bindActions();
+        observeCategoryPickerResult();
         observeViewModel();
     }
 
     private void configureHeader() {
         binding.statisticsHeader.btnHeaderBack.setVisibility(View.VISIBLE);
-        binding.statisticsHeader.tvHeaderSummaryLabel.setVisibility(View.GONE);
-        binding.statisticsHeader.tvHeaderTotalAmount.setVisibility(View.GONE);
-        binding.statisticsHeader.btnWalletSelector.setText(R.string.statistics_category_report_title);
+        binding.statisticsHeader.tvHeaderTitle.setVisibility(View.VISIBLE);
+        binding.statisticsHeader.tvHeaderTitle.setText(R.string.statistics_group_report_title);
+        binding.statisticsHeader.btnWalletSelector.setVisibility(View.GONE);
+        binding.statisticsHeader.layoutHeaderSummary.setVisibility(View.GONE);
+        binding.statisticsHeader.btnHeaderSecondarySelector.setVisibility(View.VISIBLE);
+        binding.statisticsHeader.btnHeaderSecondarySelector.setText(R.string.statistics_group_selector_title);
+        binding.statisticsHeader.btnHeaderSecondarySelector.setIconResource(R.drawable.outline_account_tree_24);
+        binding.statisticsHeader.btnHeaderSecondarySelector.setIconTint(ContextCompat.getColorStateList(
+                requireContext(),
+                R.color.statistics_text_primary
+        ));
+        binding.statisticsHeader.layoutPeriodNavigator.setVisibility(View.VISIBLE);
         binding.btnToggleComparison.setText(R.string.statistics_detail_compare_show);
         binding.layoutComparisonSummary.getRoot().setVisibility(View.GONE);
         switchContentMode(CategoryContentMode.DETAIL);
     }
 
-    private void configureRecyclerView() {
-        binding.recyclerDailyGroups.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.recyclerDailyGroups.setAdapter(dailyGroupsAdapter);
-        binding.recyclerDailyGroups.setNestedScrollingEnabled(false);
+    private void configureRecyclerViews() {
+        binding.recyclerChildCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recyclerChildCategories.setAdapter(categoryAdapter);
+        binding.recyclerChildCategories.setNestedScrollingEnabled(false);
+
+        binding.recyclerTrendPeriods.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recyclerTrendPeriods.setAdapter(trendPeriodsAdapter);
+        binding.recyclerTrendPeriods.setNestedScrollingEnabled(false);
     }
 
     private void configureCharts() {
@@ -129,42 +158,49 @@ public class CategoryReportFragment extends Fragment {
     private void bindActions() {
         binding.statisticsHeader.btnHeaderBack.setOnClickListener(v ->
                 Navigation.findNavController(v).navigateUp());
-        binding.statisticsHeader.btnWalletSelector.setOnClickListener(v -> showCategorySelectorDialog());
+        binding.statisticsHeader.btnDateFilter.setOnClickListener(v -> showDateRangePicker());
         binding.statisticsHeader.btnPreviousPeriod.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
         binding.statisticsHeader.btnNextPeriod.setOnClickListener(v -> viewModel.shiftCurrentPeriod(1));
-        binding.statisticsHeader.tvPeriodPrevious.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-2));
-        binding.statisticsHeader.tvPeriodCurrent.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
-        binding.statisticsHeader.btnDateFilter.setOnClickListener(v -> showDateRangePicker());
-
+        binding.statisticsHeader.tvPeriodPrevious.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
+        binding.statisticsHeader.tvPeriodCurrent.setOnClickListener(v -> showDateRangePicker());
+        binding.statisticsHeader.tvPeriodNext.setOnClickListener(v -> viewModel.shiftCurrentPeriod(1));
+        binding.statisticsHeader.btnHeaderSecondarySelector.setOnClickListener(v -> openGroupSelector());
         binding.btnToggleComparison.setOnClickListener(v -> {
             isComparisonVisible = !isComparisonVisible;
             updateComparisonVisibility();
         });
         binding.btnModeDetail.setOnClickListener(v -> switchContentMode(CategoryContentMode.DETAIL));
         binding.btnModeTrend.setOnClickListener(v -> switchContentMode(CategoryContentMode.TREND));
-        dailyGroupsAdapter.setOnItemClickListener(this::openLevelFourDetail);
+        categoryAdapter.setOnItemClickListener(this::openLeafDetail);
+        trendPeriodsAdapter.setOnItemClickListener(this::openPeriodTransactions);
     }
 
     private void observeViewModel() {
-        viewModel.getCategoryOptions().observe(getViewLifecycleOwner(), items -> {
-            if (items == null || items.isEmpty()) {
-                binding.statisticsHeader.btnWalletSelector.setEnabled(false);
-                binding.statisticsHeader.btnWalletSelector.setAlpha(0.55f);
+        viewModel.getFilterStateLiveData().observe(getViewLifecycleOwner(), filterState -> {
+            if (filterState == null) {
                 return;
             }
-            binding.statisticsHeader.btnWalletSelector.setEnabled(true);
-            binding.statisticsHeader.btnWalletSelector.setAlpha(1f);
+            renderHeaderTabs(filterState);
+            if (!viewModel.shouldShowComparisonCard()) {
+                isComparisonVisible = false;
+            }
+            updateComparisonVisibility();
         });
 
         viewModel.getSelectedCategory().observe(getViewLifecycleOwner(), category -> {
             if (category == null) {
                 return;
             }
-            binding.statisticsHeader.btnWalletSelector.setText(category.getCategoryName());
-            binding.statisticsHeader.btnWalletSelector.setIconResource(resolveIconRes(category.getIconResId()));
-            binding.statisticsHeader.btnWalletSelector.setIconTint(ColorStateList.valueOf(
-                    parseColorOrDefault(category.getColorHex(), ContextCompat.getColor(requireContext(), R.color.transfer_blue))
-            ));
+            binding.statisticsHeader.btnHeaderSecondarySelector.setText(category.getCategoryName());
+            binding.statisticsHeader.btnHeaderSecondarySelector.setIconResource(
+                    IconProvider.resolveCategoryIcon(requireContext(), category.getIconName())
+            );
+            int tintColor = IconProvider.getCategoryColor(
+                    requireContext(),
+                    category.getCategoryId(),
+                    viewModel.getSelectedTransactionType() != TransactionType.INCOME
+            );
+            binding.statisticsHeader.btnHeaderSecondarySelector.setIconTint(ColorStateList.valueOf(tintColor));
         });
 
         viewModel.getTotalAmount().observe(getViewLifecycleOwner(), amount -> {
@@ -189,53 +225,127 @@ public class CategoryReportFragment extends Fragment {
             binding.tvHighlightAverageValue.setTextColor(accentColor);
         });
 
-        viewModel.getFilterStateLiveData().observe(getViewLifecycleOwner(), filterState -> {
-            if (filterState == null) {
-                return;
-            }
-            renderHeaderTabs(filterState);
-            if (!viewModel.shouldShowComparisonCard()) {
-                isComparisonVisible = false;
-            }
-            updateComparisonVisibility();
+        viewModel.getChildCategoryItems().observe(getViewLifecycleOwner(), items -> {
+            List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel> safeItems =
+                    items != null ? items : new ArrayList<>();
+            categoryAdapter.submitList(safeItems, this::updateEmptyState);
+            renderDonutBreakdown(safeItems);
         });
 
         viewModel.getTrendSummaries().observe(getViewLifecycleOwner(), items -> {
-            renderTrendChart(items != null ? items : new ArrayList<>());
-            updateEmptyState();
-        });
-
-        viewModel.getDailyGroups().observe(getViewLifecycleOwner(), items -> {
             List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel> safeItems =
                     items != null ? items : new ArrayList<>();
-            dailyGroupsAdapter.submitList(safeItems);
-            renderDayComposition(safeItems);
-            updateEmptyState();
+            trendPeriodsAdapter.submitList(safeItems, this::updateEmptyState);
+            renderTrendChart(safeItems);
         });
 
         viewModel.getComparisonPoints().observe(getViewLifecycleOwner(), this::renderComparisonChart);
     }
 
-    private void renderDayComposition(@NonNull List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel> items) {
+    private void observeCategoryPickerResult() {
+        NavController navController = Navigation.findNavController(requireView());
+        NavBackStackEntry currentBackStackEntry = navController.getCurrentBackStackEntry();
+        if (currentBackStackEntry == null) {
+            return;
+        }
+        currentBackStackEntry.getSavedStateHandle()
+                .<String>getLiveData(TransactionCategoryPickerFragment.RESULT_CATEGORY_ID)
+                .observe(getViewLifecycleOwner(), selectedCategoryId -> {
+                    if (selectedCategoryId == null || selectedCategoryId.trim().isEmpty()) {
+                        return;
+                    }
+                    String selectedType = currentBackStackEntry.getSavedStateHandle()
+                            .get(TransactionCategoryPickerFragment.RESULT_CATEGORY_TYPE);
+                    if (selectedType != null
+                            && !selectedType.equalsIgnoreCase(viewModel.getSelectedTransactionType().name())) {
+                        CategoryReportFragmentDirections.ActionStatisticsCategoryDetailFragmentSelf action =
+                                CategoryReportFragmentDirections.actionStatisticsCategoryDetailFragmentSelf();
+                        StatisticsViewModel.FilterState filterState = viewModel.getCurrentFilterState();
+                        action.setWalletId(filterState.getWalletId());
+                        action.setStartDate(filterState.getStartDate());
+                        action.setEndDate(filterState.getEndDate());
+                        action.setTransactionType(selectedType);
+                        action.setCategoryId(selectedCategoryId);
+                        Navigation.findNavController(binding.getRoot()).navigate(action);
+                    } else {
+                        viewModel.updateSelectedCategory(selectedCategoryId);
+                    }
+                    currentBackStackEntry.getSavedStateHandle().remove(TransactionCategoryPickerFragment.RESULT_CATEGORY_ID);
+                    currentBackStackEntry.getSavedStateHandle().remove(TransactionCategoryPickerFragment.RESULT_CATEGORY_TYPE);
+                    currentBackStackEntry.getSavedStateHandle().remove(TransactionCategoryPickerFragment.RESULT_DEBT_TYPE);
+                    currentBackStackEntry.getSavedStateHandle().remove(TransactionCategoryPickerFragment.RESULT_ALL_CATEGORIES);
+                });
+    }
+
+    private void openGroupSelector() {
+        CategoryReportFragmentDirections.ActionStatisticsCategoryDetailFragmentToTransactionCategoryPickerFragment action =
+                CategoryReportFragmentDirections.actionStatisticsCategoryDetailFragmentToTransactionCategoryPickerFragment();
+        action.setSelectedCategoryId(viewModel.getSelectedCategoryId());
+        action.setTransactionType(viewModel.getSelectedTransactionType().name());
+        action.setLockToExpense(false);
+        action.setShowAllCategories(false);
+        action.setHideDebtTab(true);
+        action.setOnlyParentCategoriesWithChildren(true);
+        Navigation.findNavController(binding.getRoot()).navigate(action);
+    }
+
+    private void openLeafDetail(@NonNull IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel item) {
+        if (item.getCategoryId() == null) {
+            return;
+        }
+        CategoryReportFragmentDirections.ActionStatisticsCategoryDetailFragmentToStatisticsCategoryDayDetailFragment action =
+                CategoryReportFragmentDirections.actionStatisticsCategoryDetailFragmentToStatisticsCategoryDayDetailFragment(
+                        item.getCategoryId()
+                );
+        StatisticsViewModel.FilterState filterState = viewModel.getCurrentFilterState();
+        action.setWalletId(filterState.getWalletId());
+        action.setStartDate(filterState.getStartDate());
+        action.setEndDate(filterState.getEndDate());
+        action.setTransactionType(viewModel.getSelectedTransactionType().name());
+        action.setCategoryId(item.getCategoryId());
+        action.setCategoryName(item.getCategoryName());
+        Navigation.findNavController(binding.getRoot()).navigate(action);
+    }
+
+    private void openPeriodTransactions(@NonNull IncomeExpenseDetailViewModel.PeriodSummaryUiModel item) {
+        CategoryReportFragmentDirections.ActionStatisticsCategoryDetailFragmentToReportTransactionListFragment action =
+                CategoryReportFragmentDirections.actionStatisticsCategoryDetailFragmentToReportTransactionListFragment();
+        StatisticsViewModel.FilterState filterState = viewModel.getCurrentFilterState();
+        action.setWalletId(filterState.getWalletId());
+        action.setStartDate(item.getStartDate());
+        action.setEndDate(item.getEndDate());
+        action.setTransactionType(viewModel.getSelectedTransactionType().name());
+        action.setCategoryId(viewModel.getSelectedCategoryId());
+        action.setReportTitle(viewModel.getSelectedCategory().getValue() != null
+                ? viewModel.getSelectedCategory().getValue().getCategoryName()
+                : null);
+        Navigation.findNavController(binding.getRoot()).navigate(action);
+    }
+
+    private void renderDonutBreakdown(@NonNull List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel> items) {
         List<StatisticsDonutBreakdownView.Segment> segments = new ArrayList<>();
-        int[] palette = new int[]{
-                ContextCompat.getColor(requireContext(), R.color.transfer_blue),
-                ContextCompat.getColor(requireContext(), R.color.income_green),
-                ContextCompat.getColor(requireContext(), R.color.expense_red),
-                ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary)
-        };
-        for (int index = 0; index < items.size(); index++) {
-            double amount = items.get(index).getPrimaryAmount(viewModel.getSelectedTransactionType());
+        int fallbackColor = ContextCompat.getColor(
+                requireContext(),
+                viewModel.getSelectedTransactionType() == TransactionType.INCOME
+                        ? R.color.transfer_blue
+                        : R.color.expense_red
+        );
+        double totalAmount = 0d;
+        for (IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel item : items) {
+            totalAmount += item.getTotalAmount();
             segments.add(new StatisticsDonutBreakdownView.Segment(
-                    R.drawable.outline_calendar_today_24,
-                    palette[index % palette.length],
-                    amount
+                    IconProvider.resolveCategoryIcon(requireContext(), item.getIconName()),
+                    item.getCategoryId() == null
+                            ? fallbackColor
+                            : IconProvider.getCategoryColor(
+                                    requireContext(),
+                                    item.getCategoryId(),
+                                    viewModel.getSelectedTransactionType() != TransactionType.INCOME
+                            ),
+                    item.getTotalAmount()
             ));
         }
-        binding.donutDayBreakdown.setData(
-                segments,
-                viewModel.getTotalAmount().getValue() != null ? viewModel.getTotalAmount().getValue() : 0d
-        );
+        binding.donutChildBreakdown.setData(segments, totalAmount);
     }
 
     private void renderTrendChart(@NonNull List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel> items) {
@@ -283,7 +393,9 @@ public class CategoryReportFragment extends Fragment {
         if (items == null || items.isEmpty()) {
             binding.chartComparison.clear();
             binding.chartComparison.invalidate();
+            latestComparisonPoint = null;
             binding.layoutComparisonSummary.getRoot().setVisibility(View.GONE);
+            binding.tvComparisonCollapsedHint.setVisibility(View.GONE);
             return;
         }
 
@@ -327,6 +439,7 @@ public class CategoryReportFragment extends Fragment {
         focusDataSet.setColor(Color.TRANSPARENT);
         focusDataSet.setLineWidth(0f);
         focusDataSet.setDrawValues(false);
+        focusDataSet.setForm(Legend.LegendForm.NONE);
         focusDataSet.setCircleColor(primaryColor);
         focusDataSet.setCircleRadius(5.5f);
         focusDataSet.setDrawCircleHole(true);
@@ -339,7 +452,9 @@ public class CategoryReportFragment extends Fragment {
         binding.chartComparison.getAxisLeft().setAxisMaximum(Math.max(maxValue * 1.12f, 1f));
         binding.chartComparison.invalidate();
         binding.chartComparison.animateX(700, Easing.EaseInOutQuad);
+        latestComparisonPoint = latestPoint;
         renderComparisonSummary(latestPoint, primaryColor);
+        updateComparisonVisibility();
     }
 
     private void updateComparisonVisibility() {
@@ -350,9 +465,20 @@ public class CategoryReportFragment extends Fragment {
                 && binding.layoutComparisonSummary.tvComparisonSummaryDate.getText().length() > 0
                 ? View.VISIBLE
                 : View.GONE);
-        binding.btnToggleComparison.setText(isComparisonVisible
+        boolean showCollapsedHint = showCard && !isComparisonVisible && latestComparisonPoint != null;
+        binding.tvComparisonCollapsedHint.setVisibility(showCollapsedHint ? View.VISIBLE : View.GONE);
+        if (showCollapsedHint && latestComparisonPoint != null) {
+            binding.tvComparisonCollapsedHint.setText(getString(
+                    R.string.statistics_detail_compare_average_value,
+                    CurrencyFormatter.format(latestComparisonPoint.getAverageAmount(), "VND")
+            ));
+        }
+        binding.btnToggleComparison.setIconResource(isComparisonVisible
+                ? R.drawable.outline_visibility_off_24
+                : R.drawable.outline_visibility_24);
+        binding.btnToggleComparison.setContentDescription(getString(isComparisonVisible
                 ? R.string.statistics_detail_compare_hide
-                : R.string.statistics_detail_compare_show);
+                : R.string.statistics_detail_compare_show));
     }
 
     private void renderComparisonSummary(@NonNull IncomeExpenseDetailViewModel.ComparisonPointUiModel point,
@@ -374,9 +500,10 @@ public class CategoryReportFragment extends Fragment {
     private void switchContentMode(@NonNull CategoryContentMode mode) {
         categoryContentMode = mode;
         binding.layoutDetailContent.setVisibility(mode == CategoryContentMode.DETAIL ? View.VISIBLE : View.GONE);
-        binding.chartTrend.setVisibility(mode == CategoryContentMode.TREND ? View.VISIBLE : View.GONE);
+        binding.layoutTrendContent.setVisibility(mode == CategoryContentMode.TREND ? View.VISIBLE : View.GONE);
         styleModeButton(binding.btnModeDetail, mode == CategoryContentMode.DETAIL);
         styleModeButton(binding.btnModeTrend, mode == CategoryContentMode.TREND);
+        updateEmptyState();
     }
 
     private void styleModeButton(@NonNull MaterialButton button, boolean selected) {
@@ -391,42 +518,13 @@ public class CategoryReportFragment extends Fragment {
     }
 
     private void updateEmptyState() {
-        binding.tvEmptyState.setVisibility(dailyGroupsAdapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
-    }
-
-    private void openLevelFourDetail(@NonNull IncomeExpenseDetailViewModel.PeriodSummaryUiModel item) {
-        CategoryReportFragmentDirections.ActionStatisticsCategoryDetailFragmentToReportTransactionListFragment action =
-                CategoryReportFragmentDirections.actionStatisticsCategoryDetailFragmentToReportTransactionListFragment();
-        action.setWalletId(viewModel.getCurrentFilterState().getWalletId());
-        action.setStartDate(item.getStartDate());
-        action.setEndDate(item.getEndDate());
-        action.setTransactionType(viewModel.getSelectedTransactionType().name());
-        action.setCategoryId(viewModel.getSelectedCategoryId());
-        Navigation.findNavController(binding.getRoot()).navigate(action);
-    }
-
-    private void showCategorySelectorDialog() {
-        List<CategoryReportViewModel.CategoryOptionUiModel> items = viewModel.getCategoryOptions().getValue();
-        if (items == null || items.isEmpty()) {
-            Snackbar.make(binding.getRoot(), R.string.statistics_no_data, Snackbar.LENGTH_SHORT).show();
-            return;
-        }
-        CharSequence[] labels = new CharSequence[items.size()];
-        int checkedIndex = 0;
-        for (int index = 0; index < items.size(); index++) {
-            labels[index] = items.get(index).getCategoryName();
-            if (items.get(index).getCategoryId().equals(viewModel.getSelectedCategoryId())) {
-                checkedIndex = index;
-            }
-        }
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.statistics_category_report_title)
-                .setSingleChoiceItems(labels, checkedIndex, (dialog, which) -> {
-                    viewModel.updateSelectedCategory(items.get(which).getCategoryId());
-                    dialog.dismiss();
-                })
-                .setNegativeButton(R.string.common_cancel, null)
-                .show();
+        boolean showEmpty = categoryContentMode == CategoryContentMode.DETAIL
+                ? categoryAdapter.getItemCount() == 0 && trendPeriodsAdapter.getItemCount() == 0
+                : trendPeriodsAdapter.getItemCount() == 0 && categoryAdapter.getItemCount() == 0;
+        binding.tvEmptyState.setVisibility(showEmpty ? View.VISIBLE : View.GONE);
+        binding.tvChildListTitle.setVisibility(categoryAdapter.getItemCount() == 0 ? View.GONE : View.VISIBLE);
+        binding.recyclerChildCategories.setVisibility(categoryAdapter.getItemCount() == 0 ? View.GONE : View.VISIBLE);
+        binding.recyclerTrendPeriods.setVisibility(trendPeriodsAdapter.getItemCount() == 0 ? View.GONE : View.VISIBLE);
     }
 
     private void configureBidirectionalBarChart(@NonNull BarChart chart) {
@@ -462,7 +560,10 @@ public class CategoryReportFragment extends Fragment {
 
     private void configureLineChart(@NonNull LineChart chart) {
         chart.getDescription().setEnabled(false);
-        chart.getLegend().setEnabled(false);
+        chart.getLegend().setEnabled(true);
+        chart.getLegend().setTextColor(ContextCompat.getColor(requireContext(), R.color.statistics_text_muted));
+        chart.getLegend().setTextSize(11f);
+        chart.getLegend().setForm(Legend.LegendForm.LINE);
         chart.setNoDataText(getString(R.string.statistics_no_data));
         chart.setTouchEnabled(false);
         chart.setScaleEnabled(false);
@@ -551,32 +652,33 @@ public class CategoryReportFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
 
-        StatisticsViewModel.FilterState currentFilter = viewModel.getCurrentFilterState();
-        final LocalDate[] startDate = {toLocalDate(currentFilter.getStartDate())};
-        final LocalDate[] endDate = {toLocalDate(currentFilter.getEndDate())};
-
-        renderDateButton(dialogBinding.btnStartDate, startDate[0]);
-        renderDateButton(dialogBinding.btnEndDate, endDate[0]);
+        StatisticsViewModel.FilterState current = viewModel.getCurrentFilterState();
+        final LocalDate[] selectedStart = {toLocalDate(current.getStartDate())};
+        final LocalDate[] selectedEnd = {toLocalDate(current.getEndDate())};
+        renderDateButton(dialogBinding.btnStartDate, selectedStart[0]);
+        renderDateButton(dialogBinding.btnEndDate, selectedEnd[0]);
 
         dialogBinding.btnStartDate.setOnClickListener(v ->
-                showSingleDatePicker(startDate[0], pickedDate -> {
-                    startDate[0] = pickedDate;
+                showSingleDatePicker(selectedStart[0], pickedDate -> {
+                    selectedStart[0] = pickedDate;
                     renderDateButton(dialogBinding.btnStartDate, pickedDate);
                 }));
         dialogBinding.btnEndDate.setOnClickListener(v ->
-                showSingleDatePicker(endDate[0], pickedDate -> {
-                    endDate[0] = pickedDate;
+                showSingleDatePicker(selectedEnd[0], pickedDate -> {
+                    selectedEnd[0] = pickedDate;
                     renderDateButton(dialogBinding.btnEndDate, pickedDate);
                 }));
         dialogBinding.btnCancel.setOnClickListener(v -> dialog.dismiss());
         dialogBinding.btnApply.setOnClickListener(v -> {
-            if (endDate[0].isBefore(startDate[0])) {
-                Snackbar.make(binding.getRoot(), R.string.statistics_custom_range_invalid, Snackbar.LENGTH_SHORT).show();
+            if (selectedEnd[0].isBefore(selectedStart[0])) {
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.statistics_custom_range_invalid),
+                        Snackbar.LENGTH_SHORT).show();
                 return;
             }
-            viewModel.updateCustomDateRange(
-                    startDate[0].atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                    endDate[0].plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1L
+            viewModel.updateCustomRange(
+                    selectedStart[0].atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    selectedEnd[0].plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1L
             );
             dialog.dismiss();
         });
@@ -588,7 +690,7 @@ public class CategoryReportFragment extends Fragment {
         MoneyMateDatePickerHelper.showSingleDatePicker(
                 this,
                 initialDate,
-                "category_report_single_date",
+                "statistics_group_single_date",
                 callback::onDateSelected
         );
     }
@@ -631,14 +733,15 @@ public class CategoryReportFragment extends Fragment {
         binding.statisticsHeader.btnPreviousPeriod.setVisibility(View.VISIBLE);
         binding.statisticsHeader.btnNextPeriod.setVisibility(View.VISIBLE);
 
-        binding.statisticsHeader.tvPeriodPrevious.setText(filterState.shift(-2).getDisplayLabel());
-        binding.statisticsHeader.tvPeriodCurrent.setText(filterState.shift(-1).getDisplayLabel());
-        binding.statisticsHeader.tvPeriodNext.setText(filterState.getDisplayLabel());
+        binding.statisticsHeader.tvPeriodPrevious.setText(filterState.getPreviousHeaderLabel());
+        binding.statisticsHeader.tvPeriodCurrent.setText(filterState.getDisplayLabel());
+        binding.statisticsHeader.tvPeriodNext.setText(filterState.getNextHeaderLabel());
         applyTabStyle(binding.statisticsHeader.tvPeriodPrevious, false);
-        applyTabStyle(binding.statisticsHeader.tvPeriodCurrent, false);
-        applyTabStyle(binding.statisticsHeader.tvPeriodNext, true);
+        applyTabStyle(binding.statisticsHeader.tvPeriodCurrent, true);
+        applyTabStyle(binding.statisticsHeader.tvPeriodNext, false);
 
         boolean canMoveForward = canMoveForward(filterState);
+        binding.statisticsHeader.btnPreviousPeriod.setEnabled(true);
         binding.statisticsHeader.btnNextPeriod.setEnabled(canMoveForward);
         binding.statisticsHeader.btnNextPeriod.setAlpha(canMoveForward ? 1f : 0.35f);
     }
@@ -669,30 +772,6 @@ public class CategoryReportFragment extends Fragment {
                 .atStartOfDay(ZoneId.systemDefault())
                 .toInstant()
                 .toEpochMilli() - 1L;
-    }
-
-    @ColorInt
-    private int parseColorOrDefault(@Nullable String colorHex, @ColorInt int defaultColor) {
-        if (colorHex == null || colorHex.trim().isEmpty()) {
-            return defaultColor;
-        }
-        try {
-            return Color.parseColor(colorHex);
-        } catch (IllegalArgumentException ignored) {
-            return defaultColor;
-        }
-    }
-
-    private int resolveIconRes(@Nullable String iconResId) {
-        if (iconResId == null || iconResId.trim().isEmpty()) {
-            return R.drawable.ic_category_other;
-        }
-        int resolved = requireContext().getResources().getIdentifier(
-                iconResId,
-                "drawable",
-                requireContext().getPackageName()
-        );
-        return resolved != 0 ? resolved : R.drawable.ic_category_other;
     }
 
     @NonNull

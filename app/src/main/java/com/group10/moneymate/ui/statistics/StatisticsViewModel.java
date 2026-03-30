@@ -36,6 +36,7 @@ public class StatisticsViewModel extends ViewModel {
             new MutableLiveData<>(TransactionType.INCOME);
 
     private final LiveData<Double> headerBalance;
+    private final LiveData<WalletEntity> selectedWallet;
     private final LiveData<NetIncomeDTO> netIncomeSummary;
     private final LiveData<List<CategorySliceUiModel>> incomeCategorySums;
     private final LiveData<List<CategorySliceUiModel>> expenseCategorySums;
@@ -58,6 +59,13 @@ public class StatisticsViewModel extends ViewModel {
                 return normalizeDouble(walletRepository.getTotalBalance(userId));
             }
             return mapWalletBalance(walletRepository.getById(state.getWalletId()));
+        });
+
+        selectedWallet = Transformations.switchMap(filterState, state -> {
+            if (state == null || state.getWalletId() == null || state.getWalletId().trim().isEmpty()) {
+                return new MutableLiveData<>(null);
+            }
+            return walletRepository.getById(state.getWalletId());
         });
 
         netIncomeSummary = Transformations.switchMap(filterState, state -> {
@@ -130,6 +138,10 @@ public class StatisticsViewModel extends ViewModel {
 
     public LiveData<NetIncomeDTO> getNetIncomeSummary() {
         return netIncomeSummary;
+    }
+
+    public LiveData<WalletEntity> getSelectedWallet() {
+        return selectedWallet;
     }
 
     public LiveData<FilterState> getFilterStateLiveData() {
@@ -286,8 +298,7 @@ public class StatisticsViewModel extends ViewModel {
             items.add(new CategorySliceUiModel(
                     dto.getCategoryId(),
                     dto.getCategoryName(),
-                    dto.getIconResId(),
-                    dto.getColorHex(),
+                    dto.getIconName(),
                     dto.getTotalAmount(),
                     dto.getTransactionCount()
             ));
@@ -323,21 +334,18 @@ public class StatisticsViewModel extends ViewModel {
     public static class CategorySliceUiModel {
         private final String categoryId;
         private final String categoryName;
-        private final String iconResId;
-        private final String colorHex;
+        private final String iconName;
         private final double totalAmount;
         private final int transactionCount;
 
         public CategorySliceUiModel(@Nullable String categoryId,
                                     @Nullable String categoryName,
-                                    @Nullable String iconResId,
-                                    @Nullable String colorHex,
+                                    @Nullable String iconName,
                                     double totalAmount,
                                     int transactionCount) {
             this.categoryId = categoryId;
             this.categoryName = categoryName != null ? categoryName : "Chưa phân loại";
-            this.iconResId = iconResId;
-            this.colorHex = colorHex;
+            this.iconName = iconName;
             this.totalAmount = totalAmount;
             this.transactionCount = transactionCount;
         }
@@ -353,13 +361,8 @@ public class StatisticsViewModel extends ViewModel {
         }
 
         @Nullable
-        public String getIconResId() {
-            return iconResId;
-        }
-
-        @Nullable
-        public String getColorHex() {
-            return colorHex;
+        public String getIconName() {
+            return iconName;
         }
 
         public double getTotalAmount() {

@@ -39,6 +39,8 @@
     </style>
 
     <style name="ThemeOverlay.MoneyMate.MaterialDatePicker" parent="ThemeOverlay.Material3.MaterialCalendar">
+        <item name="android:windowBackground">@color/white</item>
+        <item name="backgroundTint">@color/white</item>
         <item name="colorPrimary">@color/moneymate_picker_accent</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSurface">@color/white</item>
@@ -69,11 +71,43 @@
         <item name="android:textColor">@color/statistics_text_secondary</item>
     </style>
 
+    <style name="Widget.MoneyMate.PopupMenu" parent="Widget.Material3.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_menu_light</item>
+        <item name="android:textColor">@color/budget_text_primary</item>
+    </style>
+
+    <style name="ThemeOverlay.MoneyMate.ToolbarPopup" parent="ThemeOverlay.Material3">
+        <item name="android:popupBackground">@drawable/bg_popup_menu_light</item>
+        <item name="android:textColor">@color/budget_text_primary</item>
+    </style>
+
     <style name="ThemeOverlay.MoneyMate.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:windowBackground">@color/white</item>
+        <item name="backgroundTint">@color/white</item>
         <item name="colorSurface">@color/white</item>
         <item name="colorOnSurface">@color/moneymate_field_text</item>
         <item name="colorPrimary">@color/moneymate_picker_accent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearanceOverlay.MoneyMate.Field</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.MoneyMate.MaterialAlertDialog.Button.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.MoneyMate.MaterialAlertDialog.Button.Negative</item>
+    </style>
+
+    <style name="ThemeOverlay.MoneyMate.CategoryDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:windowBackground">@color/white</item>
+        <item name="backgroundTint">@color/white</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/moneymate_field_text</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearanceOverlay.MoneyMate.Field</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.MoneyMate.MaterialAlertDialog.Button.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.MoneyMate.MaterialAlertDialog.Button.Negative</item>
+    </style>
+
+    <style name="Widget.MoneyMate.MaterialAlertDialog.Button.Positive" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/moneymate_picker_accent</item>
+    </style>
+
+    <style name="Widget.MoneyMate.MaterialAlertDialog.Button.Negative" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/statistics_text_secondary</item>
     </style>
 
 </resources>

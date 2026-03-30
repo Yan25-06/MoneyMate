@@ -56,4 +56,6 @@
     <color name="moneymate_field_border_hover">#98A2B3</color>
     <color name="moneymate_picker_accent">#16A34A</color>
     <color name="moneymate_picker_header_background">#F6FBF7</color>
+    <color name="moneymate_menu_dialog_bg">#F3F4F6</color>
+
 </resources>

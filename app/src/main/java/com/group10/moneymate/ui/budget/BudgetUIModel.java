@@ -11,7 +11,6 @@ public class BudgetUIModel {
     private final String categoryName;
     private final String categoryIcon;
     private final double spentAmount;
-    private final String categoryColorHex;
     private final String walletName;
     private final boolean active;
 
@@ -19,14 +18,12 @@ public class BudgetUIModel {
                          @Nullable String categoryName,
                          @Nullable String categoryIcon,
                          double spentAmount,
-                         @Nullable String categoryColorHex,
                          @Nullable String walletName,
                          boolean active) {
         this.budgetEntity = budgetEntity;
         this.categoryName = categoryName != null ? categoryName : "";
         this.categoryIcon = categoryIcon != null ? categoryIcon : "";
         this.spentAmount = spentAmount;
-        this.categoryColorHex = categoryColorHex != null ? categoryColorHex : "";
         this.walletName = walletName != null ? walletName : "";
         this.active = active;
     }
@@ -50,10 +47,6 @@ public class BudgetUIModel {
         return spentAmount;
     }
 
-    @NonNull
-    public String getCategoryColorHex() {
-        return categoryColorHex;
-    }
 
     @NonNull
     public String getWalletName() {

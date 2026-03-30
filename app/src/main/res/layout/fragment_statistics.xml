@@ -380,7 +380,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginTop="4dp"
-                        android:background="@color/statistics_card_stroke" />
+                        android:background="@color/statistics_card_stroke"
+                        android:visibility="gone" />
 
                     <LinearLayout
                         android:id="@+id/layoutGroupReportAction"
@@ -393,7 +394,8 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingTop="4dp"
-                        android:paddingBottom="4dp">
+                        android:paddingBottom="4dp"
+                        android:visibility="gone">
 
                         <TextView
                             android:layout_width="0dp"

@@ -13,6 +13,7 @@ import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.ItemBudgetWalletPickerBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.util.Objects;
 
@@ -62,7 +63,12 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetW
         void bind(@NonNull WalletEntity wallet) {
             binding.tvWalletName.setText(wallet.getName());
             binding.tvWalletBalance.setText(CurrencyFormatter.format(wallet.getBalance(), "VND"));
-            binding.ivWalletIcon.setImageResource(resolveWalletIcon(wallet.getType()));
+            binding.ivWalletIcon.setImageResource(IconProvider.resolveWalletIcon(
+                    binding.getRoot().getContext(),
+                    wallet.getIconName(),
+                    wallet.getType()
+            ));
+            binding.ivWalletIcon.setImageTintList(null);
             boolean isSelected = wallet.getId().equals(selectedWalletId);
             binding.vSelectedDot.setVisibility(isSelected ? android.view.View.VISIBLE : android.view.View.INVISIBLE);
             binding.getRoot().setBackgroundResource(isSelected
@@ -84,16 +90,6 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletEntity, BudgetW
                     listener.onEdit(wallet);
                 }
             });
-        }
-
-        private int resolveWalletIcon(String type) {
-            if ("BANK".equals(type)) {
-                return R.drawable.outline_account_balance_24;
-            }
-            if ("E_WALLET".equals(type)) {
-                return R.drawable.outline_credit_card_24;
-            }
-            return R.drawable.outline_payments_24;
         }
     }
 

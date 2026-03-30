@@ -414,7 +414,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
                             android:layout_weight="1"
-                            android:text="@string/categories"
+                            android:text="@string/settings_groups_label"
                             android:textColor="@color/statistics_text_primary"
                             android:textSize="16sp"
                             android:textStyle="bold" />

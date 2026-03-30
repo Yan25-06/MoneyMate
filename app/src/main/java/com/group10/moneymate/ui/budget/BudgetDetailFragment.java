@@ -24,6 +24,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
@@ -225,7 +226,6 @@ public class BudgetDetailFragment extends Fragment {
         renderDetail(new DetailRenderModel(
                 getString(R.string.budget_all_categories),
                 "",
-                "#4CAF50",
                 aggregateWalletFilterLabel != null
                         ? aggregateWalletFilterLabel
                         : getString(R.string.budget_total_scope),
@@ -254,19 +254,14 @@ public class BudgetDetailFragment extends Fragment {
                 ? 0f
                 : (float) ((model.spentAmount / model.entity.getAmount()) * 100f);
         int progress = Math.max(0, Math.min(100, Math.round(percent)));
-        int iconTint = BudgetUiUtils.parseColorOrDefault(
-                model.colorHex,
-                ContextCompat.getColor(requireContext(), R.color.budget_safe_green)
-        );
-
         binding.ivCategoryIcon.setImageResource(BudgetUiUtils.resolveCategoryIcon(
                 requireContext(),
                 model.iconName,
                 model.title
         ));
-        binding.ivCategoryIcon.setImageTintList(ColorStateList.valueOf(iconTint));
+        binding.ivCategoryIcon.setImageTintList(null);
         binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
-                androidx.core.graphics.ColorUtils.setAlphaComponent(iconTint, 32)
+                ContextCompat.getColor(requireContext(), android.R.color.white)
         ));
         binding.tvCategoryName.setText(model.title);
         binding.tvAmount.setText(BudgetUiUtils.formatCurrency(model.entity.getAmount()));
@@ -330,7 +325,6 @@ public class BudgetDetailFragment extends Fragment {
         return new DetailRenderModel(
                 item.getCategoryName(),
                 item.getCategoryIcon(),
-                item.getCategoryColorHex(),
                 item.getWalletName(),
                 item.getBudgetEntity(),
                 item.getSpentAmount(),
@@ -453,12 +447,19 @@ public class BudgetDetailFragment extends Fragment {
         if (isAggregate || currentItem == null) {
             return;
         }
-        new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.ThemeOverlay_MoneyMate_MaterialAlertDialog
+        )
                 .setTitle(R.string.budget_delete_action)
                 .setMessage(R.string.budget_delete_confirm)
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.btn_delete, this::deleteBudget)
                 .show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(requireContext().getColor(R.color.budget_danger_red));
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
     }
 
     private void deleteBudget(DialogInterface dialog, int which) {
@@ -528,8 +529,6 @@ public class BudgetDetailFragment extends Fragment {
         @NonNull
         private final String iconName;
         @NonNull
-        private final String colorHex;
-        @NonNull
         private final String walletScopeLabel;
         @NonNull
         private final BudgetEntity entity;
@@ -542,7 +541,6 @@ public class BudgetDetailFragment extends Fragment {
 
         private DetailRenderModel(@NonNull String title,
                                   @NonNull String iconName,
-                                  @NonNull String colorHex,
                                   @NonNull String walletScopeLabel,
                                   @NonNull BudgetEntity entity,
                                   double spentAmount,
@@ -551,7 +549,6 @@ public class BudgetDetailFragment extends Fragment {
                                   boolean showBreakdown) {
             this.title = title;
             this.iconName = iconName;
-            this.colorHex = colorHex;
             this.walletScopeLabel = walletScopeLabel;
             this.entity = entity;
             this.spentAmount = spentAmount;

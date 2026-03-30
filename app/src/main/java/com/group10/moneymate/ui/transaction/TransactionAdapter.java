@@ -1,8 +1,6 @@
 package com.group10.moneymate.ui.transaction;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -133,13 +131,12 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
             int iconRes = resolveWalletIconRes(walletPresentation != null
                     ? walletPresentation.getWalletType()
                     : null);
-            int accentColor = walletPresentation != null
-                    ? walletPresentation.getAccentColor()
-                    : ContextCompat.getColor(context, R.color.statistics_text_secondary);
 
             binding.ivCategoryIcon.setImageResource(iconRes);
-            binding.ivCategoryIcon.setImageTintList(ColorStateList.valueOf(accentColor));
-            binding.cvCategoryIconContainer.setCardBackgroundColor(applyAlpha(accentColor, 0.14f));
+            binding.ivCategoryIcon.setImageTintList(null);
+            binding.cvCategoryIconContainer.setCardBackgroundColor(
+                    ContextCompat.getColor(context, android.R.color.white)
+            );
         }
 
         private int resolveWalletIconRes(@Nullable String walletType) {
@@ -152,10 +149,7 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
             return R.drawable.outline_account_balance_wallet_24;
         }
 
-        private int applyAlpha(int color, float alphaFraction) {
-            int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-            return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
-        }
+        // ...existing code...
     }
 
     @NonNull
@@ -172,16 +166,16 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
     }
 
     public static class CategoryPresentation {
-        private final int iconResId;
+        private final int iconRes;
         private final int accentColor;
 
-        public CategoryPresentation(int iconResId, int accentColor) {
-            this.iconResId = iconResId;
+        public CategoryPresentation(int iconRes, int accentColor) {
+            this.iconRes = iconRes;
             this.accentColor = accentColor;
         }
 
-        public int getIconResId() {
-            return iconResId;
+        public int getIconRes() {
+            return iconRes;
         }
 
         public int getAccentColor() {

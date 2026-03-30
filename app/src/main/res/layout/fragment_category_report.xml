@@ -146,13 +146,26 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnToggleComparison"
                             style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:minWidth="0dp"
-                            android:text="@string/statistics_detail_compare_show"
-                            android:textAllCaps="false"
-                            android:textColor="@color/income_green" />
+                            android:contentDescription="@string/statistics_detail_compare_show"
+                            android:insetBottom="0dp"
+                            android:insetTop="0dp"
+                            android:text=""
+                            app:icon="@drawable/outline_visibility_24"
+                            app:iconTint="@color/income_green" />
                     </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvComparisonCollapsedHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="@color/statistics_text_muted"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        tools:text="Trung bình 3 tháng trước: 1,200,000 đ" />
 
                     <include
                         android:id="@+id/layoutComparisonSummary"
@@ -160,8 +173,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="end"
-                        android:layout_marginTop="14dp"
                         android:layout_marginStart="56dp"
+                        android:layout_marginTop="14dp"
                         android:layout_marginEnd="2dp" />
 
                     <FrameLayout
@@ -231,56 +244,64 @@
                             app:strokeWidth="0dp" />
                     </LinearLayout>
 
-                    <FrameLayout
+                    <LinearLayout
                         android:id="@+id/layoutDetailContent"
                         android:layout_width="match_parent"
-                        android:layout_height="260dp"
-                        android:layout_marginTop="16dp">
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
 
                         <com.group10.moneymate.ui.statistics.StatisticsDonutBreakdownView
-                            android:id="@+id/donutDayBreakdown"
+                            android:id="@+id/donutChildBreakdown"
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent" />
-                    </FrameLayout>
+                            android:layout_height="260dp"
+                            android:layout_marginTop="16dp" />
 
-                    <com.github.mikephil.charting.charts.BarChart
-                        android:id="@+id/chartTrend"
-                        android:layout_width="match_parent"
-                        android:layout_height="250dp"
-                        android:layout_marginTop="16dp"
-                        android:visibility="gone" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                        <TextView
+                            android:id="@+id/tvChildListTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/statistics_detail_category_list_title"
+                            android:textColor="@color/statistics_text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginEnd="14dp"
-                app:cardBackgroundColor="@color/statistics_card_background"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/statistics_card_stroke"
-                app:strokeWidth="1dp">
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/recyclerChildCategories"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:nestedScrollingEnabled="false"
+                            tools:listitem="@layout/item_statistics_category_row" />
+                    </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="18dp">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recyclerDailyGroups"
+                    <LinearLayout
+                        android:id="@+id/layoutTrendContent"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false"
-                        tools:listitem="@layout/item_statistics_period_summary" />
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <com.github.mikephil.charting.charts.BarChart
+                            android:id="@+id/chartTrend"
+                            android:layout_width="match_parent"
+                            android:layout_height="250dp"
+                            android:layout_marginTop="16dp" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/recyclerTrendPeriods"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:nestedScrollingEnabled="false"
+                            tools:listitem="@layout/item_statistics_period_summary" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/tvEmptyState"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
                         android:gravity="center"
                         android:text="@string/statistics_no_data"
                         android:textColor="@color/statistics_text_muted"

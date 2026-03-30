@@ -22,4 +22,66 @@
         <item>Ngân hàng</item>
         <item>Ví điện tử</item>
     </string-array>
+
+    <integer-array name="expense_colors">
+        <item>0xFFFF3B30</item>
+        <item>0xFFFF5E3A</item>
+        <item>0xFFFF7F0F</item>
+        <item>0xFFFF9500</item>
+        <item>0xFFFFB000</item>
+        <item>0xFFFFC107</item>
+        <item>0xFFFF8A65</item>
+        <item>0xFFF4511E</item>
+        <item>0xFFD84315</item>
+        <item>0xFFBF360C</item>
+        <item>0xFFC62828</item>
+        <item>0xFFE53935</item>
+        <item>0xFFD32F2F</item>
+        <item>0xFFAD1457</item>
+        <item>0xFFC2185B</item>
+        <item>0xFF8E24AA</item>
+        <item>0xFF6A1B9A</item>
+        <item>0xFF4A148C</item>
+        <item>0xFF7E57C2</item>
+        <item>0xFF5E35B1</item>
+        <item>0xFF5D4037</item>
+        <item>0xFF6D4C41</item>
+        <item>0xFF8D6E63</item>
+        <item>0xFFA1887F</item>
+        <item>0xFFB71C1C</item>
+        <item>0xFFC51162</item>
+        <item>0xFF8E24AA</item>
+        <item>0xFF9C27B0</item>
+    </integer-array>
+
+    <integer-array name="income_colors">
+        <item>0xFF007AFF</item>
+        <item>0xFF00B0FF</item>
+        <item>0xFF00ACC1</item>
+        <item>0xFF00BCD4</item>
+        <item>0xFF009688</item>
+        <item>0xFF26A69A</item>
+        <item>0xFF2E7D32</item>
+        <item>0xFF43A047</item>
+        <item>0xFF4CAF50</item>
+        <item>0xFF66BB6A</item>
+        <item>0xFF1B5E20</item>
+        <item>0xFF1976D2</item>
+        <item>0xFF1565C0</item>
+        <item>0xFF0D47A1</item>
+        <item>0xFF1E88E5</item>
+        <item>0xFF42A5F5</item>
+        <item>0xFF5C6BC0</item>
+        <item>0xFF3949AB</item>
+        <item>0xFF283593</item>
+        <item>0xFF1A237E</item>
+        <item>0xFF00897B</item>
+        <item>0xFF00695C</item>
+        <item>0xFF26C6DA</item>
+        <item>0xFF00E5FF</item>
+        <item>0xFF00C853</item>
+        <item>0xFF2ECC71</item>
+        <item>0xFF00A86B</item>
+        <item>0xFF00FF9C</item>
+    </integer-array>
 </resources>

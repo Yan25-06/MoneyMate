@@ -5,9 +5,11 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.repository.CategoryRepository;
@@ -37,14 +39,17 @@ public class CategoryReportViewModel extends ViewModel {
     private final MutableLiveData<String> selectedCategoryId = new MutableLiveData<>();
     private final MediatorLiveData<List<CategoryOptionUiModel>> categoryOptions = new MediatorLiveData<>();
     private final MediatorLiveData<CategoryOptionUiModel> selectedCategory = new MediatorLiveData<>();
-    private final MediatorLiveData<Double> totalAmount = new MediatorLiveData<>();
-    private final MediatorLiveData<Double> averagePerDay = new MediatorLiveData<>();
-    private final MediatorLiveData<List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel>> trendSummaries = new MediatorLiveData<>();
-    private final MediatorLiveData<List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel>> dailyGroups = new MediatorLiveData<>();
-    private final MediatorLiveData<List<IncomeExpenseDetailViewModel.ComparisonPointUiModel>> comparisonPoints = new MediatorLiveData<>();
+    private final MediatorLiveData<Double> totalAmount = new MediatorLiveData<>(0d);
+    private final MediatorLiveData<Double> averagePerDay = new MediatorLiveData<>(0d);
+    private final MediatorLiveData<List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel>> trendSummaries =
+            new MediatorLiveData<>(new ArrayList<>());
+    private final MediatorLiveData<List<IncomeExpenseDetailViewModel.ComparisonPointUiModel>> comparisonPoints =
+            new MediatorLiveData<>(new ArrayList<>());
+    private final MediatorLiveData<ChildQuery> childQuery = new MediatorLiveData<>();
+    private final LiveData<List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel>> childCategoryItems;
 
     private LiveData<Double> totalAmountSource;
-    private LiveData<List<DailyTrendDTO>> currentDailySource;
+    private LiveData<List<DailyTrendDTO>> currentBranchDailySource;
     private LiveData<List<DailyTrendDTO>> comparisonCurrentSource;
     private LiveData<List<DailyTrendDTO>> comparisonPrevOneSource;
     private LiveData<List<DailyTrendDTO>> comparisonPrevTwoSource;
@@ -77,28 +82,59 @@ public class CategoryReportViewModel extends ViewModel {
         filterState.setValue(resolveInitialFilterState(initialWalletId, initialStartDate, initialEndDate));
         selectedCategoryId.setValue(initialCategoryId);
 
-        LiveData<List<CategoryEntity>> categorySource =
-                categoryRepository.getCategoriesByType(userId, selectedTransactionType.name());
-        categoryOptions.addSource(categorySource, categories -> {
-            List<CategoryOptionUiModel> items = mapCategoryOptions(categories);
-            categoryOptions.setValue(items);
-            synchronizeSelectedCategory(items);
+        LiveData<List<CategoryOptionUiModel>> categoryOptionsSource = Transformations.switchMap(
+                filterState,
+                state -> Transformations.map(
+                        categoryRepository.getParentCategoriesWithChildrenByTypeAndWallet(
+                                userId,
+                                selectedTransactionType.name(),
+                                state == null ? null : state.getWalletId()
+                        ),
+                        this::mapCategoryOptions
+                )
+        );
+        categoryOptions.addSource(categoryOptionsSource, items -> {
+            List<CategoryOptionUiModel> safeItems = items != null ? items : new ArrayList<>();
+            categoryOptions.setValue(safeItems);
+            synchronizeSelectedCategory(safeItems);
         });
         selectedCategory.addSource(selectedCategoryId, value -> synchronizeSelectedCategory(categoryOptions.getValue()));
         selectedCategory.addSource(categoryOptions, this::synchronizeSelectedCategory);
 
-        totalAmount.addSource(filterState, state -> reloadTotalAmountSource());
+        childQuery.addSource(filterState, value -> refreshChildQuery());
+        childQuery.addSource(selectedCategoryId, value -> refreshChildQuery());
+        childCategoryItems = Transformations.switchMap(childQuery, query -> {
+            if (query == null) {
+                return new MutableLiveData<>(new ArrayList<>());
+            }
+            return Transformations.map(
+                    transactionRepository.getChildCategorySums(
+                            userId,
+                            selectedTransactionType.name(),
+                            query.filterState.getStartDate(),
+                            boundedEndDate(query.filterState.getEndDate()),
+                            query.filterState.getWalletId(),
+                            query.parentCategoryId
+                    ),
+                    this::mapChildCategoryItems
+            );
+        });
+
+        totalAmount.addSource(filterState, value -> reloadTotalAmountSource());
         totalAmount.addSource(selectedCategoryId, value -> reloadTotalAmountSource());
         averagePerDay.addSource(totalAmount, value -> updateAveragePerDay());
         averagePerDay.addSource(filterState, value -> updateAveragePerDay());
 
-        trendSummaries.addSource(filterState, state -> reloadDailySource());
+        trendSummaries.addSource(filterState, value -> reloadDailySource());
         trendSummaries.addSource(selectedCategoryId, value -> reloadDailySource());
-        dailyGroups.addSource(filterState, state -> rebuildDailyGroups());
-        dailyGroups.addSource(selectedCategoryId, value -> rebuildDailyGroups());
 
-        comparisonPoints.addSource(filterState, state -> reloadComparisonSources());
+        comparisonPoints.addSource(filterState, value -> reloadComparisonSources());
         comparisonPoints.addSource(selectedCategoryId, value -> reloadComparisonSources());
+
+        refreshChildQuery();
+        reloadTotalAmountSource();
+        reloadDailySource();
+        reloadComparisonSources();
     }
 
     public LiveData<List<CategoryOptionUiModel>> getCategoryOptions() {
@@ -107,6 +143,10 @@ public class CategoryReportViewModel extends ViewModel {
 
     public LiveData<CategoryOptionUiModel> getSelectedCategory() {
         return selectedCategory;
+    }
+
+    public LiveData<List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel>> getChildCategoryItems() {
+        return childCategoryItems;
     }
 
     public LiveData<Double> getTotalAmount() {
@@ -121,10 +161,6 @@ public class CategoryReportViewModel extends ViewModel {
         return trendSummaries;
     }
 
-    public LiveData<List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel>> getDailyGroups() {
-        return dailyGroups;
-    }
-
     public LiveData<List<IncomeExpenseDetailViewModel.ComparisonPointUiModel>> getComparisonPoints() {
         return comparisonPoints;
     }
@@ -134,14 +170,14 @@ public class CategoryReportViewModel extends ViewModel {
     }
 
     @NonNull
-    public TransactionType getSelectedTransactionType() {
-        return selectedTransactionType;
-    }
-
-    @NonNull
     public StatisticsViewModel.FilterState getCurrentFilterState() {
         StatisticsViewModel.FilterState current = filterState.getValue();
         return current != null ? current : StatisticsViewModel.FilterState.createCurrentMonth(null);
+    }
+
+    @NonNull
+    public TransactionType getSelectedTransactionType() {
+        return selectedTransactionType;
     }
 
     @Nullable
@@ -150,7 +186,10 @@ public class CategoryReportViewModel extends ViewModel {
     }
 
     public void updateSelectedCategory(@Nullable String categoryId) {
-        if (categoryId == null || categoryId.equals(selectedCategoryId.getValue())) {
+        if (categoryId == null || categoryId.trim().isEmpty()) {
+            return;
+        }
+        if (categoryId.equals(selectedCategoryId.getValue())) {
             return;
         }
         selectedCategoryId.setValue(categoryId);
@@ -168,7 +207,7 @@ public class CategoryReportViewModel extends ViewModel {
         ));
     }
 
-    public void updateCustomDateRange(long startDate, long endDate) {
+    public void updateCustomRange(long startDate, long endDate) {
         if (endDate < startDate) {
             return;
         }
@@ -182,6 +221,16 @@ public class CategoryReportViewModel extends ViewModel {
 
     public boolean shouldShowComparisonCard() {
         return getCurrentFilterState().getPeriodType() == StatisticsViewModel.PeriodType.MONTH;
+    }
+
+    private void refreshChildQuery() {
+        StatisticsViewModel.FilterState currentFilterState = filterState.getValue();
+        String parentCategoryId = selectedCategoryId.getValue();
+        if (currentFilterState == null || parentCategoryId == null || parentCategoryId.trim().isEmpty()) {
+            childQuery.setValue(null);
+            return;
+        }
+        childQuery.setValue(new ChildQuery(currentFilterState, parentCategoryId));
     }
 
     private void synchronizeSelectedCategory(@Nullable List<CategoryOptionUiModel> items) {
@@ -210,16 +259,16 @@ public class CategoryReportViewModel extends ViewModel {
         }
 
         StatisticsViewModel.FilterState currentFilter = filterState.getValue();
-        String categoryId = selectedCategoryId.getValue();
-        if (currentFilter == null || categoryId == null || categoryId.trim().isEmpty()) {
+        String parentCategoryId = selectedCategoryId.getValue();
+        if (currentFilter == null || parentCategoryId == null || parentCategoryId.trim().isEmpty()) {
             totalAmount.setValue(0d);
             return;
         }
 
-        totalAmountSource = transactionRepository.getTotalAmountByCategoryFiltered(
+        totalAmountSource = transactionRepository.getParentCategoryBranchTotalAmount(
                 userId,
                 selectedTransactionType.name(),
-                categoryId,
+                parentCategoryId,
                 currentFilter.getStartDate(),
                 boundedEndDate(currentFilter.getEndDate()),
                 currentFilter.getWalletId()
@@ -246,38 +295,31 @@ public class CategoryReportViewModel extends ViewModel {
     }
 
     private void reloadDailySource() {
-        if (currentDailySource != null) {
-            trendSummaries.removeSource(currentDailySource);
-            dailyGroups.removeSource(currentDailySource);
+        if (currentBranchDailySource != null) {
+            trendSummaries.removeSource(currentBranchDailySource);
+            currentBranchDailySource = null;
         }
 
         StatisticsViewModel.FilterState currentFilter = filterState.getValue();
-        String categoryId = selectedCategoryId.getValue();
-        if (currentFilter == null || categoryId == null || categoryId.trim().isEmpty()) {
+        String parentCategoryId = selectedCategoryId.getValue();
+        if (currentFilter == null || parentCategoryId == null || parentCategoryId.trim().isEmpty()) {
             latestCurrentDaily = new ArrayList<>();
             trendSummaries.setValue(new ArrayList<>());
-            dailyGroups.setValue(new ArrayList<>());
             return;
         }
 
-        currentDailySource = transactionRepository.getCategoryAmountTrend(
+        currentBranchDailySource = transactionRepository.getParentCategoryBranchAmountTrend(
                 userId,
                 selectedTransactionType.name(),
-                categoryId,
+                parentCategoryId,
                 currentFilter.getStartDate(),
                 boundedEndDate(currentFilter.getEndDate()),
                 currentFilter.getWalletId(),
                 DAILY_PERIOD_FORMAT
         );
-        trendSummaries.addSource(currentDailySource, value -> {
+        trendSummaries.addSource(currentBranchDailySource, value -> {
             latestCurrentDaily = value != null ? value : new ArrayList<>();
             rebuildTrendSummaries();
-            rebuildDailyGroups();
-        });
-        dailyGroups.addSource(currentDailySource, value -> {
-            latestCurrentDaily = value != null ? value : new ArrayList<>();
-            rebuildTrendSummaries();
-            rebuildDailyGroups();
         });
     }
 
@@ -308,59 +350,22 @@ public class CategoryReportViewModel extends ViewModel {
         }
 
         if (items.isEmpty()) {
-            items.add(buildSummaryItem(buildBucketLabel(startDate, endDate, currentFilter.getPeriodType()), startDate, endDate, 0d));
-        }
-        trendSummaries.setValue(items);
-    }
-
-    private void rebuildDailyGroups() {
-        StatisticsViewModel.FilterState currentFilter = filterState.getValue();
-        if (currentFilter == null) {
-            dailyGroups.setValue(new ArrayList<>());
-            return;
-        }
-
-        Map<LocalDate, Double> amountMap = toDailyAmountMap(latestCurrentDaily);
-        LocalDate startDate = toLocalDate(currentFilter.getStartDate());
-        LocalDate endDate = toLocalDate(boundedEndDate(currentFilter.getEndDate()));
-        List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel> items = new ArrayList<>();
-
-        LocalDate cursor = startDate;
-        while (!cursor.isAfter(endDate)) {
-            if (amountMap.containsKey(cursor)) {
-                items.add(buildSummaryItem(
-                        String.format(Locale.getDefault(), "%02d/%02d/%d",
-                                cursor.getDayOfMonth(),
-                                cursor.getMonthValue(),
-                                cursor.getYear()),
-                        cursor,
-                        cursor,
-                        amountMap.get(cursor)
-                ));
-            }
-            cursor = cursor.plusDays(1);
-        }
-
-        if (items.isEmpty()) {
             items.add(buildSummaryItem(
-                    String.format(Locale.getDefault(), "%02d/%02d/%d",
-                            startDate.getDayOfMonth(),
-                            startDate.getMonthValue(),
-                            startDate.getYear()),
+                    buildBucketLabel(startDate, endDate, currentFilter.getPeriodType()),
                     startDate,
-                    startDate,
+                    endDate,
                     0d
             ));
         }
-        dailyGroups.setValue(items);
+        trendSummaries.setValue(items);
     }
 
     private void reloadComparisonSources() {
         detachComparisonSources();
 
         StatisticsViewModel.FilterState currentFilter = filterState.getValue();
-        String categoryId = selectedCategoryId.getValue();
-        if (currentFilter == null || categoryId == null || categoryId.trim().isEmpty()
+        String parentCategoryId = selectedCategoryId.getValue();
+        if (currentFilter == null || parentCategoryId == null || parentCategoryId.trim().isEmpty()
                 || currentFilter.getPeriodType() != StatisticsViewModel.PeriodType.MONTH) {
             resetComparisonData();
             return;
@@ -369,22 +374,22 @@ public class CategoryReportViewModel extends ViewModel {
         LocalDate currentMonth = toLocalDate(currentFilter.getStartDate()).withDayOfMonth(1);
         LocalDate visibleEnd = toLocalDate(boundedEndDate(currentFilter.getEndDate()));
 
-        comparisonCurrentSource = buildMonthlyComparisonSource(currentFilter, categoryId, currentMonth, visibleEnd);
+        comparisonCurrentSource = buildMonthlyComparisonSource(currentFilter, parentCategoryId, currentMonth, visibleEnd);
         comparisonPrevOneSource = buildMonthlyComparisonSource(
                 currentFilter,
-                categoryId,
+                parentCategoryId,
                 currentMonth.minusMonths(1),
                 currentMonth.minusMonths(1).withDayOfMonth(currentMonth.minusMonths(1).lengthOfMonth())
         );
         comparisonPrevTwoSource = buildMonthlyComparisonSource(
                 currentFilter,
-                categoryId,
+                parentCategoryId,
                 currentMonth.minusMonths(2),
                 currentMonth.minusMonths(2).withDayOfMonth(currentMonth.minusMonths(2).lengthOfMonth())
         );
         comparisonPrevThreeSource = buildMonthlyComparisonSource(
                 currentFilter,
-                categoryId,
+                parentCategoryId,
                 currentMonth.minusMonths(3),
                 currentMonth.minusMonths(3).withDayOfMonth(currentMonth.minusMonths(3).lengthOfMonth())
         );
@@ -409,13 +414,13 @@ public class CategoryReportViewModel extends ViewModel {
 
     @NonNull
     private LiveData<List<DailyTrendDTO>> buildMonthlyComparisonSource(@NonNull StatisticsViewModel.FilterState currentFilter,
-                                                                       @NonNull String categoryId,
+                                                                       @NonNull String parentCategoryId,
                                                                        @NonNull LocalDate startDate,
                                                                        @NonNull LocalDate endDate) {
-        return transactionRepository.getCategoryAmountTrend(
+        return transactionRepository.getParentCategoryBranchAmountTrend(
                 userId,
                 selectedTransactionType.name(),
-                categoryId,
+                parentCategoryId,
                 toStartMillis(startDate),
                 toEndMillis(endDate),
                 currentFilter.getWalletId(),
@@ -475,7 +480,9 @@ public class CategoryReportViewModel extends ViewModel {
             double averageValue = divisor > 0 ? averageTotal / divisor : lastAverage;
             lastAverage = averageValue;
             items.add(new IncomeExpenseDetailViewModel.ComparisonPointUiModel(
-                    String.format(Locale.getDefault(), "%02d/%02d", currentDate.getDayOfMonth(), currentDate.getMonthValue()),
+                    String.format(Locale.getDefault(), "%02d/%02d",
+                            currentDate.getDayOfMonth(),
+                            currentDate.getMonthValue()),
                     toStartMillis(currentDate),
                     currentRunning,
                     averageValue
@@ -512,6 +519,48 @@ public class CategoryReportViewModel extends ViewModel {
     }
 
     @NonNull
+    private List<CategoryOptionUiModel> mapCategoryOptions(@Nullable List<CategoryEntity> categories) {
+        List<CategoryOptionUiModel> items = new ArrayList<>();
+        if (categories == null) {
+            return items;
+        }
+        for (CategoryEntity category : categories) {
+            items.add(new CategoryOptionUiModel(
+                    category.getId(),
+                    category.getName(),
+                    category.getIconName()
+            ));
+        }
+        return items;
+    }
+
+    @NonNull
+    private List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel> mapChildCategoryItems(
+            @Nullable List<CategorySumDTO> items
+    ) {
+        List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel> mapped = new ArrayList<>();
+        if (items == null || items.isEmpty()) {
+            return mapped;
+        }
+        double total = 0d;
+        for (CategorySumDTO item : items) {
+            total += item.getTotalAmount();
+        }
+        for (CategorySumDTO item : items) {
+            double share = total > 0d ? (item.getTotalAmount() * 100d / total) : 0d;
+            mapped.add(new IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel(
+                    item.getCategoryId(),
+                    item.getCategoryName(),
+                    item.getIconName(),
+                    item.getTotalAmount(),
+                    share,
+                    item.getTransactionCount()
+            ));
+        }
+        return mapped;
+    }
+
+    @NonNull
     private IncomeExpenseDetailViewModel.PeriodSummaryUiModel buildSummaryItem(@NonNull String label,
                                                                                @NonNull LocalDate startDate,
                                                                                @NonNull LocalDate endDate,
@@ -531,23 +580,6 @@ public class CategoryReportViewModel extends ViewModel {
                 0d,
                 amount
         );
-    }
-
-    @NonNull
-    private List<CategoryOptionUiModel> mapCategoryOptions(@Nullable List<CategoryEntity> categories) {
-        List<CategoryOptionUiModel> items = new ArrayList<>();
-        if (categories == null) {
-            return items;
-        }
-        for (CategoryEntity category : categories) {
-            items.add(new CategoryOptionUiModel(
-                    category.getId(),
-                    category.getName(),
-                    category.getIconResId(),
-                    category.getColorHex()
-            ));
-        }
-        return items;
     }
 
     @NonNull
@@ -593,8 +625,8 @@ public class CategoryReportViewModel extends ViewModel {
     }
 
     @NonNull
-    private TransactionType parseTransactionType(@Nullable String rawValue) {
-        if ("INCOME".equalsIgnoreCase(rawValue)) {
+    private TransactionType parseTransactionType(@Nullable String value) {
+        if ("INCOME".equalsIgnoreCase(value)) {
             return TransactionType.INCOME;
         }
         return TransactionType.EXPENSE;
@@ -753,7 +785,9 @@ public class CategoryReportViewModel extends ViewModel {
         if (periodType == StatisticsViewModel.PeriodType.QUARTER
                 || periodType == StatisticsViewModel.PeriodType.YEAR
                 || periodType == StatisticsViewModel.PeriodType.ALL) {
-            return String.format(Locale.getDefault(), "%02d/%d", startDate.getMonthValue(), startDate.getYear());
+            return String.format(Locale.getDefault(), "%02d/%d",
+                    startDate.getMonthValue(),
+                    startDate.getYear());
         }
         return String.format(Locale.getDefault(), "%02d/%02d - %02d/%02d",
                 startDate.getDayOfMonth(),
@@ -762,7 +796,7 @@ public class CategoryReportViewModel extends ViewModel {
                 endDate.getMonthValue());
     }
 
-    public static class Factory implements ViewModelProvider.Factory {
+    public static final class Factory implements ViewModelProvider.Factory {
 
         private final TransactionRepository transactionRepository;
         private final CategoryRepository categoryRepository;
@@ -814,24 +848,33 @@ public class CategoryReportViewModel extends ViewModel {
         }
     }
 
+    private static final class ChildQuery {
+        @NonNull
+        private final StatisticsViewModel.FilterState filterState;
+        @NonNull
+        private final String parentCategoryId;
+
+        private ChildQuery(@NonNull StatisticsViewModel.FilterState filterState,
+                           @NonNull String parentCategoryId) {
+            this.filterState = filterState;
+            this.parentCategoryId = parentCategoryId;
+        }
+    }
+
     public static final class CategoryOptionUiModel {
         @NonNull
         private final String categoryId;
         @NonNull
         private final String categoryName;
         @Nullable
-        private final String iconResId;
-        @Nullable
-        private final String colorHex;
+        private final String iconName;
 
         public CategoryOptionUiModel(@NonNull String categoryId,
                                      @NonNull String categoryName,
-                                     @Nullable String iconResId,
-                                     @Nullable String colorHex) {
+                                     @Nullable String iconName) {
             this.categoryId = categoryId;
             this.categoryName = categoryName;
-            this.iconResId = iconResId;
-            this.colorHex = colorHex;
+            this.iconName = iconName;
         }
 
         @NonNull
@@ -845,13 +888,8 @@ public class CategoryReportViewModel extends ViewModel {
         }
 
         @Nullable
-        public String getIconResId() {
-            return iconResId;
-        }
-
-        @Nullable
-        public String getColorHex() {
-            return colorHex;
+        public String getIconName() {
+            return iconName;
         }
     }
 
@@ -876,5 +914,4 @@ public class CategoryReportViewModel extends ViewModel {
             return endDate;
         }
     }
-
 }

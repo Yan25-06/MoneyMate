@@ -51,8 +51,7 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
                             && oldItem.isActive() == newItem.isActive()
                             && oldItem.getCategoryName().equals(newItem.getCategoryName())
                             && oldItem.getWalletName().equals(newItem.getWalletName())
-                            && oldItem.getCategoryIcon().equals(newItem.getCategoryIcon())
-                            && oldItem.getCategoryColorHex().equals(newItem.getCategoryColorHex());
+                            && oldItem.getCategoryIcon().equals(newItem.getCategoryIcon());
                 }
             };
 
@@ -86,12 +85,6 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
             float percent = item.getPercent();
             int progress = Math.max(0, Math.min(100, Math.round(percent)));
             @ColorInt int progressColor = resolveProgressColor(context, item);
-            @ColorInt int fallbackIconColor =
-                    ContextCompat.getColor(context, R.color.budget_safe_green);
-            @ColorInt int iconTint = BudgetUiUtils.parseColorOrDefault(
-                    item.getCategoryColorHex(),
-                    fallbackIconColor
-            );
 
             binding.tvCategory.setText(item.getCategoryName());
             binding.tvWalletScope.setText(item.getWalletName());
@@ -111,8 +104,10 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
                     item.getCategoryIcon(),
                     item.getCategoryName()
             ));
-            binding.ivIcon.setImageTintList(ColorStateList.valueOf(iconTint));
-            binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(adjustAlpha(iconTint, 0.16f)));
+            binding.ivIcon.setImageTintList(null);
+            binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(context, android.R.color.white)
+            ));
 
             if (item.isOverspent()) {
                 binding.tvRemaining.setText(context.getString(

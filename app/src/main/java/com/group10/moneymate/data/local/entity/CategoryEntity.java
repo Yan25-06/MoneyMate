@@ -19,7 +19,7 @@ import androidx.room.PrimaryKey;
         )
     },
     indices = {
-        @Index("user_id")
+        @Index(name = "index_categories_user_wallet_parent_type_deleted", value = {"user_id", "wallet_id", "parent_id", "type", "is_deleted"})
     }
 )
 public class CategoryEntity {
@@ -39,11 +39,17 @@ public class CategoryEntity {
     @ColumnInfo(name = "type")
     private String type;
 
-    @ColumnInfo(name = "icon_res_id")
-    private String iconResId;
+    @NonNull
+    @ColumnInfo(name = "icon_name")
+    private String iconName;
 
-    @ColumnInfo(name = "color_hex")
-    private String colorHex;
+    @Nullable
+    @ColumnInfo(name = "parent_id")
+    private String parentId;
+
+    @Nullable
+    @ColumnInfo(name = "wallet_id")
+    private String walletId;
 
     @ColumnInfo(name = "is_default")
     private boolean isDefault;
@@ -59,6 +65,7 @@ public class CategoryEntity {
 
     public CategoryEntity() {
         this.id = "";
+        this.iconName = "ic_category_default";
     }
 
     @NonNull
@@ -75,11 +82,17 @@ public class CategoryEntity {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public String getIconResId() { return iconResId; }
-    public void setIconResId(String iconResId) { this.iconResId = iconResId; }
+    @NonNull
+    public String getIconName() { return iconName; }
+    public void setIconName(@NonNull String iconName) { this.iconName = iconName; }
 
-    public String getColorHex() { return colorHex; }
-    public void setColorHex(String colorHex) { this.colorHex = colorHex; }
+    @Nullable
+    public String getParentId() { return parentId; }
+    public void setParentId(@Nullable String parentId) { this.parentId = parentId; }
+
+    @Nullable
+    public String getWalletId() { return walletId; }
+    public void setWalletId(@Nullable String walletId) { this.walletId = walletId; }
 
     public boolean isDefault() { return isDefault; }
     public void setDefault(boolean aDefault) { isDefault = aDefault; }

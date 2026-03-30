@@ -1,5 +1,6 @@
 package com.group10.moneymate.ui.transaction;
 
+import android.app.Dialog;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -20,12 +21,20 @@ import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.snackbar.Snackbar;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.databinding.DialogStatisticsCustomRangeBinding;
 import com.group10.moneymate.databinding.FragmentReportTransactionListBinding;
+import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
+import com.group10.moneymate.ui.statistics.StatisticsViewModel;
+import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
+import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -45,8 +54,13 @@ public class ReportTransactionListFragment extends Fragment {
     private TransactionViewModel viewModel;
     private ReportTransactionListFragmentArgs navArgs;
     private final List<TransactionEntity> allTransactions = new ArrayList<>();
+    private final List<TransactionEntity> budgetScopedTransactions = new ArrayList<>();
     private final Map<String, WalletEntity> walletMap = new HashMap<>();
     private final Map<String, CategoryEntity> categoryMap = new HashMap<>();
+    private boolean useOtherBudgetSource;
+    private boolean statisticsLeafMode;
+    private long currentStartDate;
+    private long currentEndDate;
 
     @Nullable
     @Override
@@ -62,14 +76,43 @@ public class ReportTransactionListFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
         navArgs = ReportTransactionListFragmentArgs.fromBundle(getArguments() != null ? getArguments() : new Bundle());
+        useOtherBudgetSource = Constants.isOtherCategoryId(navArgs.getCategoryId());
+        statisticsLeafMode = navArgs.getStatisticsLeafMode();
+        currentStartDate = navArgs.getStartDate();
+        currentEndDate = navArgs.getEndDate();
 
         binding.rvTransactions.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvTransactions.setAdapter(new ConcatAdapter());
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+        binding.btnDateFilter.setOnClickListener(v -> showDateRangePicker());
+
+        if (navArgs.getReportTitle() != null && !navArgs.getReportTitle().trim().isEmpty()) {
+            binding.tvToolbarTitle.setText(navArgs.getReportTitle());
+        }
+        configureMode();
 
         applyWindowInsets();
         observeReferenceData();
+        observeBudgetScopedTransactions();
         observeTransactions();
+    }
+
+    private void observeBudgetScopedTransactions() {
+        if (!useOtherBudgetSource) {
+            return;
+        }
+        viewModel.getTransactionsForBudget(
+                navArgs.getCategoryId(),
+                navArgs.getWalletId(),
+                navArgs.getStartDate(),
+                navArgs.getEndDate()
+        ).observe(getViewLifecycleOwner(), transactions -> {
+            budgetScopedTransactions.clear();
+            if (transactions != null) {
+                budgetScopedTransactions.addAll(transactions);
+            }
+            renderScreen();
+        });
     }
 
     private void observeReferenceData() {
@@ -110,22 +153,28 @@ public class ReportTransactionListFragment extends Fragment {
             return;
         }
         List<TransactionEntity> filtered = filterTransactions();
-        renderSummary(filtered);
+        binding.cardSummary.setVisibility(statisticsLeafMode ? View.GONE : View.VISIBLE);
+        if (!statisticsLeafMode) {
+            renderSummary(filtered);
+        }
         renderSections(filtered);
     }
 
     @NonNull
     private List<TransactionEntity> filterTransactions() {
+        List<TransactionEntity> source = useOtherBudgetSource ? budgetScopedTransactions : allTransactions;
         List<TransactionEntity> filtered = new ArrayList<>();
-        for (TransactionEntity transaction : allTransactions) {
+        for (TransactionEntity transaction : source) {
             long timestamp = transaction.getTimestamp();
-            if (timestamp < navArgs.getStartDate() || timestamp > navArgs.getEndDate()) {
+            if (timestamp < currentStartDate || timestamp > currentEndDate) {
                 continue;
             }
             if (navArgs.getWalletId() != null && !navArgs.getWalletId().equals(transaction.getWalletId())) {
                 continue;
             }
-            if (navArgs.getCategoryId() != null && !navArgs.getCategoryId().equals(transaction.getCategoryId())) {
+            if (!useOtherBudgetSource
+                    && navArgs.getCategoryId() != null
+                    && !navArgs.getCategoryId().equals(transaction.getCategoryId())) {
                 continue;
             }
             if (navArgs.getTransactionType() != null
@@ -241,6 +290,143 @@ public class ReportTransactionListFragment extends Fragment {
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }
 
+    private void configureMode() {
+        binding.btnDateFilter.setVisibility(statisticsLeafMode ? View.VISIBLE : View.GONE);
+    }
+
+    private void showDateRangePicker() {
+        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
+        SheetStatisticsPeriodFilterBinding sheetBinding = SheetStatisticsPeriodFilterBinding.inflate(getLayoutInflater());
+        dialog.setContentView(sheetBinding.getRoot());
+
+        StatisticsViewModel.PeriodType selectedType = resolveCurrentPeriodType();
+        updatePeriodSheetSelection(sheetBinding, selectedType);
+
+        bindPeriodRow(sheetBinding.rowDay, dialog, () -> applyPresetPeriod(StatisticsViewModel.PeriodType.DAY));
+        bindPeriodRow(sheetBinding.rowWeek, dialog, () -> applyPresetPeriod(StatisticsViewModel.PeriodType.WEEK));
+        bindPeriodRow(sheetBinding.rowMonth, dialog, () -> applyPresetPeriod(StatisticsViewModel.PeriodType.MONTH));
+        bindPeriodRow(sheetBinding.rowQuarter, dialog, () -> applyPresetPeriod(StatisticsViewModel.PeriodType.QUARTER));
+        bindPeriodRow(sheetBinding.rowYear, dialog, () -> applyPresetPeriod(StatisticsViewModel.PeriodType.YEAR));
+        bindPeriodRow(sheetBinding.rowAll, dialog, () -> applyPresetPeriod(StatisticsViewModel.PeriodType.ALL));
+        sheetBinding.rowCustom.setOnClickListener(v -> {
+            dialog.dismiss();
+            showCustomRangeDialog();
+        });
+
+        dialog.show();
+    }
+
+    private void bindPeriodRow(@NonNull View row,
+                               @NonNull Dialog dialog,
+                               @NonNull Runnable action) {
+        row.setOnClickListener(v -> {
+            dialog.dismiss();
+            action.run();
+        });
+    }
+
+    private void updatePeriodSheetSelection(@NonNull SheetStatisticsPeriodFilterBinding sheetBinding,
+                                            @NonNull StatisticsViewModel.PeriodType periodType) {
+        sheetBinding.ivCheckDay.setVisibility(periodType == StatisticsViewModel.PeriodType.DAY ? View.VISIBLE : View.GONE);
+        sheetBinding.ivCheckWeek.setVisibility(periodType == StatisticsViewModel.PeriodType.WEEK ? View.VISIBLE : View.GONE);
+        sheetBinding.ivCheckMonth.setVisibility(periodType == StatisticsViewModel.PeriodType.MONTH ? View.VISIBLE : View.GONE);
+        sheetBinding.ivCheckQuarter.setVisibility(periodType == StatisticsViewModel.PeriodType.QUARTER ? View.VISIBLE : View.GONE);
+        sheetBinding.ivCheckYear.setVisibility(periodType == StatisticsViewModel.PeriodType.YEAR ? View.VISIBLE : View.GONE);
+        sheetBinding.ivCheckAll.setVisibility(periodType == StatisticsViewModel.PeriodType.ALL ? View.VISIBLE : View.GONE);
+        sheetBinding.ivCheckCustom.setVisibility(periodType == StatisticsViewModel.PeriodType.CUSTOM ? View.VISIBLE : View.GONE);
+    }
+
+    private void applyPresetPeriod(@NonNull StatisticsViewModel.PeriodType periodType) {
+        StatisticsViewModel.FilterState state = StatisticsViewModel.FilterState.createForPeriodType(
+                periodType,
+                navArgs.getWalletId()
+        );
+        currentStartDate = state.getStartDate();
+        currentEndDate = state.getEndDate();
+        renderScreen();
+    }
+
+    private void showCustomRangeDialog() {
+        Dialog dialog = new Dialog(requireContext());
+        DialogStatisticsCustomRangeBinding dialogBinding =
+                DialogStatisticsCustomRangeBinding.inflate(getLayoutInflater());
+        dialog.setContentView(dialogBinding.getRoot());
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        final LocalDate[] startDate = {toLocalDate(currentStartDate)};
+        final LocalDate[] endDate = {toLocalDate(currentEndDate)};
+
+        renderDateButton(dialogBinding.btnStartDate, startDate[0]);
+        renderDateButton(dialogBinding.btnEndDate, endDate[0]);
+
+        dialogBinding.btnStartDate.setOnClickListener(v ->
+                showSingleDatePicker(startDate[0], pickedDate -> {
+                    startDate[0] = pickedDate;
+                    renderDateButton(dialogBinding.btnStartDate, pickedDate);
+                }));
+        dialogBinding.btnEndDate.setOnClickListener(v ->
+                showSingleDatePicker(endDate[0], pickedDate -> {
+                    endDate[0] = pickedDate;
+                    renderDateButton(dialogBinding.btnEndDate, pickedDate);
+                }));
+        dialogBinding.btnCancel.setOnClickListener(v -> dialog.dismiss());
+        dialogBinding.btnApply.setOnClickListener(v -> {
+            if (endDate[0].isBefore(startDate[0])) {
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.statistics_custom_range_invalid),
+                        Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            currentStartDate = startDate[0].atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            currentEndDate = endDate[0].plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1L;
+            renderScreen();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void showSingleDatePicker(@NonNull LocalDate initialDate,
+                                      @NonNull DateSelectedCallback callback) {
+        MoneyMateDatePickerHelper.showSingleDatePicker(
+                this,
+                initialDate,
+                "report_transaction_single_date",
+                callback::onDateSelected
+        );
+    }
+
+    private void renderDateButton(@NonNull android.widget.TextView textView, @NonNull LocalDate date) {
+        if (date.equals(LocalDate.now())) {
+            textView.setText(R.string.statistics_today);
+            return;
+        }
+        textView.setText(String.format(Locale.getDefault(), "%02d/%02d/%d",
+                date.getDayOfMonth(),
+                date.getMonthValue(),
+                date.getYear()));
+    }
+
+    @NonNull
+    private StatisticsViewModel.PeriodType resolveCurrentPeriodType() {
+        if (currentStartDate <= 0L || currentEndDate <= 0L || currentEndDate == Long.MAX_VALUE) {
+            return StatisticsViewModel.PeriodType.ALL;
+        }
+        return StatisticsViewModel.PeriodType.CUSTOM;
+    }
+
+    @NonNull
+    private LocalDate toLocalDate(long epochMillis) {
+        if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
+            return LocalDate.now();
+        }
+        return Instant.ofEpochMilli(epochMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+    }
+
     @NonNull
     private String formatNetAmount(double amount) {
         if (amount < 0d) {
@@ -258,40 +444,22 @@ public class ReportTransactionListFragment extends Fragment {
     }
 
     private int resolveIconRes(@Nullable CategoryEntity category, @Nullable String type) {
-        if (category != null && category.getIconResId() != null && !category.getIconResId().trim().isEmpty()) {
-            int resolved = requireContext().getResources().getIdentifier(
-                    category.getIconResId(),
-                    "drawable",
-                    requireContext().getPackageName()
-            );
-            if (resolved != 0) {
-                return resolved;
-            }
-        }
-        if ("INCOME".equals(type)) {
-            return R.drawable.outline_attach_money_24;
-        }
-        if ("TRANSFER".equals(type)) {
-            return R.drawable.outline_payments_24;
-        }
-        return R.drawable.ic_category_spending;
+        return IconProvider.resolveCategoryIconByType(
+                requireContext(),
+                category != null ? category.getIconName() : null,
+                type
+        );
     }
 
     @ColorInt
     private int resolveAccentColor(@Nullable String type, @Nullable CategoryEntity category) {
-        if (category != null && category.getColorHex() != null && !category.getColorHex().trim().isEmpty()) {
-            try {
-                return Color.parseColor(category.getColorHex());
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
         if ("INCOME".equals(type)) {
             return ContextCompat.getColor(requireContext(), R.color.transfer_blue);
         }
-        if ("TRANSFER".equals(type)) {
-            return ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary);
+        if ("EXPENSE".equals(type)) {
+            return ContextCompat.getColor(requireContext(), R.color.expense_red);
         }
-        return ContextCompat.getColor(requireContext(), R.color.expense_red);
+        return ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
     }
 
     private void applyWindowInsets() {
@@ -343,5 +511,9 @@ public class ReportTransactionListFragment extends Fragment {
             return value;
         }
         return value.substring(0, 1).toUpperCase(new Locale("vi", "VN")) + value.substring(1);
+    }
+
+    private interface DateSelectedCallback {
+        void onDateSelected(@NonNull LocalDate date);
     }
 }

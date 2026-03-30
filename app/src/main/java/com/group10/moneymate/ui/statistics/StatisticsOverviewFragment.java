@@ -2,7 +2,6 @@ package com.group10.moneymate.ui.statistics;
 
 import android.app.Dialog;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -36,6 +34,7 @@ import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.group10.moneymate.R;
+import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.databinding.DialogStatisticsCustomRangeBinding;
@@ -44,7 +43,9 @@ import com.group10.moneymate.databinding.LayoutStatisticsGroupPreviewBinding;
 import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
 import com.group10.moneymate.models.TransactionType;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.WalletSelectorButtonHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -62,6 +63,8 @@ public class StatisticsOverviewFragment extends Fragment {
     private StatisticsViewModel viewModel;
     private MoneyChartValueFormatter moneyChartValueFormatter;
     private StatisticsOverviewFragmentArgs navArgs;
+    @Nullable
+    private WalletEntity selectedWallet;
 
     @Nullable
     @Override
@@ -115,7 +118,7 @@ public class StatisticsOverviewFragment extends Fragment {
         binding.statisticsHeader.tvPeriodPrevious.setText(R.string.statistics_period_previous);
         binding.statisticsHeader.tvPeriodCurrent.setText(R.string.statistics_period_current);
         binding.statisticsHeader.tvPeriodNext.setText(R.string.statistics_period_next);
-        binding.statisticsHeader.btnWalletSelector.setText(R.string.statistics_wallet_selector_all);
+        updateWalletSelectorButton();
     }
 
     private void configureCharts() {
@@ -126,7 +129,6 @@ public class StatisticsOverviewFragment extends Fragment {
         binding.cardNetIncomeAction.setOnClickListener(v -> openLevelTwoDetail("NET"));
         binding.cardReportIncome.setOnClickListener(v -> openLevelTwoDetail(TransactionType.INCOME.name()));
         binding.cardReportExpense.setOnClickListener(v -> openLevelTwoDetail(TransactionType.EXPENSE.name()));
-        binding.layoutGroupReportAction.setOnClickListener(v -> openLevelTwoDetail(TransactionType.EXPENSE.name()));
         binding.statisticsHeader.btnHeaderBack.setOnClickListener(v ->
                 Navigation.findNavController(v).navigateUp());
         binding.statisticsHeader.btnPreviousPeriod.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
@@ -145,8 +147,11 @@ public class StatisticsOverviewFragment extends Fragment {
             binding.statisticsHeader.tvHeaderTotalAmount.setText(formattedBalance);
             binding.tvClosingBalance.setText(formattedBalance);
         });
-        viewModel.getWalletLabel().observe(getViewLifecycleOwner(),
-                label -> binding.statisticsHeader.btnWalletSelector.setText(label));
+        viewModel.getWalletLabel().observe(getViewLifecycleOwner(), label -> updateWalletSelectorButton());
+        viewModel.getSelectedWallet().observe(getViewLifecycleOwner(), wallet -> {
+            selectedWallet = wallet;
+            updateWalletSelectorButton();
+        });
         viewModel.getFilterStateLiveData().observe(getViewLifecycleOwner(), filterState -> {
             if (filterState == null) {
                 return;
@@ -173,9 +178,22 @@ public class StatisticsOverviewFragment extends Fragment {
         viewModel.getTotalExpenseAmount().observe(getViewLifecycleOwner(),
                 amount -> binding.tvReportExpenseAmount.setText(formatCurrency(amount)));
         viewModel.getIncomeCategorySums().observe(getViewLifecycleOwner(),
-                items -> renderCategoryPreview(binding.incomePreview, items));
+                items -> renderCategoryPreview(binding.incomePreview, items, false));
         viewModel.getExpenseCategorySums().observe(getViewLifecycleOwner(),
-                items -> renderCategoryPreview(binding.expensePreview, items));
+                items -> renderCategoryPreview(binding.expensePreview, items, true));
+    }
+
+    private void updateWalletSelectorButton() {
+        if (binding == null) {
+            return;
+        }
+        WalletSelectorButtonHelper.bindStatisticsWalletSelector(
+                binding.statisticsHeader.btnWalletSelector,
+                requireContext(),
+                selectedWallet,
+                viewModel != null ? viewModel.getWalletLabel().getValue() : null,
+                R.string.statistics_wallet_selector_all
+        );
     }
 
     private void renderNetIncomeCard(double totalIncome, double totalExpense, double netAmount) {
@@ -227,17 +245,16 @@ public class StatisticsOverviewFragment extends Fragment {
     }
 
     private void renderCategoryPreview(@NonNull LayoutStatisticsGroupPreviewBinding previewBinding,
-                                       @Nullable List<StatisticsViewModel.CategorySliceUiModel> categoryItems) {
+                                       @Nullable List<StatisticsViewModel.CategorySliceUiModel> categoryItems,
+                                       boolean isExpense) {
         List<StatisticsDonutBreakdownView.Segment> segments = new ArrayList<>();
         double totalAmount = 0d;
         if (categoryItems != null) {
             for (StatisticsViewModel.CategorySliceUiModel item : categoryItems) {
                 totalAmount += item.getTotalAmount();
-                int resolvedIconRes = resolveIconRes(item.getIconResId());
                 segments.add(new StatisticsDonutBreakdownView.Segment(
-                        resolvedIconRes != 0 ? resolvedIconRes : R.drawable.ic_category_other,
-                        parseColorOrDefault(item.getColorHex(),
-                                ContextCompat.getColor(requireContext(), R.color.transfer_blue)),
+                        IconProvider.resolveCategoryIcon(requireContext(), item.getIconName()),
+                        IconProvider.getCategoryColor(requireContext(), item.getCategoryId(), isExpense),
                         item.getTotalAmount()
                 ));
             }
@@ -493,28 +510,6 @@ public class StatisticsOverviewFragment extends Fragment {
         return CurrencyFormatter.format(amount != null ? amount : 0d, "VND");
     }
 
-    @ColorInt
-    private int parseColorOrDefault(@Nullable String colorHex, @ColorInt int defaultColor) {
-        if (colorHex == null || colorHex.trim().isEmpty()) {
-            return defaultColor;
-        }
-        try {
-            return Color.parseColor(colorHex);
-        } catch (IllegalArgumentException ignored) {
-            return defaultColor;
-        }
-    }
-
-    private int resolveIconRes(@Nullable String iconResId) {
-        if (iconResId == null || iconResId.trim().isEmpty()) {
-            return 0;
-        }
-        return requireContext().getResources().getIdentifier(
-                iconResId,
-                "drawable",
-                requireContext().getPackageName()
-        );
-    }
 
     @NonNull
     private LocalDate toLocalDate(long epochMillis) {

@@ -31,6 +31,20 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/tvToolbarTitle" />
 
+        <ImageButton
+            android:id="@+id/btnDateFilter"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_statistics_header_icon_button"
+            android:contentDescription="@string/date"
+            android:padding="10dp"
+            android:src="@drawable/outline_calendar_today_24"
+            android:tint="@color/statistics_text_primary"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/tvToolbarTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tvToolbarTitle" />
+
         <TextView
             android:id="@+id/tvToolbarTitle"
             android:layout_width="0dp"
@@ -41,7 +55,7 @@
             android:textSize="22sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnDateFilter"
             app:layout_constraintStart_toEndOf="@id/btnBack"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -63,6 +77,7 @@
             android:paddingBottom="24dp">
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSummary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"

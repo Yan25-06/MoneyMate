@@ -16,12 +16,14 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.Navigation;
 
-import com.google.android.material.chip.Chip;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
@@ -31,7 +33,10 @@ import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.DateUtils;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.models.DebtType;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -45,15 +50,24 @@ public class AddEditTransactionFragment extends Fragment {
     private TransactionViewModel viewModel;
 
     // State
-    private String currentType = "EXPENSE";
+    private String currentType = Constants.TYPE_EXPENSE;
+    private boolean isDebtTabSelected;
     private String selectedCategoryId = null;
+    private String selectedCategoryName = null;
+    private String selectedIconName = null;
+    private DebtType selectedDebtType = null;
     private String selectedWalletId = null;
     private long selectedTimestamp = System.currentTimeMillis();
     private List<WalletEntity> walletList = new ArrayList<>();
-    private List<CategoryEntity> currentCategoryList = new ArrayList<>();
-    private LiveData<List<CategoryEntity>> currentCategorySource;
+    private List<WalletEntity> allWalletList = new ArrayList<>();
+    private List<WalletEntity> activeWalletList = new ArrayList<>();
+    @Nullable
+    private LiveData<CategoryEntity> selectedCategorySource;
+    @Nullable
+    private Observer<CategoryEntity> selectedCategoryObserver;
     private boolean isFormattingAmount;
     private boolean isLoadingEdit;
+    private boolean isManualIcon;
 
     // Edit mode
     private String transactionId = null;
@@ -80,9 +94,11 @@ public class AddEditTransactionFragment extends Fragment {
 
         setupToolbar();
         setupTypeToggle();
+        setupCategoryPickerRow();
         setupDatePicker();
         setupTextInputs();
         setupSaveButton();
+        observePickerResults();
         observeWallets();
 
         if (transactionId != null) {
@@ -95,9 +111,9 @@ public class AddEditTransactionFragment extends Fragment {
             binding.btnSave.setText(R.string.btn_save);
             binding.toggleType.check(R.id.btn_expense);
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
-            observeCategories("EXPENSE");
             updateAmountAccent();
             updateTypeToggleAppearance();
+            updateCategorySelectionUi();
         }
     }
 
@@ -112,14 +128,35 @@ public class AddEditTransactionFragment extends Fragment {
         binding.toggleType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (!isChecked || isLoadingEdit) return;
             if (checkedId == R.id.btn_expense) {
-                currentType = "EXPENSE";
+                currentType = Constants.TYPE_EXPENSE;
+                isDebtTabSelected = false;
             } else if (checkedId == R.id.btn_income) {
-                currentType = "INCOME";
+                currentType = Constants.TYPE_INCOME;
+                isDebtTabSelected = false;
+            } else if (checkedId == R.id.btn_debt) {
+                currentType = TransactionCategoryPickerViewModel.TYPE_DEBT;
+                isDebtTabSelected = true;
             }
             selectedCategoryId = null;
+            selectedCategoryName = null;
+            selectedDebtType = null;
+            isManualIcon = false;
+            selectedIconName = null;
             updateAmountAccent();
             updateTypeToggleAppearance();
-            observeCategories(currentType);
+            updateCategorySelectionUi();
+        });
+    }
+
+    private void setupCategoryPickerRow() {
+        binding.layoutCategoryPicker.setOnClickListener(v -> {
+            AddEditTransactionFragmentDirections.ActionAddEditTransactionFragmentToTransactionCategoryPickerFragment action =
+                    AddEditTransactionFragmentDirections.actionAddEditTransactionFragmentToTransactionCategoryPickerFragment();
+            action.setSelectedCategoryId(selectedCategoryId);
+            action.setTransactionType(isDebtTabSelected
+                    ? TransactionCategoryPickerViewModel.TYPE_DEBT
+                    : currentType);
+            Navigation.findNavController(v).navigate(action);
         });
     }
 
@@ -191,7 +228,9 @@ public class AddEditTransactionFragment extends Fragment {
     private void updateAmountAccent() {
         int accentColor = ContextCompat.getColor(
                 requireContext(),
-                "INCOME".equals(currentType) ? R.color.transaction_income_accent : R.color.transaction_expense_accent
+                Constants.TYPE_INCOME.equals(getEffectiveTypeForUi())
+                        ? R.color.transfer_blue
+                        : R.color.transaction_expense_accent
         );
         binding.etAmount.setTextColor(accentColor);
         binding.viewAmountAccent.setBackgroundColor(accentColor);
@@ -201,8 +240,11 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void updateTypeToggleAppearance() {
-        styleTypeButton(binding.btnExpense, "EXPENSE".equals(currentType), true);
-        styleTypeButton(binding.btnIncome, "INCOME".equals(currentType), false);
+        boolean expenseSelected = !isDebtTabSelected && Constants.TYPE_EXPENSE.equals(currentType);
+        boolean incomeSelected = !isDebtTabSelected && Constants.TYPE_INCOME.equals(currentType);
+        styleTypeButton(binding.btnExpense, expenseSelected, true);
+        styleTypeButton(binding.btnIncome, incomeSelected, false);
+        styleDebtButton(binding.btnDebt, isDebtTabSelected);
     }
 
     private void styleTypeButton(@NonNull com.google.android.material.button.MaterialButton button,
@@ -211,15 +253,32 @@ public class AddEditTransactionFragment extends Fragment {
         int backgroundColor = ContextCompat.getColor(
                 requireContext(),
                 selected
-                        ? (expenseButton ? R.color.transaction_expense_soft : R.color.transaction_income_soft)
+                        ? (expenseButton ? R.color.transaction_expense_soft : R.color.statistics_period_selected_background)
                         : R.color.white
         );
         int textColor = ContextCompat.getColor(
                 requireContext(),
                 selected
-                        ? (expenseButton ? R.color.transaction_expense_accent : R.color.transaction_income_accent)
+                        ? (expenseButton ? R.color.transaction_expense_accent : R.color.transfer_blue)
                         : R.color.transaction_muted_text
         );
+        button.setBackgroundTintList(ColorStateList.valueOf(backgroundColor));
+        button.setStrokeColor(ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.transaction_border)
+        ));
+        button.setTextColor(textColor);
+        button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+    }
+
+    private void styleDebtButton(@NonNull com.google.android.material.button.MaterialButton button,
+                                 boolean selected) {
+        int accentColor = ContextCompat.getColor(requireContext(), R.color.budget_warning_orange);
+        int backgroundColor = selected
+                ? ColorUtils.setAlphaComponent(accentColor, 28)
+                : ContextCompat.getColor(requireContext(), R.color.white);
+        int textColor = selected
+                ? accentColor
+                : ContextCompat.getColor(requireContext(), R.color.transaction_muted_text);
         button.setBackgroundTintList(ColorStateList.valueOf(backgroundColor));
         button.setStrokeColor(ColorStateList.valueOf(
                 ContextCompat.getColor(requireContext(), R.color.transaction_border)
@@ -232,21 +291,52 @@ public class AddEditTransactionFragment extends Fragment {
 
     private void observeWallets() {
         viewModel.getWallets().observe(getViewLifecycleOwner(), wallets -> {
-            walletList = wallets != null ? wallets : new ArrayList<>();
-            List<String> walletNames = new ArrayList<>();
-            for (WalletEntity w : walletList) walletNames.add(w.getName());
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                    requireContext(),
-                    R.layout.item_wallet_dropdown,
-                    walletNames);
-            binding.dropdownWallet.setAdapter(adapter);
-            binding.dropdownWallet.setOnItemClickListener((parent, view, position, id) -> {
-                if (position >= 0 && position < walletList.size()) {
-                    selectedWalletId = walletList.get(position).getId();
-                }
-            });
-            applySelectedWalletSelection();
+            allWalletList = wallets != null ? wallets : new ArrayList<>();
+            refreshWalletDropdown();
         });
+        viewModel.getActiveWallets().observe(getViewLifecycleOwner(), wallets -> {
+            activeWalletList = wallets != null ? wallets : new ArrayList<>();
+            refreshWalletDropdown();
+        });
+    }
+
+    private void refreshWalletDropdown() {
+        List<WalletEntity> displayWallets = new ArrayList<>(activeWalletList);
+        if (transactionId != null && selectedWalletId != null) {
+            boolean alreadyIncluded = false;
+            for (WalletEntity wallet : displayWallets) {
+                if (selectedWalletId.equals(wallet.getId())) {
+                    alreadyIncluded = true;
+                    break;
+                }
+            }
+            if (!alreadyIncluded) {
+                for (WalletEntity wallet : allWalletList) {
+                    if (selectedWalletId.equals(wallet.getId())) {
+                        displayWallets.add(wallet);
+                        break;
+                    }
+                }
+            }
+        }
+
+        walletList = displayWallets;
+        List<String> walletNames = new ArrayList<>();
+        for (WalletEntity wallet : walletList) {
+            walletNames.add(wallet.getName());
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                R.layout.item_wallet_dropdown,
+                walletNames
+        );
+        binding.dropdownWallet.setAdapter(adapter);
+        binding.dropdownWallet.setOnItemClickListener((parent, view, position, id) -> {
+            if (position >= 0 && position < walletList.size()) {
+                selectedWalletId = walletList.get(position).getId();
+            }
+        });
+        applySelectedWalletSelection();
     }
 
     private void applySelectedWalletSelection() {
@@ -261,61 +351,127 @@ public class AddEditTransactionFragment extends Fragment {
         }
     }
 
-    // ─── Category Chips ───────────────────────────────────────────────────────
-
-    private void observeCategories(String type) {
-        if (currentCategorySource != null) {
-            currentCategorySource.removeObservers(getViewLifecycleOwner());
+    private void observePickerResults() {
+        NavBackStackEntry backStackEntry = Navigation.findNavController(requireView()).getCurrentBackStackEntry();
+        if (backStackEntry == null) {
+            return;
         }
-
-        currentCategorySource = "INCOME".equals(type)
-                ? viewModel.getIncomeCategories()
-                : viewModel.getExpenseCategories();
-
-        currentCategorySource.observe(getViewLifecycleOwner(), categories -> {
-            binding.chipGroupCategory.removeAllViews();
-            currentCategoryList = categories != null ? categories : new ArrayList<>();
-            for (CategoryEntity cat : currentCategoryList) {
-                Chip chip = new Chip(requireContext());
-                chip.setText(cat.getName());
-                chip.setCheckable(true);
-                chip.setTag(cat.getId());
-                chip.setChipBackgroundColor(ColorStateList.valueOf(
-                        ContextCompat.getColor(requireContext(), R.color.transaction_chip_bg)
-                ));
-                chip.setChipStrokeWidth(1f);
-                chip.setChipStrokeColor(ColorStateList.valueOf(
-                        ContextCompat.getColor(requireContext(), R.color.transaction_border)
-                ));
-                chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.transaction_muted_text));
-                if (cat.getId().equals(selectedCategoryId)) {
-                    chip.setChecked(true);
-                }
-                chip.setOnCheckedChangeListener((btn, checked) -> {
-                    if (checked) {
-                        selectedCategoryId = cat.getId();
+        backStackEntry.getSavedStateHandle()
+                .getLiveData(TransactionCategoryPickerFragment.RESULT_CATEGORY_ID)
+                .observe(getViewLifecycleOwner(), value -> {
+                    if (value == null) {
+                        return;
                     }
-                    updateCategoryChipAppearance(chip, checked);
+                    selectedCategoryId = value.toString();
+                    selectedCategoryName = null;
+                    selectedDebtType = null;
+                    isManualIcon = false;
+                    selectedIconName = null;
+                    isDebtTabSelected = false;
+                    loadSelectedCategory();
+                    backStackEntry.getSavedStateHandle()
+                            .set(TransactionCategoryPickerFragment.RESULT_CATEGORY_ID, null);
                 });
-                updateCategoryChipAppearance(chip, cat.getId().equals(selectedCategoryId));
-                binding.chipGroupCategory.addView(chip);
-            }
-        });
+
+        backStackEntry.getSavedStateHandle()
+                .getLiveData(TransactionCategoryPickerFragment.RESULT_CATEGORY_TYPE)
+                .observe(getViewLifecycleOwner(), value -> {
+                    if (value == null) {
+                        return;
+                    }
+                    String type = value.toString();
+                    isLoadingEdit = true;
+                    if (TransactionCategoryPickerViewModel.TYPE_DEBT.equals(type)) {
+                        isDebtTabSelected = true;
+                        binding.toggleType.check(R.id.btn_debt);
+                    } else {
+                        isDebtTabSelected = false;
+                        currentType = type;
+                        binding.toggleType.check(Constants.TYPE_INCOME.equals(type)
+                                ? R.id.btn_income
+                                : R.id.btn_expense);
+                    }
+                    updateAmountAccent();
+                    updateTypeToggleAppearance();
+                    isLoadingEdit = false;
+                    backStackEntry.getSavedStateHandle()
+                            .set(TransactionCategoryPickerFragment.RESULT_CATEGORY_TYPE, null);
+                });
+
+        backStackEntry.getSavedStateHandle()
+                .getLiveData(TransactionCategoryPickerFragment.RESULT_DEBT_TYPE)
+                .observe(getViewLifecycleOwner(), value -> {
+                    if (value == null) {
+                        return;
+                    }
+                    selectedDebtType = DebtType.valueOf(value.toString());
+                    selectedCategoryId = null;
+                    selectedCategoryName = null;
+                    isManualIcon = false;
+                    selectedIconName = null;
+                    isDebtTabSelected = true;
+                    currentType = selectedDebtType == DebtType.BORROW
+                            ? Constants.TYPE_INCOME
+                            : Constants.TYPE_EXPENSE;
+                    binding.toggleType.check(R.id.btn_debt);
+                    updateAmountAccent();
+                    updateTypeToggleAppearance();
+                    updateCategorySelectionUi();
+                    backStackEntry.getSavedStateHandle()
+                            .set(TransactionCategoryPickerFragment.RESULT_DEBT_TYPE, null);
+                });
     }
 
-    private void updateCategoryChipAppearance(@NonNull Chip chip, boolean selected) {
-        chip.setChipBackgroundColor(ColorStateList.valueOf(ContextCompat.getColor(
+    private void loadSelectedCategory() {
+        if (selectedCategorySource != null && selectedCategoryObserver != null) {
+            selectedCategorySource.removeObserver(selectedCategoryObserver);
+        }
+        if (selectedCategoryId == null) {
+            updateCategorySelectionUi();
+            return;
+        }
+        selectedCategorySource = viewModel.getCategoryById(selectedCategoryId);
+        selectedCategoryObserver = category -> {
+            if (category == null) {
+                return;
+            }
+            selectedCategoryName = category.getName();
+            if (!isManualIcon) {
+                selectedIconName = category.getIconName();
+            }
+            updateCategorySelectionUi();
+        };
+        selectedCategorySource.observe(getViewLifecycleOwner(), selectedCategoryObserver);
+    }
+
+    private void updateCategorySelectionUi() {
+        String label;
+        if (selectedDebtType != null) {
+            label = selectedDebtType == DebtType.BORROW
+                    ? getString(R.string.debt_type_borrow)
+                    : getString(R.string.debt_type_lend);
+        } else if (selectedCategoryName != null) {
+            label = selectedCategoryName;
+        } else {
+            label = getString(R.string.category_pick_placeholder);
+        }
+        binding.tvCategoryValue.setText(label);
+
+        int iconRes = IconProvider.resolveCategoryIconByType(
                 requireContext(),
-                selected ? R.color.transaction_chip_bg_selected : R.color.transaction_chip_bg
-        )));
-        chip.setTextColor(ContextCompat.getColor(
-                requireContext(),
-                selected ? R.color.transaction_chip_text_selected : R.color.transaction_muted_text
-        ));
-        chip.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
-        chip.setChipStrokeColor(ColorStateList.valueOf(
-                ContextCompat.getColor(requireContext(), R.color.transaction_border)
-        ));
+                selectedIconName,
+                getEffectiveTypeForUi()
+        );
+        binding.ivCategoryIcon.setImageResource(iconRes);
+    }
+
+    private String getEffectiveTypeForUi() {
+        if (selectedDebtType != null) {
+            return selectedDebtType == DebtType.BORROW
+                    ? Constants.TYPE_INCOME
+                    : Constants.TYPE_EXPENSE;
+        }
+        return currentType;
     }
 
     // ─── Load existing transaction (Edit mode) ────────────────────────────────
@@ -335,15 +491,17 @@ public class AddEditTransactionFragment extends Fragment {
             selectedCategoryId = transaction.getCategoryId();
             selectedWalletId = transaction.getWalletId();
             currentType = transaction.getType();
+            isDebtTabSelected = false;
 
-            if ("INCOME".equals(currentType)) {
+            if (Constants.TYPE_INCOME.equals(currentType)) {
                 binding.toggleType.check(R.id.btn_income);
             } else {
                 binding.toggleType.check(R.id.btn_expense);
             }
             updateAmountAccent();
             updateTypeToggleAppearance();
-            observeCategories(currentType);
+            loadSelectedCategory();
+            refreshWalletDropdown();
             applySelectedWalletSelection();
             isLoadingEdit = false;
         });
@@ -379,6 +537,8 @@ public class AddEditTransactionFragment extends Fragment {
                 return;
             }
 
+            String effectiveType = getEffectiveTypeForUi();
+
             if (originalTransaction != null) {
                 // Edit mode
                 TransactionEntity updated = new TransactionEntity();
@@ -387,7 +547,7 @@ public class AddEditTransactionFragment extends Fragment {
                 updated.setWalletId(walletId);
                 updated.setCategoryId(selectedCategoryId);
                 updated.setAmount(amount);
-                updated.setType(currentType);
+                updated.setType(effectiveType);
                 updated.setNote(note);
                 updated.setTimestamp(selectedTimestamp);
                 updated.setSyncStatus(SyncStatus.PENDING_UPLOAD);
@@ -401,7 +561,7 @@ public class AddEditTransactionFragment extends Fragment {
                 transaction.setWalletId(walletId);
                 transaction.setCategoryId(selectedCategoryId);
                 transaction.setAmount(amount);
-                transaction.setType(currentType);
+                transaction.setType(effectiveType);
                 transaction.setNote(note);
                 transaction.setTimestamp(selectedTimestamp);
                 transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
@@ -437,7 +597,7 @@ public class AddEditTransactionFragment extends Fragment {
             return false;
         }
 
-        if (selectedCategoryId == null) {
+        if (selectedCategoryId == null && selectedDebtType == null) {
             Toast.makeText(requireContext(), R.string.error_category_required, Toast.LENGTH_SHORT).show();
             return false;
         }
@@ -454,6 +614,9 @@ public class AddEditTransactionFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        if (selectedCategorySource != null && selectedCategoryObserver != null) {
+            selectedCategorySource.removeObserver(selectedCategoryObserver);
+        }
         super.onDestroyView();
         binding = null;
     }

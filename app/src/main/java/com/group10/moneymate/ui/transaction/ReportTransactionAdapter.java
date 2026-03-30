@@ -1,8 +1,6 @@
 package com.group10.moneymate.ui.transaction;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -86,9 +84,11 @@ public class ReportTransactionAdapter extends ListAdapter<TransactionEntity, Rep
                 presentation = TransactionPresentation.fallback(context, transaction.getType());
             }
 
-            binding.ivCategoryIcon.setImageResource(presentation.getIconResId());
-            binding.ivCategoryIcon.setImageTintList(ColorStateList.valueOf(presentation.getAccentColor()));
-            binding.cvCategoryIconContainer.setCardBackgroundColor(applyAlpha(presentation.getAccentColor(), 0.12f));
+            binding.ivCategoryIcon.setImageResource(presentation.getIconRes());
+            binding.ivCategoryIcon.setImageTintList(null);
+            binding.cvCategoryIconContainer.setCardBackgroundColor(
+                    ContextCompat.getColor(context, android.R.color.white)
+            );
             binding.tvTitle.setText(presentation.getTitle());
             binding.tvSubtitle.setText(presentation.getSubtitle());
             binding.tvAmount.setText(presentation.getAmountLabel());
@@ -101,27 +101,24 @@ public class ReportTransactionAdapter extends ListAdapter<TransactionEntity, Rep
             });
         }
 
-        private int applyAlpha(int color, float alphaFraction) {
-            int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-            return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
-        }
+        // ...existing code...
     }
 
     public static class TransactionPresentation {
-        private final int iconResId;
+        private final int iconRes;
         private final int accentColor;
         @NonNull private final String title;
         @NonNull private final String subtitle;
         @NonNull private final String amountLabel;
         private final int amountColor;
 
-        public TransactionPresentation(int iconResId,
+        public TransactionPresentation(int iconRes,
                                        int accentColor,
                                        @NonNull String title,
                                        @NonNull String subtitle,
                                        @NonNull String amountLabel,
                                        int amountColor) {
-            this.iconResId = iconResId;
+            this.iconRes = iconRes;
             this.accentColor = accentColor;
             this.title = title;
             this.subtitle = subtitle;
@@ -129,8 +126,8 @@ public class ReportTransactionAdapter extends ListAdapter<TransactionEntity, Rep
             this.amountColor = amountColor;
         }
 
-        public int getIconResId() {
-            return iconResId;
+        public int getIconRes() {
+            return iconRes;
         }
 
         public int getAccentColor() {

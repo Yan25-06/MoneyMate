@@ -86,6 +86,15 @@
                         android:layout_weight="1"
                         android:textColor="@color/transaction_muted_text"
                         android:text="@string/income" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_debt"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:textColor="@color/transaction_muted_text"
+                        android:text="@string/tab_debt" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <LinearLayout
@@ -130,6 +139,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/tv_currency"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_statistics_period_nav_item"
@@ -137,7 +147,7 @@
                         android:paddingTop="8dp"
                         android:paddingEnd="12dp"
                         android:paddingBottom="8dp"
-                        android:text="VND"
+                        android:text="@string/currency_vnd"
                         android:textColor="@color/transaction_muted_text"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -175,12 +185,61 @@
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_category"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    app:singleSelection="true" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:id="@+id/iv_category_icon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_circle_icon"
+                        android:backgroundTint="@color/white"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_category_other"
+                        android:contentDescription="@null"
+                        android:clickable="false"
+                        android:focusable="false" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_category_picker"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tv_category_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/category_pick_placeholder"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/tv_category_hint"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/category_pick_hint"
+                            android:textColor="@color/transaction_muted_text"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/outline_arrow_back_24"
+                        android:rotation="180"
+                        android:tint="@color/transaction_muted_icon"
+                        android:contentDescription="@null" />
+
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"

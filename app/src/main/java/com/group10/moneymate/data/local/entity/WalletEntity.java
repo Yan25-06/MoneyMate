@@ -1,6 +1,7 @@
 package com.group10.moneymate.data.local.entity;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
@@ -18,7 +19,7 @@ import androidx.room.PrimaryKey;
         )
     },
     indices = {
-        @Index("user_id")
+        @Index(name = "index_wallets_user_archived_deleted", value = {"user_id", "is_archived", "is_deleted"})
     }
 )
 public class WalletEntity {
@@ -40,8 +41,12 @@ public class WalletEntity {
     @ColumnInfo(name = "type")
     private String type;
 
-    @ColumnInfo(name = "color_hex")
-    private String colorHex;
+    @NonNull
+    @ColumnInfo(name = "icon_name")
+    private String iconName;
+
+    @ColumnInfo(name = "is_archived")
+    private boolean isArchived;
 
     @ColumnInfo(name = "is_excluded")
     private boolean isExcluded;
@@ -60,6 +65,7 @@ public class WalletEntity {
 
     public WalletEntity() {
         this.id = "";
+        this.iconName = "ic_wallet_default";
     }
 
     @NonNull
@@ -78,8 +84,12 @@ public class WalletEntity {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public String getColorHex() { return colorHex; }
-    public void setColorHex(String colorHex) { this.colorHex = colorHex; }
+    @NonNull
+    public String getIconName() { return iconName; }
+    public void setIconName(@NonNull String iconName) { this.iconName = iconName; }
+
+    public boolean isArchived() { return isArchived; }
+    public void setArchived(boolean archived) { isArchived = archived; }
 
     public boolean isExcluded() { return isExcluded; }
     public void setExcluded(boolean excluded) { isExcluded = excluded; }

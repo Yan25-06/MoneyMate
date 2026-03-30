@@ -216,16 +216,26 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnToggleComparison"
                             style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:minWidth="0dp"
-                            android:text="@string/statistics_detail_compare_show"
-                            android:textAllCaps="false"
-                            android:textColor="@color/income_green"
-                            app:icon="@drawable/outline_calendar_today_24"
-                            app:iconPadding="8dp"
+                            android:contentDescription="@string/statistics_detail_compare_show"
+                            android:insetBottom="0dp"
+                            android:insetTop="0dp"
+                            android:text=""
+                            app:icon="@drawable/outline_visibility_24"
                             app:iconTint="@color/income_green" />
                     </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvComparisonCollapsedHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="@color/statistics_text_muted"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        tools:text="Trung bình 3 tháng trước: 1,200,000 đ" />
 
                     <include
                         android:id="@+id/layoutComparisonSummary"
@@ -270,6 +280,29 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="18dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnGroupSelector"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="12dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:insetBottom="0dp"
+                        android:insetTop="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:text="@string/statistics_group_selector_title"
+                        android:textAllCaps="false"
+                        android:textColor="@color/statistics_text_primary"
+                        android:visibility="gone"
+                        app:backgroundTint="@color/statistics_chip_background"
+                        app:cornerRadius="18dp"
+                        app:icon="@drawable/outline_account_tree_24"
+                        app:iconGravity="textStart"
+                        app:iconPadding="8dp"
+                        app:iconTint="@color/statistics_text_primary" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -323,6 +356,15 @@
                             android:layout_marginTop="10dp"
                             android:nestedScrollingEnabled="false"
                             tools:listitem="@layout/item_statistics_category_row" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/recyclerDrillTransactions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:nestedScrollingEnabled="false"
+                            android:visibility="gone"
+                            tools:listitem="@layout/item_transaction" />
                     </LinearLayout>
 
                     <LinearLayout

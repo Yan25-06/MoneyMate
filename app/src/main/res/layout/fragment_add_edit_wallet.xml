@@ -11,7 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:paddingBottom="96dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -30,9 +31,11 @@
                 android:minHeight="56dp"
                 app:navigationContentDescription="@string/common_cancel"
                 app:navigationIcon="@drawable/outline_close_24"
+                app:navigationIconTint="@color/budget_text_primary"
                 app:title="@string/add_wallet"
                 app:titleCentered="false"
-                app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
+                app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
+                app:titleTextColor="@color/budget_text_primary" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -57,68 +60,53 @@
                         android:orientation="horizontal">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_wallet_icon"
                             android:layout_width="54dp"
                             android:layout_height="54dp"
-                            app:cardBackgroundColor="#E8F1FF"
+                            app:cardBackgroundColor="@color/white"
                             app:cardCornerRadius="18dp"
-                            app:cardElevation="0dp">
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/transaction_border"
+                            app:strokeWidth="1dp">
 
                             <ImageView
+                                android:id="@+id/iv_wallet_icon"
                                 android:layout_width="26dp"
                                 android:layout_height="26dp"
                                 android:layout_gravity="center"
                                 android:contentDescription="@null"
-                                android:src="@drawable/outline_account_balance_wallet_24"
-                                android:tint="@color/transfer_blue" />
+                                android:src="@drawable/ic_wallet_default" />
                         </com.google.android.material.card.MaterialCardView>
 
-                        <LinearLayout
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MoneyMate.TextInputLayout.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="14dp"
                             android:layout_weight="1"
-                            android:orientation="vertical">
+                            android:gravity="center_vertical"
+                            android:hint="@string/hint_wallet_name"
+                            app:counterEnabled="true"
+                            app:counterMaxLength="25">
 
-                            <TextView
-                                android:layout_width="wrap_content"
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_name"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="@string/wallet_form_title"
-                                android:textColor="@color/statistics_text_primary"
-                                android:textSize="22sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="@string/wallet_form_subtitle"
-                                android:textColor="@color/statistics_text_secondary"
-                                android:textSize="14sp" />
-                        </LinearLayout>
+                                android:gravity="center_vertical"
+                                android:inputType="textCapWords"
+                                android:maxLength="25"
+                                android:minHeight="56dp"
+                                android:paddingTop="16dp"
+                                android:paddingBottom="16dp" />
+                        </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.MoneyMate.TextInputLayout.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="22dp"
-                        android:hint="@string/hint_wallet_name"
-                        app:counterEnabled="true"
-                        app:counterMaxLength="25">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_name"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textCapWords"
-                            android:maxLength="25" />
-                    </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MoneyMate.TextInputLayout.ExposedDropdown"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="18dp"
                         android:hint="@string/wallet_type">
 
                         <AutoCompleteTextView
@@ -148,29 +136,32 @@
                             tools:text="10,000,000" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="@string/wallet_balance_hint"
-                        android:textColor="@color/statistics_text_secondary"
-                        android:textSize="13sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_save"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="22dp"
-                android:text="@string/btn_save"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                app:backgroundTint="@color/income_green"
-                app:cornerRadius="18dp"
-                app:iconTint="@color/white" />
-
         </LinearLayout>
     </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/layout_sticky_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/white"
+        android:elevation="8dp"
+        android:padding="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_save"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/btn_save"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/income_green"
+            app:cornerRadius="18dp"
+            app:iconTint="@color/white" />
+
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

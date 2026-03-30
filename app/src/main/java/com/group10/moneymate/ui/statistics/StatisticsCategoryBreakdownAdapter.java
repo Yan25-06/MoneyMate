@@ -2,7 +2,6 @@ package com.group10.moneymate.ui.statistics;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -10,7 +9,6 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.ItemStatisticsCategoryRowBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.util.Locale;
 
@@ -52,13 +51,21 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
 
     @Nullable
     private OnItemClickListener onItemClickListener;
+    @ColorInt
+    private int amountAccentColor;
 
     public StatisticsCategoryBreakdownAdapter() {
         super(DIFF_CALLBACK);
+        amountAccentColor = 0;
     }
 
     public void setOnItemClickListener(@Nullable OnItemClickListener onItemClickListener) {
         this.onItemClickListener = onItemClickListener;
+    }
+
+    public void setAmountAccentColor(@ColorInt int amountAccentColor) {
+        this.amountAccentColor = amountAccentColor;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -73,7 +80,7 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(getItem(position), onItemClickListener);
+        holder.bind(getItem(position), onItemClickListener, amountAccentColor);
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
@@ -85,12 +92,9 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
         }
 
         void bind(@NonNull IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel item,
-                  @Nullable OnItemClickListener clickListener) {
+                  @Nullable OnItemClickListener clickListener,
+                  @ColorInt int amountAccentColor) {
             Context context = binding.getRoot().getContext();
-            int accentColor = parseColorOrDefault(
-                    item.getColorHex(),
-                    ContextCompat.getColor(context, R.color.transfer_blue)
-            );
 
             binding.tvCategoryName.setText(item.getCategoryName());
             binding.tvCategoryAmount.setText(CurrencyFormatter.format(item.getTotalAmount(), "VND"));
@@ -101,13 +105,17 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
             ));
 
             binding.cardIconContainer.setCardBackgroundColor(ColorStateList.valueOf(
-                    ColorUtils.setAlphaComponent(accentColor, 26)
+                    ContextCompat.getColor(context, android.R.color.white)
             ));
             binding.cardIconContainer.setStrokeColor(ColorStateList.valueOf(
-                    ColorUtils.setAlphaComponent(accentColor, 54)
+                    ContextCompat.getColor(context, R.color.transaction_border)
             ));
-            binding.ivCategoryIcon.setImageResource(resolveIconRes(context, item.getIconResId()));
-            binding.ivCategoryIcon.setImageTintList(ColorStateList.valueOf(accentColor));
+            binding.ivCategoryIcon.setImageResource(IconProvider.resolveCategoryIcon(context, item.getIconName()));
+            binding.ivCategoryIcon.setImageTintList(null);
+            if (amountAccentColor != 0) {
+                binding.tvCategoryAmount.setTextColor(amountAccentColor);
+                binding.tvCategoryPercent.setTextColor(amountAccentColor);
+            }
 
             binding.getRoot().setOnClickListener(v -> {
                 if (clickListener != null) {
@@ -116,28 +124,5 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
             });
         }
 
-        private int resolveIconRes(@NonNull Context context, @Nullable String iconResId) {
-            if (iconResId == null || iconResId.trim().isEmpty()) {
-                return R.drawable.ic_category_other;
-            }
-            int resId = context.getResources().getIdentifier(
-                    iconResId,
-                    "drawable",
-                    context.getPackageName()
-            );
-            return resId != 0 ? resId : R.drawable.ic_category_other;
-        }
-
-        @ColorInt
-        private int parseColorOrDefault(@Nullable String colorHex, @ColorInt int defaultColor) {
-            if (colorHex == null || colorHex.trim().isEmpty()) {
-                return defaultColor;
-            }
-            try {
-                return Color.parseColor(colorHex);
-            } catch (IllegalArgumentException ignored) {
-                return defaultColor;
-            }
-        }
     }
 }

@@ -1,7 +1,5 @@
 package com.group10.moneymate.ui.home;
 
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -15,6 +13,7 @@ import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.ItemHomeWalletBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.util.Objects;
 
@@ -70,13 +69,15 @@ public class HomeWalletAdapter extends ListAdapter<WalletEntity, HomeWalletAdapt
         }
 
         void bind(@NonNull WalletEntity wallet, boolean balancesVisible) {
-            int accent = parseColorOrDefault(
-                    wallet.getColorHex(),
-                    ContextCompat.getColor(binding.getRoot().getContext(), R.color.statistics_wallet_icon)
+            binding.cvWalletIcon.setCardBackgroundColor(
+                    ContextCompat.getColor(binding.getRoot().getContext(), android.R.color.white)
             );
-            binding.cvWalletIcon.setCardBackgroundColor(applyAlpha(accent, 0.14f));
-            binding.ivWalletIcon.setImageResource(resolveWalletIcon(wallet.getType()));
-            binding.ivWalletIcon.setImageTintList(ColorStateList.valueOf(accent));
+            binding.ivWalletIcon.setImageResource(IconProvider.resolveWalletIcon(
+                    binding.getRoot().getContext(),
+                    wallet.getIconName(),
+                    wallet.getType()
+            ));
+            binding.ivWalletIcon.setImageTintList(null);
             binding.tvWalletName.setText(wallet.getName());
             binding.tvWalletBalance.setText(balancesVisible
                     ? CurrencyFormatter.format(wallet.getBalance(), "VND")
@@ -88,31 +89,7 @@ public class HomeWalletAdapter extends ListAdapter<WalletEntity, HomeWalletAdapt
             });
         }
 
-        private int resolveWalletIcon(@Nullable String type) {
-            if ("BANK".equals(type)) {
-                return R.drawable.outline_account_balance_24;
-            }
-            if ("E_WALLET".equals(type)) {
-                return R.drawable.outline_credit_card_24;
-            }
-            return R.drawable.outline_account_balance_wallet_24;
-        }
 
-        private int applyAlpha(int color, float alphaFraction) {
-            int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-            return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
-        }
-
-        private int parseColorOrDefault(@Nullable String colorHex, int defaultColor) {
-            if (colorHex == null || colorHex.trim().isEmpty()) {
-                return defaultColor;
-            }
-            try {
-                return Color.parseColor(colorHex);
-            } catch (IllegalArgumentException ignored) {
-                return defaultColor;
-            }
-        }
     }
 
     private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK =
@@ -127,7 +104,8 @@ public class HomeWalletAdapter extends ListAdapter<WalletEntity, HomeWalletAdapt
                     return Objects.equals(oldItem.getName(), newItem.getName())
                             && Objects.equals(oldItem.getType(), newItem.getType())
                             && oldItem.getBalance() == newItem.getBalance()
-                            && Objects.equals(oldItem.getColorHex(), newItem.getColorHex());
+                            && oldItem.isArchived() == newItem.isArchived()
+                            && Objects.equals(oldItem.getIconName(), newItem.getIconName());
                 }
             };
 }

@@ -128,6 +128,15 @@
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
+        <argument
+            android:name="reportTitle"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="statisticsLeafMode"
+            app:argType="boolean"
+            android:defaultValue="false" />
         <action
             android:id="@+id/action_reportTransactionListFragment_to_transactionDetailFragment"
             app:destination="@id/transactionDetailFragment" />
@@ -141,6 +150,72 @@
         <!-- null = Add mode, non-null = Edit mode -->
         <argument
             android:name="transactionId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_addEditTransactionFragment_to_transactionCategoryPickerFragment"
+            app:destination="@id/transactionCategoryPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_addEditTransactionFragment_to_categoryIconPickerFragment"
+            app:destination="@id/categoryIconPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/transactionCategoryPickerFragment"
+        android:name="com.group10.moneymate.ui.transaction.TransactionCategoryPickerFragment"
+        android:label="@string/transaction_pick_category_title"
+        tools:layout="@layout/fragment_transaction_category_picker">
+        <argument
+            android:name="selectedCategoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="transactionType"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="lockToExpense"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="showAllCategories"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="hideDebtTab"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="onlyParentCategoriesWithChildren"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <action
+            android:id="@+id/action_transactionCategoryPickerFragment_to_addEditCategoryFragment"
+            app:destination="@id/addEditCategoryFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/categoryIconPickerFragment"
+        android:name="com.group10.moneymate.ui.transaction.CategoryIconPickerFragment"
+        android:label="@string/category_pick_icon_title"
+        tools:layout="@layout/fragment_category_icon_picker">
+        <argument
+            android:name="selectedIconName"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
@@ -177,14 +252,24 @@
             app:nullable="true" />
         <action
             android:id="@+id/action_statisticsFragment_to_statisticsDetailFragment"
-            app:destination="@id/statisticsDetailFragment" />
+            app:destination="@id/statisticsDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_statisticsFragment_to_statisticsTypeDetailFragment"
-            app:destination="@id/statisticsDetailFragment" />
+            app:destination="@id/statisticsDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_statisticsFragment_to_budgetWalletPickerFragment"
             app:destination="@id/budgetWalletPickerFragment"
             app:enterAnim="@anim/slide_in_up"
+            app:exitAnim="@anim/slide_out_down"
+            app:popEnterAnim="@anim/slide_in_up"
             app:popExitAnim="@anim/slide_out_down" />
     </fragment>
 
@@ -210,17 +295,53 @@
             android:name="transactionType"
             app:argType="string"
             android:defaultValue="EXPENSE" />
+        <argument
+            android:name="reportCategoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
         <action
             android:id="@+id/action_statisticsDetailFragment_to_budgetWalletPickerFragment"
             app:destination="@id/budgetWalletPickerFragment"
             app:enterAnim="@anim/slide_in_up"
+            app:exitAnim="@anim/slide_out_down"
+            app:popEnterAnim="@anim/slide_in_up"
             app:popExitAnim="@anim/slide_out_down" />
         <action
-            android:id="@+id/action_statisticsDetailFragment_to_statisticsCategoryDetailFragment"
-            app:destination="@id/statisticsCategoryDetailFragment" />
-        <action
             android:id="@+id/action_statisticsDetailFragment_to_reportTransactionListFragment"
-            app:destination="@id/reportTransactionListFragment" />
+            app:destination="@id/reportTransactionListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_statisticsDetailFragment_to_statisticsCategoryDetailFragment"
+            app:destination="@id/statisticsCategoryDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_statisticsDetailFragment_to_statisticsCategoryDayDetailFragment"
+            app:destination="@id/statisticsCategoryDayDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_statisticsDetailFragment_to_transactionCategoryPickerFragment"
+            app:destination="@id/transactionCategoryPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_statisticsDetailFragment_self"
+            app:destination="@id/statisticsDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -252,7 +373,71 @@
             app:nullable="true" />
         <action
             android:id="@+id/action_statisticsCategoryDetailFragment_to_reportTransactionListFragment"
-            app:destination="@id/reportTransactionListFragment" />
+            app:destination="@id/reportTransactionListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_statisticsCategoryDetailFragment_to_statisticsCategoryDayDetailFragment"
+            app:destination="@id/statisticsCategoryDayDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_statisticsCategoryDetailFragment_to_transactionCategoryPickerFragment"
+            app:destination="@id/transactionCategoryPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_statisticsCategoryDetailFragment_self"
+            app:destination="@id/statisticsCategoryDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/statisticsCategoryDayDetailFragment"
+        android:name="com.group10.moneymate.ui.statistics.StatisticsCategoryDayDetailFragment"
+        android:label="@string/statistics"
+        tools:layout="@layout/fragment_statistics_leaf_category_report">
+        <argument
+            android:name="walletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="startDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="endDate"
+            app:argType="long"
+            android:defaultValue="0L" />
+        <argument
+            android:name="transactionType"
+            app:argType="string"
+            android:defaultValue="EXPENSE" />
+        <argument
+            android:name="categoryId"
+            app:argType="string" />
+        <argument
+            android:name="categoryName"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_statisticsCategoryDayDetailFragment_to_reportTransactionListFragment"
+            app:destination="@id/reportTransactionListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <!-- Settings -->
@@ -293,6 +478,13 @@
             app:destination="@id/addEditCategoryFragment"
             app:enterAnim="@anim/slide_in_right"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_categoryList_to_walletPicker"
+            app:destination="@id/budgetWalletPickerFragment"
+            app:enterAnim="@anim/slide_in_up"
+            app:exitAnim="@anim/slide_out_down"
+            app:popEnterAnim="@anim/slide_in_up"
+            app:popExitAnim="@anim/slide_out_down" />
     </fragment>
 
     <fragment
@@ -302,6 +494,47 @@
         tools:layout="@layout/fragment_add_edit_category">
         <argument
             android:name="categoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="initialType"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_addEditCategoryFragment_to_parentCategoryPickerFragment"
+            app:destination="@id/parentCategoryPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_addEditCategoryFragment_to_categoryIconPickerFragment"
+            app:destination="@id/categoryIconPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/parentCategoryPickerFragment"
+        android:name="com.group10.moneymate.ui.category.ParentCategoryPickerFragment"
+        android:label="@string/category_pick_parent_title"
+        tools:layout="@layout/fragment_parent_category_picker">
+        <argument
+            android:name="selectedParentId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="categoryType"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="currentCategoryId"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
@@ -404,6 +637,13 @@
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
+        <action
+            android:id="@+id/action_addEditBudgetFragment_to_transactionCategoryPickerFragment"
+            app:destination="@id/transactionCategoryPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <!-- Wallets -->
@@ -426,6 +666,25 @@
         tools:layout="@layout/fragment_add_edit_wallet">
         <argument
             android:name="walletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_addEditWalletFragment_to_walletIconPickerFragment"
+            app:destination="@id/walletIconPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/walletIconPickerFragment"
+        android:name="com.group10.moneymate.ui.wallet.WalletIconPickerFragment"
+        android:label="@string/wallet_pick_icon_title"
+        tools:layout="@layout/fragment_wallet_icon_picker">
+        <argument
+            android:name="selectedIconName"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />

@@ -1,7 +1,5 @@
 package com.group10.moneymate.ui.home;
 
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -60,9 +58,11 @@ public class HomeRecentTransactionAdapter extends ListAdapter<HomeRecentTransact
         }
 
         void bind(@NonNull ItemUiModel item) {
-            binding.cvTransactionIcon.setCardBackgroundColor(applyAlpha(item.getAccentColor(), 0.14f));
-            binding.ivTransactionIcon.setImageResource(item.getIconResId());
-            binding.ivTransactionIcon.setImageTintList(ColorStateList.valueOf(item.getAccentColor()));
+            binding.cvTransactionIcon.setCardBackgroundColor(
+                    ContextCompat.getColor(binding.getRoot().getContext(), android.R.color.white)
+            );
+            binding.ivTransactionIcon.setImageResource(item.getIconRes());
+            binding.ivTransactionIcon.setImageTintList(null);
             binding.tvTransactionTitle.setText(item.getTitle());
             binding.tvTransactionDate.setText(item.getDateLabel());
             binding.tvTransactionAmount.setText(item.getAmountLabel());
@@ -73,16 +73,11 @@ public class HomeRecentTransactionAdapter extends ListAdapter<HomeRecentTransact
                 }
             });
         }
-
-        private int applyAlpha(int color, float alphaFraction) {
-            int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-            return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
-        }
     }
 
     public static class ItemUiModel {
         @NonNull private final String transactionId;
-        private final int iconResId;
+        private final int iconRes;
         private final int accentColor;
         @NonNull private final String title;
         @NonNull private final String dateLabel;
@@ -90,14 +85,14 @@ public class HomeRecentTransactionAdapter extends ListAdapter<HomeRecentTransact
         private final int amountColor;
 
         public ItemUiModel(@NonNull String transactionId,
-                           int iconResId,
+                           int iconRes,
                            int accentColor,
                            @NonNull String title,
                            @NonNull String dateLabel,
                            @NonNull String amountLabel,
                            int amountColor) {
             this.transactionId = transactionId;
-            this.iconResId = iconResId;
+            this.iconRes = iconRes;
             this.accentColor = accentColor;
             this.title = title;
             this.dateLabel = dateLabel;
@@ -110,8 +105,8 @@ public class HomeRecentTransactionAdapter extends ListAdapter<HomeRecentTransact
             return transactionId;
         }
 
-        public int getIconResId() {
-            return iconResId;
+        public int getIconRes() {
+            return iconRes;
         }
 
         public int getAccentColor() {
@@ -147,7 +142,7 @@ public class HomeRecentTransactionAdapter extends ListAdapter<HomeRecentTransact
 
                 @Override
                 public boolean areContentsTheSame(@NonNull ItemUiModel oldItem, @NonNull ItemUiModel newItem) {
-                    return oldItem.iconResId == newItem.iconResId
+                    return oldItem.iconRes == newItem.iconRes
                             && oldItem.accentColor == newItem.accentColor
                             && oldItem.amountColor == newItem.amountColor
                             && Objects.equals(oldItem.title, newItem.title)

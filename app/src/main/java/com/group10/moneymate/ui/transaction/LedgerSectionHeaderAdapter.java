@@ -1,6 +1,5 @@
 package com.group10.moneymate.ui.transaction;
 
-import android.content.res.ColorStateList;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -50,9 +49,11 @@ public class LedgerSectionHeaderAdapter extends RecyclerView.Adapter<LedgerSecti
         }
 
         void bind(@NonNull SectionHeaderItem item) {
-            binding.ivSectionIcon.setImageResource(item.getIconResId());
-            binding.ivSectionIcon.setImageTintList(ColorStateList.valueOf(item.getAccentColor()));
-            binding.cvSectionIconContainer.setCardBackgroundColor(item.getContainerColor());
+            binding.ivSectionIcon.setImageResource(item.getIconRes());
+            binding.ivSectionIcon.setImageTintList(null);
+            binding.cvSectionIconContainer.setCardBackgroundColor(
+                    binding.getRoot().getContext().getColor(android.R.color.white)
+            );
             binding.tvSectionTitle.setText(item.getTitle());
             binding.tvSectionSubtitle.setText(item.getSubtitle());
             binding.tvSectionAmount.setText(item.getAmountLabel());
@@ -67,7 +68,7 @@ public class LedgerSectionHeaderAdapter extends RecyclerView.Adapter<LedgerSecti
         private final String subtitle;
         @NonNull
         private final String amountLabel;
-        private final int iconResId;
+        private final int iconRes;
         private final int accentColor;
         private final int containerColor;
         private final int amountColor;
@@ -75,14 +76,14 @@ public class LedgerSectionHeaderAdapter extends RecyclerView.Adapter<LedgerSecti
         public SectionHeaderItem(@NonNull String title,
                                  @NonNull String subtitle,
                                  @NonNull String amountLabel,
-                                 int iconResId,
+                                 int iconRes,
                                  int accentColor,
                                  int containerColor,
                                  int amountColor) {
             this.title = title;
             this.subtitle = subtitle;
             this.amountLabel = amountLabel;
-            this.iconResId = iconResId;
+            this.iconRes = iconRes;
             this.accentColor = accentColor;
             this.containerColor = containerColor;
             this.amountColor = amountColor;
@@ -103,8 +104,8 @@ public class LedgerSectionHeaderAdapter extends RecyclerView.Adapter<LedgerSecti
             return amountLabel;
         }
 
-        public int getIconResId() {
-            return iconResId;
+        public int getIconRes() {
+            return iconRes;
         }
 
         public int getAccentColor() {

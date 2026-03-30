@@ -1,7 +1,5 @@
 package com.group10.moneymate.ui.home;
 
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -47,36 +45,35 @@ public class HomeTopSpendingAdapter extends ListAdapter<HomeTopSpendingAdapter.I
         }
 
         void bind(@NonNull ItemUiModel item) {
-            binding.cvCategoryIcon.setCardBackgroundColor(applyAlpha(item.getAccentColor(), 0.14f));
-            binding.ivCategoryIcon.setImageResource(item.getIconResId());
-            binding.ivCategoryIcon.setImageTintList(ColorStateList.valueOf(item.getAccentColor()));
+            binding.cvCategoryIcon.setCardBackgroundColor(
+                    ContextCompat.getColor(binding.getRoot().getContext(), android.R.color.white)
+            );
+            binding.ivCategoryIcon.setImageResource(item.getIconRes());
+            binding.ivCategoryIcon.setImageTintList(null);
             binding.tvCategoryName.setText(item.getCategoryName());
             binding.tvCategoryAmount.setText(CurrencyFormatter.format(item.getAmount(), "VND"));
             binding.tvCategoryPercent.setText(item.getPercentLabel());
         }
 
-        private int applyAlpha(int color, float alphaFraction) {
-            int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-            return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
-        }
+        // ...existing code...
     }
 
     public static class ItemUiModel {
         private final String categoryId;
-        private final int iconResId;
+        private final int iconRes;
         private final int accentColor;
         @NonNull private final String categoryName;
         private final double amount;
         @NonNull private final String percentLabel;
 
         public ItemUiModel(@NonNull String categoryId,
-                           int iconResId,
+                           int iconRes,
                            int accentColor,
                            @NonNull String categoryName,
                            double amount,
                            @NonNull String percentLabel) {
             this.categoryId = categoryId;
-            this.iconResId = iconResId;
+            this.iconRes = iconRes;
             this.accentColor = accentColor;
             this.categoryName = categoryName;
             this.amount = amount;
@@ -88,8 +85,8 @@ public class HomeTopSpendingAdapter extends ListAdapter<HomeTopSpendingAdapter.I
             return categoryId;
         }
 
-        public int getIconResId() {
-            return iconResId;
+        public int getIconRes() {
+            return iconRes;
         }
 
         public int getAccentColor() {
@@ -120,7 +117,7 @@ public class HomeTopSpendingAdapter extends ListAdapter<HomeTopSpendingAdapter.I
 
                 @Override
                 public boolean areContentsTheSame(@NonNull ItemUiModel oldItem, @NonNull ItemUiModel newItem) {
-                    return oldItem.iconResId == newItem.iconResId
+                    return oldItem.iconRes == newItem.iconRes
                             && oldItem.accentColor == newItem.accentColor
                             && Objects.equals(oldItem.categoryName, newItem.categoryName)
                             && oldItem.amount == newItem.amount

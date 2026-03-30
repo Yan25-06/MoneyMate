@@ -10,22 +10,22 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentTransactionDetailBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -80,12 +80,19 @@ public class TransactionDetailFragment extends Fragment {
             if (currentTransaction == null) {
                 return;
             }
-            new AlertDialog.Builder(requireContext())
+            AlertDialog dialog = new MaterialAlertDialogBuilder(
+                    requireContext(),
+                    R.style.ThemeOverlay_MoneyMate_MaterialAlertDialog
+            )
                     .setTitle(R.string.delete_transaction)
                     .setMessage(R.string.delete_transaction_confirm)
                     .setNegativeButton(R.string.btn_cancel, null)
                     .setPositiveButton(R.string.btn_delete, this::confirmDelete)
                     .show();
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    .setTextColor(requireContext().getColor(R.color.budget_danger_red));
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                    .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
         });
     }
 
@@ -157,18 +164,19 @@ public class TransactionDetailFragment extends Fragment {
                 : null;
 
         String type = transaction.getType();
-        @ColorInt int accentColor = resolveAccentColor(type, category);
         int iconRes = resolveIconRes(category, type);
         String categoryName = category != null
                 ? category.getName()
                 : getString("TRANSFER".equals(type) ? R.string.ledger_section_transfer : R.string.ledger_section_unknown);
 
         binding.ivCategoryIcon.setImageResource(iconRes);
-        DrawableCompat.setTint(binding.ivCategoryIcon.getDrawable().mutate(), accentColor);
-        binding.cvCategoryIconContainer.setCardBackgroundColor(applyAlpha(accentColor, 0.14f));
+        binding.ivCategoryIcon.setImageTintList(null);
+        binding.cvCategoryIconContainer.setCardBackgroundColor(
+                ContextCompat.getColor(requireContext(), android.R.color.white)
+        );
         binding.tvCategoryName.setText(categoryName);
         binding.tvAmount.setText(formatAmount(transaction.getAmount(), type));
-        binding.tvAmount.setTextColor(accentColor);
+        binding.tvAmount.setTextColor(resolveAmountColor(type));
         binding.tvNoteValue.setText(TextUtils.isEmpty(transaction.getNote())
                 ? getString(R.string.transaction_detail_no_note)
                 : transaction.getNote());
@@ -193,44 +201,21 @@ public class TransactionDetailFragment extends Fragment {
     }
 
     private int resolveIconRes(@Nullable CategoryEntity category, @Nullable String type) {
-        if (category != null && category.getIconResId() != null && !category.getIconResId().trim().isEmpty()) {
-            int resolved = requireContext().getResources().getIdentifier(
-                    category.getIconResId(),
-                    "drawable",
-                    requireContext().getPackageName()
-            );
-            if (resolved != 0) {
-                return resolved;
-            }
-        }
-        if ("INCOME".equals(type)) {
-            return R.drawable.outline_attach_money_24;
-        }
-        if ("TRANSFER".equals(type)) {
-            return R.drawable.outline_payments_24;
-        }
-        return R.drawable.ic_category_spending;
+        return IconProvider.resolveCategoryIconByType(
+                requireContext(),
+                category != null ? category.getIconName() : null,
+                type
+        );
     }
 
-    private int resolveAccentColor(@Nullable String type, @Nullable CategoryEntity category) {
-        if (category != null && category.getColorHex() != null && !category.getColorHex().trim().isEmpty()) {
-            try {
-                return Color.parseColor(category.getColorHex());
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
+    private int resolveAmountColor(@Nullable String type) {
         if ("INCOME".equals(type)) {
-            return ContextCompat.getColor(requireContext(), R.color.transfer_blue);
+            return ContextCompat.getColor(requireContext(), R.color.income_green);
         }
-        if ("TRANSFER".equals(type)) {
-            return ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary);
+        if ("EXPENSE".equals(type)) {
+            return ContextCompat.getColor(requireContext(), R.color.expense_red);
         }
-        return ContextCompat.getColor(requireContext(), R.color.expense_red);
-    }
-
-    private int applyAlpha(@ColorInt int color, float alphaFraction) {
-        int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+        return ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
     }
 
     @Override

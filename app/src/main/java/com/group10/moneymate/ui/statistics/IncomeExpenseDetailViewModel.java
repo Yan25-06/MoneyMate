@@ -11,7 +11,9 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
+import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.models.TransactionType;
@@ -35,6 +37,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
 
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
+    private final CategoryRepository categoryRepository;
     private final String userId;
     private final DetailMode detailMode;
     private final TransactionType selectedTransactionType;
@@ -47,6 +50,12 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
     private final LiveData<List<CategoryBreakdownItemUiModel>> categoryItems;
     private final MediatorLiveData<List<PeriodSummaryUiModel>> periodSummaries = new MediatorLiveData<>();
     private final MediatorLiveData<List<ComparisonPointUiModel>> comparisonPoints = new MediatorLiveData<>();
+    private final MutableLiveData<DrillDownUiState> drillDownState = new MutableLiveData<>(DrillDownUiState.root());
+    private final MediatorLiveData<DrillCategoryRequest> childCategoryRequest = new MediatorLiveData<>();
+    private final MediatorLiveData<DrillTransactionRequest> drillTransactionRequest = new MediatorLiveData<>();
+    private final LiveData<List<CategoryBreakdownItemUiModel>> childCategoryItems;
+    private final LiveData<List<TransactionEntity>> drillDownTransactions;
+    private final MediatorLiveData<List<CategoryBreakdownItemUiModel>> visibleCategoryItems = new MediatorLiveData<>();
 
     private LiveData<WalletEntity> walletSource;
     private LiveData<List<DailyTrendDTO>> incomeDailySource;
@@ -71,6 +80,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
 
     public IncomeExpenseDetailViewModel(@NonNull TransactionRepository transactionRepository,
                                         @NonNull WalletRepository walletRepository,
+                                        @NonNull CategoryRepository categoryRepository,
                                         @NonNull String userId,
                                         @Nullable String initialWalletId,
                                         long initialStartDate,
@@ -78,6 +88,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
                                         @Nullable String transactionTypeValue) {
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
+        this.categoryRepository = categoryRepository;
         this.userId = userId;
         this.detailMode = "NET".equalsIgnoreCase(transactionTypeValue) ? DetailMode.NET : DetailMode.CATEGORY;
         this.selectedTransactionType = parseTransactionType(transactionTypeValue);
@@ -118,7 +129,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
             if (state == null || detailMode == DetailMode.NET) {
                 return new MutableLiveData<>(new ArrayList<>());
             }
-            return mapCategoryItemsLiveData(transactionRepository.getCategorySums(
+            return mapCategoryItemsLiveData(transactionRepository.getRootCategorySums(
                     userId,
                     selectedTransactionType.name(),
                     state.getStartDate(),
@@ -126,6 +137,45 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
                     state.getWalletId()
             ));
         });
+
+        childCategoryRequest.addSource(filterState, value -> refreshDrillDownRequests());
+        childCategoryRequest.addSource(drillDownState, value -> refreshDrillDownRequests());
+        drillTransactionRequest.addSource(filterState, value -> refreshDrillDownRequests());
+        drillTransactionRequest.addSource(drillDownState, value -> refreshDrillDownRequests());
+
+        childCategoryItems = Transformations.switchMap(childCategoryRequest, request -> {
+            if (request == null || detailMode == DetailMode.NET) {
+                return new MutableLiveData<>(new ArrayList<>());
+            }
+            return mapCategoryItemsLiveData(transactionRepository.getChildCategorySums(
+                    userId,
+                    selectedTransactionType.name(),
+                    request.getFilterState().getStartDate(),
+                    boundedEndDate(request.getFilterState().getEndDate()),
+                    request.getFilterState().getWalletId(),
+                    request.getRootCategoryId()
+            ));
+        });
+
+        drillDownTransactions = Transformations.switchMap(drillTransactionRequest, request -> {
+            if (request == null || detailMode == DetailMode.NET) {
+                return new MutableLiveData<>(new ArrayList<>());
+            }
+            return transactionRepository.getTransactionsForStatisticsDrillDown(
+                    userId,
+                    selectedTransactionType.name(),
+                    request.getFilterState().getStartDate(),
+                    boundedEndDate(request.getFilterState().getEndDate()),
+                    request.getFilterState().getWalletId(),
+                    request.getCategoryId()
+            );
+        });
+
+        visibleCategoryItems.addSource(categoryItems, value -> updateVisibleCategoryItems());
+        visibleCategoryItems.addSource(childCategoryItems, value -> updateVisibleCategoryItems());
+        visibleCategoryItems.addSource(drillDownState, value -> updateVisibleCategoryItems());
+        refreshDrillDownRequests();
+        updateVisibleCategoryItems();
 
         headerAmount.addSource(totalIncomeAmount, value -> updateHeaderAmount());
         headerAmount.addSource(totalExpenseAmount, value -> updateHeaderAmount());
@@ -177,7 +227,67 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
     }
 
     public LiveData<List<CategoryBreakdownItemUiModel>> getCategoryItems() {
-        return categoryItems;
+        return visibleCategoryItems;
+    }
+
+    public LiveData<List<TransactionEntity>> getDrillDownTransactions() {
+        return drillDownTransactions;
+    }
+
+    public LiveData<DrillDownUiState> getDrillDownState() {
+        return drillDownState;
+    }
+
+    @NonNull
+    public DrillDownUiState getCurrentDrillDownState() {
+        DrillDownUiState current = drillDownState.getValue();
+        if (current == null) {
+            return DrillDownUiState.root();
+        }
+        return current;
+    }
+
+    public void openChildDrillDown(@NonNull CategoryBreakdownItemUiModel rootItem) {
+        if (detailMode == DetailMode.NET || rootItem.getCategoryId() == null) {
+            return;
+        }
+        drillDownState.setValue(DrillDownUiState.child(
+                rootItem.getCategoryId(),
+                rootItem.getCategoryName()
+        ));
+    }
+
+    public void openTransactionDrillDown(@NonNull CategoryBreakdownItemUiModel childItem) {
+        DrillDownUiState current = getCurrentDrillDownState();
+        if (detailMode == DetailMode.NET
+                || current.getState() != DrillDownState.CHILD_DONUT
+                || current.getRootCategoryId() == null
+                || childItem.getCategoryId() == null) {
+            return;
+        }
+        drillDownState.setValue(DrillDownUiState.transaction(
+                current.getRootCategoryId(),
+                current.getRootCategoryName(),
+                childItem.getCategoryId(),
+                childItem.getCategoryName()
+        ));
+    }
+
+    public boolean navigateUpInDrillDown() {
+        DrillDownUiState current = getCurrentDrillDownState();
+        if (current.getState() == DrillDownState.TRANSACTION_LIST
+                && current.getRootCategoryId() != null) {
+            drillDownState.setValue(DrillDownUiState.child(
+                    current.getRootCategoryId(),
+                    current.getRootCategoryName()
+            ));
+            return true;
+        }
+        if (current.getState() == DrillDownState.CHILD_DONUT) {
+            drillDownState.setValue(DrillDownUiState.root());
+            return true;
+        }
+        return false;
     }
 
     public LiveData<List<PeriodSummaryUiModel>> getPeriodSummaries() {
@@ -250,6 +360,67 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
     @NonNull
     public String getDetailToggleTitle() {
         return detailMode == DetailMode.NET ? "Thu nhập ròng" : "Báo cáo theo nhóm";
+    }
+
+    public void setReportRootCategory(@NonNull String categoryId, @NonNull String categoryName) {
+        if (detailMode == DetailMode.NET) {
+            return;
+        }
+        drillDownState.setValue(DrillDownUiState.child(categoryId, categoryName));
+    }
+
+    public void checkCategoryHasChildren(@NonNull String categoryId,
+                                         @NonNull CategoryRepository.ChildrenCheckCallback callback) {
+        categoryRepository.hasActiveChildrenAsync(categoryId, userId, callback);
+    }
+
+    private void refreshDrillDownRequests() {
+        DrillDownUiState currentDrillState = getCurrentDrillDownState();
+        StatisticsViewModel.FilterState currentFilterState = getCurrentFilterState();
+
+        if (detailMode == DetailMode.NET) {
+            childCategoryRequest.setValue(null);
+            drillTransactionRequest.setValue(null);
+            return;
+        }
+
+        if (currentDrillState.getState() == DrillDownState.ROOT_DONUT
+                || currentDrillState.getRootCategoryId() == null) {
+            childCategoryRequest.setValue(null);
+            drillTransactionRequest.setValue(null);
+            return;
+        }
+
+        childCategoryRequest.setValue(new DrillCategoryRequest(
+                currentFilterState,
+                currentDrillState.getRootCategoryId()
+        ));
+
+        if (currentDrillState.getState() == DrillDownState.TRANSACTION_LIST
+                && currentDrillState.getChildCategoryId() != null) {
+            drillTransactionRequest.setValue(new DrillTransactionRequest(
+                    currentFilterState,
+                    currentDrillState.getChildCategoryId()
+            ));
+            return;
+        }
+
+        drillTransactionRequest.setValue(null);
+    }
+
+    private void updateVisibleCategoryItems() {
+        DrillDownUiState currentDrillState = getCurrentDrillDownState();
+        if (currentDrillState.getState() == DrillDownState.ROOT_DONUT) {
+            List<CategoryBreakdownItemUiModel> roots = categoryItems.getValue();
+            visibleCategoryItems.setValue(roots != null ? roots : new ArrayList<>());
+            return;
+        }
+        if (currentDrillState.getState() == DrillDownState.CHILD_DONUT) {
+            List<CategoryBreakdownItemUiModel> children = childCategoryItems.getValue();
+            visibleCategoryItems.setValue(children != null ? children : new ArrayList<>());
+            return;
+        }
+        visibleCategoryItems.setValue(new ArrayList<>());
     }
 
     private void updateHeaderAmount() {
@@ -458,7 +629,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
         double lastAverage = 0d;
         for (int dayOfMonth = 1; dayOfMonth <= lastVisibleDay; dayOfMonth++) {
             LocalDate currentDate = currentMonth.withDayOfMonth(dayOfMonth);
-            currentRunning += currentMap.containsKey(currentDate) ? currentMap.get(currentDate) : 0d;
+            currentRunning += currentMap.getOrDefault(currentDate, 0d);
 
             double averageTotal = 0d;
             int divisor = 0;
@@ -549,8 +720,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
             items.add(new CategoryBreakdownItemUiModel(
                     dto.getCategoryId(),
                     dto.getCategoryName() != null ? dto.getCategoryName() : "Chưa phân loại",
-                    dto.getIconResId(),
-                    dto.getColorHex(),
+                    dto.getIconName(),
                     dto.getTotalAmount(),
                     percent,
                     dto.getTransactionCount()
@@ -686,7 +856,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
         double total = 0d;
         LocalDate cursor = startDate;
         while (!cursor.isAfter(endDate)) {
-            total += dailyMap.containsKey(cursor) ? dailyMap.get(cursor) : 0d;
+            total += dailyMap.getOrDefault(cursor, 0d);
             cursor = cursor.plusDays(1);
         }
         return total;
@@ -794,6 +964,133 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
                 endDate.getMonthValue());
     }
 
+    public enum DrillDownState {
+        ROOT_DONUT,
+        CHILD_DONUT,
+        TRANSACTION_LIST
+    }
+
+    public static final class DrillDownUiState {
+        @NonNull
+        private final DrillDownState state;
+        @Nullable
+        private final String rootCategoryId;
+        @Nullable
+        private final String rootCategoryName;
+        @Nullable
+        private final String childCategoryId;
+        @Nullable
+        private final String childCategoryName;
+
+        private DrillDownUiState(@NonNull DrillDownState state,
+                                 @Nullable String rootCategoryId,
+                                 @Nullable String rootCategoryName,
+                                 @Nullable String childCategoryId,
+                                 @Nullable String childCategoryName) {
+            this.state = state;
+            this.rootCategoryId = rootCategoryId;
+            this.rootCategoryName = rootCategoryName;
+            this.childCategoryId = childCategoryId;
+            this.childCategoryName = childCategoryName;
+        }
+
+        @NonNull
+        public static DrillDownUiState root() {
+            return new DrillDownUiState(DrillDownState.ROOT_DONUT, null, null, null, null);
+        }
+
+        @NonNull
+        public static DrillDownUiState child(@NonNull String rootCategoryId,
+                                             @Nullable String rootCategoryName) {
+            return new DrillDownUiState(DrillDownState.CHILD_DONUT, rootCategoryId, rootCategoryName, null, null);
+        }
+
+        @NonNull
+        public static DrillDownUiState transaction(@NonNull String rootCategoryId,
+                                                   @Nullable String rootCategoryName,
+                                                   @NonNull String childCategoryId,
+                                                   @Nullable String childCategoryName) {
+            return new DrillDownUiState(
+                    DrillDownState.TRANSACTION_LIST,
+                    rootCategoryId,
+                    rootCategoryName,
+                    childCategoryId,
+                    childCategoryName
+            );
+        }
+
+        @NonNull
+        public DrillDownState getState() {
+            return state;
+        }
+
+        @Nullable
+        public String getRootCategoryId() {
+            return rootCategoryId;
+        }
+
+        @Nullable
+        public String getRootCategoryName() {
+            return rootCategoryName;
+        }
+
+        @Nullable
+        public String getChildCategoryId() {
+            return childCategoryId;
+        }
+
+        @Nullable
+        public String getChildCategoryName() {
+            return childCategoryName;
+        }
+    }
+
+    private static final class DrillCategoryRequest {
+        @NonNull
+        private final StatisticsViewModel.FilterState filterState;
+        @NonNull
+        private final String rootCategoryId;
+
+        private DrillCategoryRequest(@NonNull StatisticsViewModel.FilterState filterState,
+                                     @NonNull String rootCategoryId) {
+            this.filterState = filterState;
+            this.rootCategoryId = rootCategoryId;
+        }
+
+        @NonNull
+        private StatisticsViewModel.FilterState getFilterState() {
+            return filterState;
+        }
+
+        @NonNull
+        private String getRootCategoryId() {
+            return rootCategoryId;
+        }
+    }
+
+    private static final class DrillTransactionRequest {
+        @NonNull
+        private final StatisticsViewModel.FilterState filterState;
+        @NonNull
+        private final String categoryId;
+
+        private DrillTransactionRequest(@NonNull StatisticsViewModel.FilterState filterState,
+                                        @NonNull String categoryId) {
+            this.filterState = filterState;
+            this.categoryId = categoryId;
+        }
+
+        @NonNull
+        private StatisticsViewModel.FilterState getFilterState() {
+            return filterState;
+        }
+
+        @NonNull
+        private String getCategoryId() {
+            return categoryId;
+        }
+    }
+
     public enum DetailMode {
         NET,
         CATEGORY
@@ -803,6 +1100,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
 
         private final TransactionRepository transactionRepository;
         private final WalletRepository walletRepository;
+        private final CategoryRepository categoryRepository;
         private final String userId;
         @Nullable
         private final String walletId;
@@ -813,6 +1111,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
 
         public Factory(@NonNull TransactionRepository transactionRepository,
                        @NonNull WalletRepository walletRepository,
+                       @NonNull CategoryRepository categoryRepository,
                        @NonNull String userId,
                        @Nullable String walletId,
                        long startDate,
@@ -820,6 +1119,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
                        @Nullable String transactionType) {
             this.transactionRepository = transactionRepository;
             this.walletRepository = walletRepository;
+            this.categoryRepository = categoryRepository;
             this.userId = userId;
             this.walletId = walletId;
             this.startDate = startDate;
@@ -835,6 +1135,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
                 return (T) new IncomeExpenseDetailViewModel(
                         transactionRepository,
                         walletRepository,
+                        categoryRepository,
                         userId,
                         walletId,
                         startDate,
@@ -852,24 +1153,20 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
         @NonNull
         private final String categoryName;
         @Nullable
-        private final String iconResId;
-        @Nullable
-        private final String colorHex;
+        private final String iconName;
         private final double totalAmount;
         private final double sharePercent;
         private final int transactionCount;
 
         public CategoryBreakdownItemUiModel(@Nullable String categoryId,
                                             @NonNull String categoryName,
-                                            @Nullable String iconResId,
-                                            @Nullable String colorHex,
+                                            @Nullable String iconName,
                                             double totalAmount,
                                             double sharePercent,
                                             int transactionCount) {
             this.categoryId = categoryId;
             this.categoryName = categoryName;
-            this.iconResId = iconResId;
-            this.colorHex = colorHex;
+            this.iconName = iconName;
             this.totalAmount = totalAmount;
             this.sharePercent = sharePercent;
             this.transactionCount = transactionCount;
@@ -885,14 +1182,8 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
             return categoryName;
         }
 
-        @Nullable
-        public String getIconResId() {
-            return iconResId;
-        }
-
-        @Nullable
-        public String getColorHex() {
-            return colorHex;
+        public String getIconName() {
+            return iconName;
         }
 
         public double getTotalAmount() {

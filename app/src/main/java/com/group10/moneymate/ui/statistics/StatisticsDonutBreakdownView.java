@@ -484,7 +484,6 @@ public class StatisticsDonutBreakdownView extends View {
             return;
         }
         drawable = drawable.mutate();
-        drawable.setTint(layout.segment.color);
         int iconHalf = (int) dp(6.5f);
         drawable.setBounds(
                 (int) (layout.iconCenterX - iconHalf),

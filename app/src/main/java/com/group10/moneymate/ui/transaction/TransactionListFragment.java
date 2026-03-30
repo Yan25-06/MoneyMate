@@ -1,14 +1,12 @@
 package com.group10.moneymate.ui.transaction;
 
 import android.app.Dialog;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -35,7 +33,9 @@ import com.group10.moneymate.databinding.FragmentTransactionListBinding;
 import com.group10.moneymate.databinding.SheetStatisticsPeriodFilterBinding;
 import com.group10.moneymate.ui.statistics.StatisticsViewModel;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.WalletSelectorButtonHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -99,7 +99,7 @@ public class TransactionListFragment extends Fragment {
         binding.statisticsHeader.btnHeaderBack.setVisibility(View.GONE);
         binding.statisticsHeader.tvHeaderSummaryLabel.setText(R.string.total_balance);
         binding.statisticsHeader.tvHeaderTotalAmount.setText(R.string.default_currency_zero);
-        binding.statisticsHeader.btnWalletSelector.setText(R.string.statistics_wallet_selector_all);
+        renderWalletSelector();
         renderHeaderTabs(currentFilterState);
         binding.btnViewPeriodReport.setOnClickListener(v -> openPeriodReport());
     }
@@ -155,18 +155,24 @@ public class TransactionListFragment extends Fragment {
     }
 
     private void renderWalletSelector() {
-        if (selectedWalletLabel != null && !selectedWalletLabel.trim().isEmpty()) {
-            binding.statisticsHeader.btnWalletSelector.setText(selectedWalletLabel);
-            return;
-        }
+        WalletEntity selectedWallet = null;
+        String displayLabel = selectedWalletLabel;
         String walletId = currentFilterState.getWalletId();
-        if (walletId == null) {
-            binding.statisticsHeader.btnWalletSelector.setText(R.string.statistics_wallet_selector_all);
-            return;
+        if (walletId != null) {
+            selectedWallet = walletMap.get(walletId);
+            if (displayLabel == null || displayLabel.trim().isEmpty()) {
+                displayLabel = selectedWallet != null
+                        ? selectedWallet.getName()
+                        : getString(R.string.statistics_wallet_selector_all);
+            }
         }
-        WalletEntity wallet = walletMap.get(walletId);
-        binding.statisticsHeader.btnWalletSelector.setText(
-                wallet != null ? wallet.getName() : getString(R.string.statistics_wallet_selector_all)
+
+        WalletSelectorButtonHelper.bindStatisticsWalletSelector(
+                binding.statisticsHeader.btnWalletSelector,
+                requireContext(),
+                selectedWallet,
+                displayLabel,
+                R.string.statistics_wallet_selector_all
         );
     }
 
@@ -296,11 +302,7 @@ public class TransactionListFragment extends Fragment {
     private Map<String, TransactionAdapter.WalletPresentation> buildWalletPresentationMap() {
         Map<String, TransactionAdapter.WalletPresentation> map = new HashMap<>();
         for (WalletEntity wallet : walletMap.values()) {
-            int accent = parseColorOrDefault(
-                    wallet.getColorHex(),
-                    ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary)
-            );
-            map.put(wallet.getId(), new TransactionAdapter.WalletPresentation(wallet.getType(), accent));
+            map.put(wallet.getId(), new TransactionAdapter.WalletPresentation(wallet.getType(), 0));
         }
         return map;
     }
@@ -564,42 +566,21 @@ public class TransactionListFragment extends Fragment {
         return filters;
     }
 
-    private int resolveIconRes(@Nullable String iconResId) {
-        if (iconResId == null || iconResId.trim().isEmpty()) return R.drawable.ic_category_other;
-        int resolved = requireContext().getResources().getIdentifier(iconResId, "drawable", requireContext().getPackageName());
-        return resolved != 0 ? resolved : R.drawable.ic_category_other;
-    }
-
-    @ColorInt
-    private int parseColorOrDefault(@Nullable String colorHex, @ColorInt int defaultColor) {
-        if (colorHex == null || colorHex.trim().isEmpty()) return defaultColor;
-        try {
-            return Color.parseColor(colorHex);
-        } catch (IllegalArgumentException ignored) {
-            return defaultColor;
-        }
-    }
-
     @NonNull
     private SectionMeta resolveSectionMeta(@NonNull TransactionEntity transaction) {
         if ("TRANSFER".equals(transaction.getType())) {
             int accent = ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary);
-            return new SectionMeta("transfer", getString(R.string.ledger_section_transfer), R.drawable.outline_payments_24, accent, applyAlpha(accent, 0.14f));
+            return new SectionMeta("transfer", getString(R.string.ledger_section_transfer), R.drawable.outline_payments_24, accent, accent);
         }
         CategoryEntity category = transaction.getCategoryId() != null ? categoryMap.get(transaction.getCategoryId()) : null;
-        int fallback = ContextCompat.getColor(requireContext(), "INCOME".equals(transaction.getType()) ? R.color.transfer_blue : R.color.expense_red);
-        int accent = category != null ? parseColorOrDefault(category.getColorHex(), fallback) : fallback;
-        int iconRes = category != null ? resolveIconRes(category.getIconResId())
-                : ("INCOME".equals(transaction.getType())
-                ? R.drawable.outline_attach_money_24
-                : R.drawable.ic_category_spending);
+        int accent = ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
+        int iconRes = IconProvider.resolveCategoryIconByType(
+                requireContext(),
+                category != null ? category.getIconName() : null,
+                transaction.getType()
+        );
         String title = category != null ? category.getName() : getString(R.string.ledger_section_unknown);
-        return new SectionMeta(transaction.getCategoryId() != null ? transaction.getCategoryId() : transaction.getType(), title, iconRes, accent, applyAlpha(accent, 0.14f));
-    }
-
-    private int applyAlpha(@ColorInt int color, float alphaFraction) {
-        int alpha = Math.min(255, Math.max(0, Math.round(alphaFraction * 255f)));
-        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+        return new SectionMeta(transaction.getCategoryId() != null ? transaction.getCategoryId() : transaction.getType(), title, iconRes, accent, accent);
     }
 
     @NonNull

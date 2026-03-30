@@ -1,7 +1,6 @@
 package com.group10.moneymate.ui.home;
 
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -42,6 +41,7 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentHomeBinding;
 import com.group10.moneymate.ui.main.HomeActivity;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -321,11 +321,10 @@ public class HomeFragment extends Fragment {
                     ? categoryMap.get(transaction.getCategoryId())
                     : null;
             String type = transaction.getType();
-            int accentColor = resolveAccentColor(type, category != null ? category.getColorHex() : null);
             items.add(new HomeRecentTransactionAdapter.ItemUiModel(
                     transaction.getId(),
                     resolveCategoryIcon(category, type),
-                    accentColor,
+                    0,
                     category != null ? category.getName() : getString(R.string.ledger_section_unknown),
                     formatShortDate(transaction.getTimestamp()),
                     formatAmountLabel(transaction.getAmount(), type),
@@ -567,11 +566,15 @@ public class HomeFragment extends Fragment {
         int limit = Math.min(3, source.size());
         for (int index = 0; index < limit; index++) {
             CategorySumDTO item = source.get(index);
-            int accent = resolveAccentColor("EXPENSE", item.getColorHex());
+            int accent = IconProvider.getCategoryColor(
+                    requireContext(),
+                    item.getCategoryId(),
+                    true
+            );
             double percent = total > 0d ? (item.getTotalAmount() / total) * 100d : 0d;
             items.add(new HomeTopSpendingAdapter.ItemUiModel(
                     item.getCategoryId() != null ? item.getCategoryId() : String.valueOf(index),
-                    resolveIcon(item.getIconResId()),
+                    resolveIcon(item.getIconName()),
                     accent,
                     item.getCategoryName() != null ? item.getCategoryName() : getString(R.string.ledger_section_unknown),
                     item.getTotalAmount(),
@@ -670,54 +673,17 @@ public class HomeFragment extends Fragment {
     }
 
     private int resolveCategoryIcon(@Nullable CategoryEntity category, @Nullable String type) {
-        if (category != null && category.getIconResId() != null && !category.getIconResId().trim().isEmpty()) {
-            int resolved = requireContext().getResources().getIdentifier(
-                    category.getIconResId(),
-                    "drawable",
-                    requireContext().getPackageName()
-            );
-            if (resolved != 0) {
-                return resolved;
-            }
-        }
-        if ("INCOME".equals(type)) {
-            return R.drawable.outline_attach_money_24;
-        }
-        if ("TRANSFER".equals(type)) {
-            return R.drawable.outline_payments_24;
-        }
-        return R.drawable.ic_category_spending;
-    }
-
-    private int resolveIcon(@Nullable String iconResId) {
-        if (iconResId == null || iconResId.trim().isEmpty()) {
-            return R.drawable.ic_category_spending;
-        }
-        int resolved = requireContext().getResources().getIdentifier(
-                iconResId,
-                "drawable",
-                requireContext().getPackageName()
+        return IconProvider.resolveCategoryIconByType(
+                requireContext(),
+                category != null ? category.getIconName() : null,
+                type
         );
-        return resolved != 0 ? resolved : R.drawable.ic_category_spending;
     }
 
-    @ColorInt
-    private int resolveAccentColor(@Nullable String type, @Nullable String colorHex) {
-        if (colorHex != null && !colorHex.trim().isEmpty()) {
-            try {
-                return Color.parseColor(colorHex);
-            } catch (IllegalArgumentException ignored) {
-                // fallback below
-            }
-        }
-        if ("INCOME".equals(type)) {
-            return ContextCompat.getColor(requireContext(), R.color.transfer_blue);
-        }
-        if ("TRANSFER".equals(type)) {
-            return ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary);
-        }
-        return ContextCompat.getColor(requireContext(), R.color.expense_red);
+    private int resolveIcon(@Nullable String iconName) {
+        return IconProvider.resolveCategoryIcon(requireContext(), iconName);
     }
+
 
     @NonNull
     private String formatShortDate(long timestamp) {

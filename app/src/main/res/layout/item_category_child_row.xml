@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/child_row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="6dp">
+
+    <FrameLayout
+        android:layout_width="20dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="8dp">
+
+        <View
+            android:id="@+id/view_child_vertical"
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:background="@color/transaction_border" />
+
+        <View
+            android:id="@+id/view_child_horizontal"
+            android:layout_width="12dp"
+            android:layout_height="2dp"
+            android:layout_gravity="center_vertical|end"
+            android:background="@color/transaction_border" />
+
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/iv_child_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="12dp"
+        android:background="@drawable/bg_circle_icon"
+        android:backgroundTint="@android:color/white"
+        android:padding="6dp"
+        android:src="@drawable/ic_category_other"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_child_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_child_wallets"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+</LinearLayout>
+

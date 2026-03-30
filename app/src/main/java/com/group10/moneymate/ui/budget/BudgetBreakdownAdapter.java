@@ -70,18 +70,14 @@ public class BudgetBreakdownAdapter extends ListAdapter<BudgetUIModel, BudgetBre
 
         void bind(@NonNull BudgetUIModel item, OnItemClickListener clickListener) {
             Context context = binding.getRoot().getContext();
-            int iconTint = BudgetUiUtils.parseColorOrDefault(
-                    item.getCategoryColorHex(),
-                    ContextCompat.getColor(context, R.color.budget_safe_green)
-            );
             binding.ivIcon.setImageResource(BudgetUiUtils.resolveCategoryIcon(
                     context,
                     item.getCategoryIcon(),
                     item.getCategoryName()
             ));
-            binding.ivIcon.setImageTintList(ColorStateList.valueOf(iconTint));
+            binding.ivIcon.setImageTintList(null);
             binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
-                    androidx.core.graphics.ColorUtils.setAlphaComponent(iconTint, 32)
+                    ContextCompat.getColor(context, android.R.color.white)
             ));
             binding.tvCategory.setText(item.getCategoryName());
             binding.tvWallet.setText(item.getWalletName());

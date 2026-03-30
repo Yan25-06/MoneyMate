@@ -45,7 +45,7 @@ public class WalletViewModel extends AndroidViewModel {
         return container.walletRepository.getById(walletId);
     }
 
-    public void addWallet(String name, WalletType type, double balance) {
+    public void addWallet(String name, WalletType type, double balance, @NonNull String iconName) {
         long now = System.currentTimeMillis();
         WalletEntity wallet = new WalletEntity();
         wallet.setId(UUID.randomUUID().toString());
@@ -53,7 +53,7 @@ public class WalletViewModel extends AndroidViewModel {
         wallet.setName(name);
         wallet.setType(type.name());
         wallet.setBalance(balance);
-        wallet.setColorHex("#4CAF50");
+        wallet.setIconName(iconName);
         wallet.setExcluded(false);
         wallet.setCreatedAt(now);
         wallet.setUpdatedAt(now);
@@ -62,10 +62,15 @@ public class WalletViewModel extends AndroidViewModel {
         container.walletRepository.insert(wallet);
     }
 
-    public void updateWallet(WalletEntity wallet, String name, WalletType type, double balance) {
+    public void updateWallet(WalletEntity wallet,
+                             String name,
+                             WalletType type,
+                             double balance,
+                             @NonNull String iconName) {
         wallet.setName(name);
         wallet.setType(type.name());
         wallet.setBalance(balance);
+        wallet.setIconName(iconName);
         wallet.setUpdatedAt(System.currentTimeMillis());
         wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
         container.walletRepository.update(wallet);
@@ -73,5 +78,9 @@ public class WalletViewModel extends AndroidViewModel {
 
     public void deleteWallet(WalletEntity wallet) {
         container.walletRepository.softDelete(wallet);
+    }
+
+    public void archiveWallet(WalletEntity wallet) {
+        container.walletRepository.archive(wallet);
     }
 }
