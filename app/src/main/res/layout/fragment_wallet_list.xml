@@ -1,106 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    android:background="@color/white"
+    >
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.Material3.ActionBar">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/top_app_bar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/white"
             android:title="@string/my_wallets"
-            android:titleTextColor="@color/budget_text_primary"
+            android:titleTextStyle="@style/TextAppearance.Material3.TitleLarge"
+            android:background="?attr/colorSurface"
+            android:titleTextColor="?attr/colorOnSurface"
             app:navigationContentDescription="@string/common_back"
-            app:navigationIcon="@drawable/outline_arrow_back_24"
-            app:navigationIconTint="@color/budget_text_primary" />
-
+            app:navigationIcon="@drawable/outline_arrow_back_24" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
         android:orientation="vertical"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:paddingTop="12dp">
 
-        <!-- Header tổng số dư — styled như Budget header chip -->
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/white"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="14dp">
-
-            <!-- Icon circle tổng -->
-            <FrameLayout
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:background="@drawable/bg_circle_icon"
-                android:backgroundTint="@color/budget_screen_divider">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="@string/wallet_total"
-                    android:src="@drawable/outline_attach_money_24"
-                    app:tint="@color/color_accent" />
-
-            </FrameLayout>
+            app:cardCornerRadius="0dp"
+            app:strokeWidth="0dp"
+            app:strokeColor="@android:color/transparent">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <ImageView
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:contentDescription="@string/wallet_total"
+                    android:src="@drawable/outline_attach_money_24" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/wallet_total"
-                    android:textColor="@color/budget_text_secondary"
-                    android:textSize="12sp" />
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
 
-                <TextView
-                    android:id="@+id/tvTotalWalletBalance"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/default_currency_zero"
-                    android:textColor="@color/budget_text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:text="@string/wallet_total" />
 
+                    <TextView
+                        android:id="@+id/tvTotalWalletBalance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="14sp"
+                        android:text="@string/default_currency_zero" />
+                </LinearLayout>
             </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Divider dưới header -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/budget_divider" />
+        </com.google.android.material.card.MaterialCardView>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_wallets"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:layout_marginTop="12dp"
             android:clipToPadding="false"
             android:paddingBottom="90dp" />
-
     </LinearLayout>
 
-    <!-- FAB green -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add"
         android:layout_width="wrap_content"
@@ -108,8 +91,6 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:contentDescription="@string/add_wallet"
-        android:src="@drawable/outline_add_24"
-        app:backgroundTint="@color/color_accent"
-        app:tint="@color/white" />
+        android:src="@drawable/outline_add_24" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

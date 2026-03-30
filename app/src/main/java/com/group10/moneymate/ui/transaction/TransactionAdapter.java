@@ -67,13 +67,13 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
                 // Dùng màu từ resources thay vì hard-code
                 binding.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.green_500));
 
-                binding.ivCategoryIcon.setImageResource(R.drawable.ic_salary);
+                binding.ivCategoryIcon.setImageResource(R.drawable.outline_attach_money_24);
 
             } else if ("EXPENSE".equals(type)) {
                 binding.tvAmount.setText(String.format("-%s", CurrencyFormatter.format(amount, "VND")));
                 binding.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.red_500));
 
-                binding.ivCategoryIcon.setImageResource(R.drawable.ic_bill);
+                binding.ivCategoryIcon.setImageResource(R.drawable.ic_spending);
 
             } else {
                 // TRANSFER

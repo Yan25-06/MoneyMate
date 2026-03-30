@@ -195,7 +195,7 @@ public final class BudgetUiUtils {
 
         String normalized = categoryName.toLowerCase(VIETNAM);
         if (normalized.contains("ăn") || normalized.contains("food")) {
-            return R.drawable.ic_bill;
+            return R.drawable.ic_spending;
         }
         if (normalized.contains("nhà")
                 || normalized.contains("rent")

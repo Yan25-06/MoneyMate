@@ -44,13 +44,8 @@ public class BudgetRepository {
     }
 
     public void addBudget(BudgetEntity budget, @Nullable WriteCallback callback) {
-        // userId null = bug ở caller
-        if (budget.getUserId() == null || budget.getUserId().trim().isEmpty()) {
-            notifyError(callback, new IllegalArgumentException("Budget userId is null"));
-            return;
-        }
         long now = System.currentTimeMillis();
-        if (budget.getId().trim().isEmpty()) {
+        if (budget.getId() == null || budget.getId().trim().isEmpty()) {
             budget.setId(UUID.randomUUID().toString());
         }
         if (budget.getCreatedAt() <= 0L) {
