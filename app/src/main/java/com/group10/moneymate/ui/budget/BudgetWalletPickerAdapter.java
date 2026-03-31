@@ -22,6 +22,7 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
 
     public interface Listener {
         void onSelect(@NonNull WalletEntity wallet);
+
         void onEdit(@NonNull WalletEntity wallet);
     }
 
@@ -69,16 +70,13 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
             binding.tvWalletBalance.setText(CurrencyFormatter.format(item.getCurrentBalance(), "VND"));
             binding.tvWalletBalance.setTextColor(ContextCompat.getColor(
                     context,
-                    resolveBalanceTextColor(archived, item.getCurrentBalance())
-            ));
+                    resolveBalanceTextColor(archived, item.getCurrentBalance())));
             binding.tvWalletArchivedNote.setVisibility(archived ? android.view.View.VISIBLE : android.view.View.GONE);
             binding.tvWalletArchivedNote.setText(R.string.wallet_picker_archived_note);
             binding.ivWalletIcon.setImageResource(IconProvider.resolveWalletIcon(
                     context,
                     wallet.getIconName(),
-                    wallet.getType()
-            ));
-            binding.ivWalletIcon.setImageTintList(null);
+                    wallet.getType()));
             boolean isSelected = wallet.getId().equals(selectedWalletId);
             binding.vSelectedDot.setVisibility(isSelected && !archived
                     ? android.view.View.VISIBLE
@@ -88,14 +86,11 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
             binding.ivWalletIcon.setAlpha(archived ? 0.55f : 1f);
             binding.tvWalletName.setTextColor(ContextCompat.getColor(
                     context,
-                    archived ? R.color.statistics_text_muted : android.R.color.black
-            ));
+                    archived ? R.color.statistics_text_muted : android.R.color.black));
             binding.btnEditWallet.setImageTintList(android.content.res.ColorStateList.valueOf(
                     ContextCompat.getColor(
                             context,
-                            resolveEditTint(isSelected)
-                    )
-            ));
+                            resolveEditTint(isSelected))));
             binding.getRoot().setOnClickListener(v -> {
                 if (!archived && listener != null) {
                     listener.onSelect(wallet);
@@ -124,20 +119,19 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
         }
     }
 
-    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<WalletWithBalance>() {
-                @Override
-                public boolean areItemsTheSame(@NonNull WalletWithBalance oldItem,
-                                               @NonNull WalletWithBalance newItem) {
-                    return Objects.equals(oldItem.getWallet().getId(), newItem.getWallet().getId());
-                }
+    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK = new DiffUtil.ItemCallback<WalletWithBalance>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull WalletWithBalance oldItem,
+                @NonNull WalletWithBalance newItem) {
+            return Objects.equals(oldItem.getWallet().getId(), newItem.getWallet().getId());
+        }
 
-                @Override
-                public boolean areContentsTheSame(@NonNull WalletWithBalance oldItem,
-                                                  @NonNull WalletWithBalance newItem) {
-                    return Objects.equals(oldItem.getWallet().getName(), newItem.getWallet().getName())
-                            && Objects.equals(oldItem.getWallet().getType(), newItem.getWallet().getType())
-                            && oldItem.getCurrentBalance() == newItem.getCurrentBalance();
-                }
-            };
+        @Override
+        public boolean areContentsTheSame(@NonNull WalletWithBalance oldItem,
+                @NonNull WalletWithBalance newItem) {
+            return Objects.equals(oldItem.getWallet().getName(), newItem.getWallet().getName())
+                    && Objects.equals(oldItem.getWallet().getType(), newItem.getWallet().getType())
+                    && oldItem.getCurrentBalance() == newItem.getCurrentBalance();
+        }
+    };
 }

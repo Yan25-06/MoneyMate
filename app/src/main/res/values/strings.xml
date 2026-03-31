@@ -66,7 +66,7 @@
     <string name="home_top_spending">Chi tiêu nhiều nhất</string>
     <string name="home_report_subtitle_month">Tổng chi tháng này</string>
     <string name="home_report_subtitle_week">Tổng chi tuần này</string>
-    <string name="home_report_no_change">0%%</string>
+    <string name="home_report_no_change">0%</string>
     <string name="home_previous_month_label">Tháng trước</string>
     <string name="home_current_month_label">Tháng này</string>
     <string name="home_previous_week_label">Tuần trước</string>

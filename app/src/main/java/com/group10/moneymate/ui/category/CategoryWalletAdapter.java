@@ -24,8 +24,7 @@ public class CategoryWalletAdapter extends ListAdapter<WalletEntity, CategoryWal
         ItemCategoryWalletBinding binding = ItemCategoryWalletBinding.inflate(
                 LayoutInflater.from(parent.getContext()),
                 parent,
-                false
-        );
+                false);
         return new ViewHolder(binding);
     }
 
@@ -47,23 +46,20 @@ public class CategoryWalletAdapter extends ListAdapter<WalletEntity, CategoryWal
             int iconRes = IconProvider.resolveWalletIcon(
                     binding.getRoot().getContext(),
                     wallet.getIconName(),
-                    wallet.getType()
-            );
+                    wallet.getType());
             binding.ivWalletIcon.setImageResource(iconRes);
         }
     }
 
-    private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<WalletEntity>() {
-                @Override
-                public boolean areItemsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
-                    return oldItem.getId().equals(newItem.getId());
-                }
+    private static final DiffUtil.ItemCallback<WalletEntity> DIFF_CALLBACK = new DiffUtil.ItemCallback<WalletEntity>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
+            return oldItem.getId().equals(newItem.getId());
+        }
 
-                @Override
-                public boolean areContentsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
-                    return oldItem.getUpdatedAt() == newItem.getUpdatedAt();
-                }
-            };
+        @Override
+        public boolean areContentsTheSame(@NonNull WalletEntity oldItem, @NonNull WalletEntity newItem) {
+            return oldItem.getUpdatedAt() == newItem.getUpdatedAt();
+        }
+    };
 }
-

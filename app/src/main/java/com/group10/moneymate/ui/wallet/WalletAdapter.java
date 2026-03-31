@@ -25,8 +25,11 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
 
     public interface WalletItemListener {
         void onEdit(WalletEntity wallet);
+
         void onArchive(WalletEntity wallet);
+
         void onRestore(WalletEntity wallet);
+
         void onDelete(WalletEntity wallet);
     }
 
@@ -72,19 +75,17 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
             binding.ivIcon.setImageResource(IconProvider.resolveWalletIcon(
                     context,
                     wallet.getIconName(),
-                    wallet.getType()
-            ));
+                    wallet.getType()));
             applyArchivedStyle(context, archived, item.getCurrentBalance());
             binding.btnMenu.setOnClickListener(v -> showPopupMenu(v, wallet));
         }
 
         private void applyArchivedStyle(@NonNull android.content.Context context,
-                                        boolean archived,
-                                        double currentBalance) {
+                boolean archived,
+                double currentBalance) {
             int primaryTextColor = ContextCompat.getColor(
                     context,
-                    archived ? R.color.statistics_text_muted : R.color.statistics_text_primary
-            );
+                    archived ? R.color.statistics_text_muted : R.color.statistics_text_primary);
             int secondaryTextColor = ContextCompat.getColor(context, R.color.statistics_text_secondary);
             int mutedColor = ContextCompat.getColor(context, R.color.statistics_text_muted);
             int balanceColor = currentBalance < 0
@@ -97,11 +98,8 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
             binding.tvArchivedBadge.setVisibility(archived ? View.VISIBLE : View.GONE);
             binding.cvIcon.setCardBackgroundColor(ContextCompat.getColor(
                     context,
-                    archived ? R.color.statistics_card_inner_bg : android.R.color.white
-            ));
-            binding.ivIcon.setImageTintList(archived
-                    ? android.content.res.ColorStateList.valueOf(mutedColor)
-                    : null);
+                    archived ? R.color.statistics_card_inner_bg : android.R.color.white));
+
             binding.ivIcon.setAlpha(archived ? 0.72f : 1f);
             binding.getRoot().setAlpha(archived ? 0.78f : 1f);
         }
@@ -154,27 +152,26 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
         }
     }
 
-    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<WalletWithBalance>() {
-                @Override
-                public boolean areItemsTheSame(@NonNull WalletWithBalance oldItem,
-                                               @NonNull WalletWithBalance newItem) {
-                    return oldItem.getWallet().getId().equals(newItem.getWallet().getId());
-                }
+    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK = new DiffUtil.ItemCallback<WalletWithBalance>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull WalletWithBalance oldItem,
+                @NonNull WalletWithBalance newItem) {
+            return oldItem.getWallet().getId().equals(newItem.getWallet().getId());
+        }
 
-                @Override
-                public boolean areContentsTheSame(@NonNull WalletWithBalance oldItem,
-                                                  @NonNull WalletWithBalance newItem) {
-                    WalletEntity oldWallet = oldItem.getWallet();
-                    WalletEntity newWallet = newItem.getWallet();
-                    return oldItem.getCurrentBalance() == newItem.getCurrentBalance()
-                            && oldWallet.isDeleted() == newWallet.isDeleted()
-                            && oldWallet.isArchived() == newWallet.isArchived()
-                            && oldWallet.isExcluded() == newWallet.isExcluded()
-                            && oldWallet.getSyncStatus() == newWallet.getSyncStatus()
-                            && Objects.equals(oldWallet.getName(), newWallet.getName())
-                            && Objects.equals(oldWallet.getType(), newWallet.getType())
-                            && Objects.equals(oldWallet.getIconName(), newWallet.getIconName());
-                }
-            };
+        @Override
+        public boolean areContentsTheSame(@NonNull WalletWithBalance oldItem,
+                @NonNull WalletWithBalance newItem) {
+            WalletEntity oldWallet = oldItem.getWallet();
+            WalletEntity newWallet = newItem.getWallet();
+            return oldItem.getCurrentBalance() == newItem.getCurrentBalance()
+                    && oldWallet.isDeleted() == newWallet.isDeleted()
+                    && oldWallet.isArchived() == newWallet.isArchived()
+                    && oldWallet.isExcluded() == newWallet.isExcluded()
+                    && oldWallet.getSyncStatus() == newWallet.getSyncStatus()
+                    && Objects.equals(oldWallet.getName(), newWallet.getName())
+                    && Objects.equals(oldWallet.getType(), newWallet.getType())
+                    && Objects.equals(oldWallet.getIconName(), newWallet.getIconName());
+        }
+    };
 }

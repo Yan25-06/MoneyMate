@@ -32,7 +32,6 @@
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:contentDescription="@string/wallet"
-            app:tint="@color/statistics_wallet_icon"
             tools:src="@drawable/outline_account_balance_wallet_24" />
 
     </com.google.android.material.card.MaterialCardView>

@@ -109,7 +109,7 @@
                     android:layout_height="12dp"
                     android:contentDescription="@string/date"
                     android:src="@drawable/outline_calendar_today_24"
-                    android:tint="@color/budget_text_secondary" />
+                    app:tint="@color/budget_text_secondary" />
 
                 <TextView
                     android:id="@+id/tv_period"
