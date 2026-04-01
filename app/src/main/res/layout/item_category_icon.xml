@@ -22,7 +22,7 @@
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:contentDescription="@null"
-            android:src="@drawable/ic_other" />
+            android:src="@drawable/ic_category_other" />
 
         <TextView
             android:id="@+id/tv_icon_option_name"

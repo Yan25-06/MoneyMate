@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.utils.IconProvider;
 
 import java.text.NumberFormat;
 import java.util.Calendar;
@@ -186,8 +187,7 @@ public final class BudgetUiUtils {
             return R.drawable.ic_category_other;
         }
         if (!iconName.trim().isEmpty()) {
-            int resId = context.getResources()
-                    .getIdentifier(iconName, "drawable", context.getPackageName());
+            int resId = IconProvider.resolveCategoryIcon(context, iconName);
             if (resId != 0) {
                 return resId;
             }
@@ -195,7 +195,7 @@ public final class BudgetUiUtils {
 
         String normalized = categoryName.toLowerCase(VIETNAM);
         if (normalized.contains("ăn") || normalized.contains("food")) {
-            return R.drawable.ic_spending;
+            return R.drawable.ic_category_spending;
         }
         if (normalized.contains("nhà")
                 || normalized.contains("rent")

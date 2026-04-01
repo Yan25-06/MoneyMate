@@ -80,6 +80,22 @@
                     android:textSize="12sp"
                     tools:text="Ví gia đình" />
 
+                <TextView
+                    android:id="@+id/tv_wallet_archived_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_wallet_archived_badge"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/budget_wallet_archived_short"
+                    android:textColor="@color/statistics_text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
                 <View
                     android:layout_width="4dp"
                     android:layout_height="4dp"
@@ -93,7 +109,7 @@
                     android:layout_height="12dp"
                     android:contentDescription="@string/date"
                     android:src="@drawable/outline_calendar_today_24"
-                    android:tint="@color/budget_text_secondary" />
+                    app:tint="@color/budget_text_secondary" />
 
                 <TextView
                     android:id="@+id/tv_period"

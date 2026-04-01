@@ -25,4 +25,8 @@
 
     <!-- Chart -->
     <dimen name="chart_height">300dp</dimen>
+    <dimen name="transaction_category_root_indent">16dp</dimen>
+    <dimen name="transaction_category_child_indent">36dp</dimen>
+    <dimen name="category_root_indent">12dp</dimen>
+    <dimen name="category_child_indent">28dp</dimen>
 </resources>

@@ -11,6 +11,7 @@ import androidx.lifecycle.Transformations;
 
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
@@ -22,6 +23,7 @@ import java.util.List;
 public class TransactionViewModel extends AndroidViewModel {
 
     private final TransactionRepository transactionRepository;
+    private final CategoryRepository categoryRepository;
     private final String userId;
 
     // ─── Transactions list ────────────────────────────────────────────────────
@@ -39,8 +41,12 @@ public class TransactionViewModel extends AndroidViewModel {
 
     // ─── Wallets & Categories (cho picker) ───────────────────────────────────
     private final LiveData<List<WalletEntity>> wallets;
+    private final LiveData<List<WalletWithBalance>> walletsWithBalance;
+    private final LiveData<List<WalletEntity>> activeWallets;
     private final LiveData<List<CategoryEntity>> expenseCategories;
     private final LiveData<List<CategoryEntity>> incomeCategories;
+    private final LiveData<List<CategoryEntity>> expenseCategoriesIncludingDeleted;
+    private final LiveData<List<CategoryEntity>> incomeCategoriesIncludingDeleted;
 
     // ─── Giao dịch đang edit ─────────────────────────────────────────────────
     private final MutableLiveData<TransactionEntity> selectedTransaction = new MutableLiveData<>();
@@ -50,7 +56,7 @@ public class TransactionViewModel extends AndroidViewModel {
         MoneyMateApplication app = (MoneyMateApplication) application;
         transactionRepository = app.getAppContainer().transactionRepository;
         WalletRepository walletRepository = app.getAppContainer().walletRepository;
-        CategoryRepository categoryRepository = app.getAppContainer().categoryRepository;
+        categoryRepository = app.getAppContainer().categoryRepository;
 
         userId = app.getAppContainer().authRepository.getCurrentUserId();
 
@@ -74,8 +80,14 @@ public class TransactionViewModel extends AndroidViewModel {
         });
 
         wallets = walletRepository.getAllByUser(userId);
+        walletsWithBalance = walletRepository.getAllByUserWithBalance(userId);
+        activeWallets = walletRepository.getActiveByUser(userId);
         expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
         incomeCategories  = categoryRepository.getCategoriesByType(userId, "INCOME");
+        expenseCategoriesIncludingDeleted =
+                categoryRepository.getCategoriesByTypeIncludingDeleted(userId, "EXPENSE");
+        incomeCategoriesIncludingDeleted =
+                categoryRepository.getCategoriesByTypeIncludingDeleted(userId, "INCOME");
     }
 
     // ─── Expose LiveData ──────────────────────────────────────────────────────
@@ -96,12 +108,36 @@ public class TransactionViewModel extends AndroidViewModel {
         return wallets;
     }
 
+    public LiveData<List<WalletWithBalance>> getWalletsWithBalance() {
+        return walletsWithBalance;
+    }
+
+    public LiveData<List<WalletEntity>> getActiveWallets() {
+        return activeWallets;
+    }
+
     public LiveData<List<CategoryEntity>> getExpenseCategories() {
         return expenseCategories;
     }
 
     public LiveData<List<CategoryEntity>> getIncomeCategories() {
         return incomeCategories;
+    }
+
+    public LiveData<List<CategoryEntity>> getExpenseCategoriesIncludingDeleted() {
+        return expenseCategoriesIncludingDeleted;
+    }
+
+    public LiveData<List<CategoryEntity>> getIncomeCategoriesIncludingDeleted() {
+        return incomeCategoriesIncludingDeleted;
+    }
+
+    public LiveData<CategoryEntity> getCategoryById(String id) {
+        return categoryRepository.getCategoryById(id);
+    }
+
+    public LiveData<CategoryEntity> getCategoryByIdIncludingDeleted(String id) {
+        return categoryRepository.getCategoryByIdIncludingDeleted(id);
     }
 
     public LiveData<TransactionEntity> getSelectedTransaction() {

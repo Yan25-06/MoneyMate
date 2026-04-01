@@ -21,6 +21,7 @@ import com.group10.moneymate.data.local.entity.EventEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.UserEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.local.migrations.Migration7To8;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,7 +36,7 @@ import java.util.concurrent.Executors;
         DebtEntity.class,
         EventEntity.class
     },
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters({Converters.class})
@@ -61,7 +62,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             AppDatabase.class,
                             "moneymate_database"
                     )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(Migration7To8.MIGRATION_7_8)
                     .build();
                 }
             }

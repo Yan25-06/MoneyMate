@@ -50,6 +50,7 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView
+                android:id="@+id/ivWalletFilterIcon"
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:contentDescription="@string/budget_wallet_picker_title"

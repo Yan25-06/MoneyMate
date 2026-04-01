@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/statistics_header_background"
+    android:orientation="vertical"
+    android:paddingStart="14dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="6dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="40dp">
+
+        <ImageButton
+            android:id="@+id/btnHeaderBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_statistics_header_icon_button"
+            android:contentDescription="@string/common_back"
+            android:padding="8dp"
+            android:src="@drawable/outline_arrow_back_24"
+            android:tint="@color/statistics_text_primary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvHeaderTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textColor="@color/statistics_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnDateFilter"
+            app:layout_constraintStart_toEndOf="@id/btnHeaderBack"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Chi tiết khoản chi" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWalletSelector"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:insetBottom="0dp"
+            android:insetTop="0dp"
+            android:maxWidth="220dp"
+            android:maxLines="1"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="10dp"
+            android:text="@string/statistics_wallet_selector_all"
+            android:textAllCaps="false"
+            android:textColor="@color/statistics_text_primary"
+            android:textSize="15sp"
+            app:backgroundTint="@color/statistics_chip_background"
+            app:cornerRadius="22dp"
+            app:icon="@drawable/outline_account_balance_wallet_24"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconTint="@color/statistics_wallet_icon"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:rippleColor="@color/statistics_chip_ripple"
+            tools:text="Tổng cộng" />
+
+        <ImageButton
+            android:id="@+id/btnDateFilter"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_statistics_header_icon_button"
+            android:contentDescription="@string/date"
+            android:padding="8dp"
+            android:src="@drawable/outline_calendar_today_24"
+            android:tint="@color/statistics_text_primary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnHeaderSecondarySelector"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:insetBottom="0dp"
+        android:insetTop="0dp"
+        android:maxWidth="220dp"
+        android:maxLines="1"
+        android:minWidth="0dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="10dp"
+        android:text="@string/statistics_group_selector_title"
+        android:textAllCaps="false"
+        android:textColor="@color/statistics_text_primary"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:backgroundTint="@color/statistics_chip_background"
+        app:cornerRadius="18dp"
+        app:icon="@drawable/outline_account_tree_24"
+        app:iconGravity="textStart"
+        app:iconPadding="8dp"
+        app:iconTint="@color/statistics_text_primary"
+        app:rippleColor="@color/statistics_chip_ripple" />
+
+    <LinearLayout
+        android:id="@+id/layoutHeaderSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvHeaderSummaryLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/total_balance"
+            android:textColor="@color/statistics_text_muted"
+            android:textSize="13sp"
+            android:textStyle="normal"
+            tools:text="Số dư" />
+
+        <TextView
+            android:id="@+id/tvHeaderTotalAmount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/default_currency_zero"
+            android:textColor="@color/statistics_text_primary"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            tools:text="8,917,000 đ" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutPeriodNavigator"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/btnPreviousPeriod"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_statistics_header_icon_button"
+            android:contentDescription="@string/statistics_previous_period"
+            android:padding="8dp"
+            android:src="@drawable/outline_arrow_back_24"
+            android:tint="@color/statistics_text_primary" />
+
+        <HorizontalScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:overScrollMode="never"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/layoutPeriodTabs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvPeriodPrevious"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_statistics_period_nav_item"
+                    android:paddingStart="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/statistics_period_previous"
+                    android:textColor="@color/statistics_text_muted"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="12/2025" />
+
+                <TextView
+                    android:id="@+id/tvPeriodCurrent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_statistics_period_nav_item_selected"
+                    android:paddingStart="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/statistics_period_current"
+                    android:textColor="@color/statistics_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="THÁNG NÀY" />
+
+                <TextView
+                    android:id="@+id/tvPeriodNext"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_statistics_period_nav_item"
+                    android:paddingStart="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/statistics_period_next"
+                    android:textColor="@color/statistics_text_muted"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="THÁNG TRƯỚC" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <ImageButton
+            android:id="@+id/btnNextPeriod"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_statistics_header_icon_button"
+            android:contentDescription="@string/statistics_next_period"
+            android:padding="8dp"
+            android:rotation="180"
+            android:src="@drawable/outline_arrow_back_24"
+            android:tint="@color/statistics_text_primary" />
+    </LinearLayout>
+
+</LinearLayout>

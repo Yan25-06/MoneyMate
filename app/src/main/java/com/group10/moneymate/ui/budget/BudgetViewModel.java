@@ -180,8 +180,8 @@ public class BudgetViewModel extends ViewModel {
                     resolveCategoryName(budgetHolder[0], categoryHolder[0]),
                     resolveCategoryIcon(budgetHolder[0], categoryHolder[0]),
                     spentHolder[0],
-                    resolveCategoryColor(budgetHolder[0], categoryHolder[0]),
                     resolveWalletName(budgetHolder[0], walletHolder[0]),
+                    walletHolder[0] != null && walletHolder[0].isArchived(),
                     BudgetUiUtils.isActiveToday(budgetHolder[0])
             ));
         };
@@ -429,9 +429,22 @@ public class BudgetViewModel extends ViewModel {
     }
 
     private void sortBudgetItems(@NonNull List<BudgetUIModel> items) {
-        Collections.sort(items, Comparator
-                .comparingDouble(BudgetUIModel::getPercent).reversed()
-                .thenComparing(item -> item.getBudgetEntity().getEndDate()));
+        Collections.sort(items, (left, right) -> {
+            boolean leftOther = isOtherCategoryBudget(left);
+            boolean rightOther = isOtherCategoryBudget(right);
+            if (leftOther != rightOther) {
+                return leftOther ? 1 : -1;
+            }
+            int percentCompare = Double.compare(right.getPercent(), left.getPercent());
+            if (percentCompare != 0) {
+                return percentCompare;
+            }
+            return Long.compare(left.getBudgetEntity().getEndDate(), right.getBudgetEntity().getEndDate());
+        });
+    }
+
+    private boolean isOtherCategoryBudget(@NonNull BudgetUIModel item) {
+        return Constants.isOtherCategoryId(item.getBudgetEntity().getCategoryId());
     }
 
     @NonNull
@@ -461,16 +474,10 @@ public class BudgetViewModel extends ViewModel {
         if (Constants.isOtherCategoryId(budgetEntity.getCategoryId())) {
             return "ic_category_other";
         }
-        return categoryEntity != null ? categoryEntity.getIconResId() : "";
-    }
-
-    @NonNull
-    private String resolveCategoryColor(@NonNull BudgetEntity budgetEntity,
-                                        @Nullable CategoryEntity categoryEntity) {
-        if (Constants.isOtherCategoryId(budgetEntity.getCategoryId())) {
-            return "#64748B";
+        if (categoryEntity == null || categoryEntity.getIconName() == null) {
+            return "";
         }
-        return categoryEntity != null ? categoryEntity.getColorHex() : "#4CAF50";
+        return categoryEntity.getIconName();
     }
 
     private boolean isWithinMonth(@NonNull LocalDate date,
@@ -495,8 +502,8 @@ public class BudgetViewModel extends ViewModel {
                 resolveCategoryName(budgetEntity, categoryEntity),
                 resolveCategoryIcon(budgetEntity, categoryEntity),
                 spentAmount,
-                resolveCategoryColor(budgetEntity, categoryEntity),
                 resolveWalletName(budgetEntity, walletEntity),
+                walletEntity != null && walletEntity.isArchived(),
                 BudgetUiUtils.isActiveToday(budgetEntity)
         );
     }

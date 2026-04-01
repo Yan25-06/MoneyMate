@@ -182,11 +182,13 @@ public class BudgetListFragment extends Fragment {
                         selectedWalletId = walletId;
                         viewModel.setSelectedWalletFilter(walletId);
                         updateWalletFilterLabel();
+                        updateWalletFilterIcon();
                     });
             savedStateHandle.getLiveData(RESULT_SELECTED_WALLET_LABEL, getString(R.string.budget_wallet_scope_total))
                     .observe(getViewLifecycleOwner(), label -> {
                         selectedWalletLabel = label != null ? label : getString(R.string.budget_wallet_scope_total);
                         updateWalletFilterLabel();
+                        updateWalletFilterIcon();
                     });
         }
     }
@@ -226,6 +228,7 @@ public class BudgetListFragment extends Fragment {
             wallets = walletEntities != null ? walletEntities : new ArrayList<>();
             hasWallets = !wallets.isEmpty();
             updateWalletFilterLabel();
+            updateWalletFilterIcon();
             renderSections();
         });
         viewModel.getSelectedTabLiveData().observe(getViewLifecycleOwner(), this::selectTab);
@@ -242,6 +245,7 @@ public class BudgetListFragment extends Fragment {
 
         selectedWalletLabel = getString(R.string.budget_wallet_scope_total);
         updateWalletFilterLabel();
+        updateWalletFilterIcon();
     }
 
     private void selectTab(@Nullable BudgetViewModel.BudgetTab budgetTab) {
@@ -454,56 +458,43 @@ public class BudgetListFragment extends Fragment {
     }
 
     private void updateWalletFilterLabel() {
-        String rawLabel = selectedWalletId == null
-                ? getString(R.string.budget_wallet_scope_total)
-                : resolveWalletName(selectedWalletId);
-        selectedWalletLabel = rawLabel;
-        if (binding != null) {
-            binding.tvWalletFilterLabel.setText(compactWalletLabel(rawLabel));
+        if (binding == null) {
+            return;
         }
-    }
-
-    @NonNull
-    private String resolveWalletName(@NonNull String walletId) {
+        if (selectedWalletId == null) {
+            binding.tvWalletFilterLabel.setText(getString(R.string.budget_wallet_scope_total));
+            return;
+        }
         for (WalletEntity wallet : wallets) {
-            if (walletId.equals(wallet.getId())) {
-                return wallet.getName();
+            if (selectedWalletId.equals(wallet.getId())) {
+                binding.tvWalletFilterLabel.setText(wallet.getName());
+                return;
             }
         }
-        return getString(R.string.budget_unknown_wallet);
+        binding.tvWalletFilterLabel.setText(selectedWalletLabel);
     }
 
-    @NonNull
-    private String compactWalletLabel(@NonNull String label) {
-        String normalized = label.trim().replaceAll("\\s+", " ");
-        if (normalized.isEmpty() || normalized.length() <= 16) {
-            return normalized;
+    private void updateWalletFilterIcon() {
+        if (binding == null) {
+            return;
         }
-        String[] tokens = normalized.split(" ");
-        int startIndex = 0;
-        if (tokens.length > 1 && isGenericWalletWord(tokens[0])) {
-            startIndex = 1;
+        if (selectedWalletId == null) {
+            binding.ivWalletFilterIcon.setVisibility(View.GONE);
+            return;
         }
-        String primary = capitalizeFirst(tokens[startIndex]);
-        if (startIndex + 1 < tokens.length) {
-            String combined = primary + " " + tokens[startIndex + 1];
-            if (combined.length() <= 14) {
-                return combined + "…";
+        for (WalletEntity wallet : wallets) {
+            if (selectedWalletId.equals(wallet.getId())) {
+                int iconRes = com.group10.moneymate.utils.IconProvider.resolveWalletIcon(
+                        requireContext(),
+                        wallet.getIconName(),
+                        wallet.getType()
+                );
+                binding.ivWalletFilterIcon.setImageResource(iconRes);
+                binding.ivWalletFilterIcon.setVisibility(View.VISIBLE);
+                return;
             }
         }
-        return primary + "…";
-    }
-
-    private boolean isGenericWalletWord(@NonNull String token) {
-        return "ví".equalsIgnoreCase(token) || "wallet".equalsIgnoreCase(token);
-    }
-
-    @NonNull
-    private String capitalizeFirst(@NonNull String value) {
-        if (value.isEmpty()) {
-            return value;
-        }
-        return value.substring(0, 1).toUpperCase() + value.substring(1);
+        binding.ivWalletFilterIcon.setVisibility(View.GONE);
     }
 
     @Override

@@ -1,13 +1,15 @@
 package com.group10.moneymate.data.repository;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.TransactionDao;
-import com.group10.moneymate.data.local.dao.WalletDao;
+import com.group10.moneymate.data.local.dto.CategorySumDTO;
+import com.group10.moneymate.data.local.dto.DailyTrendDTO;
+import com.group10.moneymate.data.local.dto.NetIncomeDTO;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
-import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
 
@@ -16,16 +18,13 @@ import java.util.List;
 /**
  * Repository for transaction data.
  * Mọi write operation chạy trên {@link AppDatabase#databaseWriteExecutor}.
- * Tự động cập nhật số dư ví khi insert / update / softDelete.
  */
 public class TransactionRepository {
 
     private final TransactionDao transactionDao;
-    private final WalletDao walletDao;
 
-    public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
+    public TransactionRepository(TransactionDao transactionDao) {
         this.transactionDao = transactionDao;
-        this.walletDao = walletDao;
     }
 
     // ─── Read ─────────────────────────────────────────────────────────────────
@@ -94,6 +93,177 @@ public class TransactionRepository {
         return transactionDao.getTotalExpense(userId, startDate, endDate);
     }
 
+    public LiveData<Double> getTotalIncomeFiltered(String userId,
+                                                   long startDate,
+                                                   long endDate,
+                                                   @Nullable String walletId) {
+        return transactionDao.getTotalIncomeFiltered(userId, startDate, endDate, walletId);
+    }
+
+    public LiveData<Double> getTotalExpenseFiltered(String userId,
+                                                    long startDate,
+                                                    long endDate,
+                                                    @Nullable String walletId) {
+        return transactionDao.getTotalExpenseFiltered(userId, startDate, endDate, walletId);
+    }
+
+    public LiveData<Double> getTotalAmountByCategoryFiltered(String userId,
+                                                             String type,
+                                                             String categoryId,
+                                                             long startDate,
+                                                             long endDate,
+                                                             @Nullable String walletId) {
+        return transactionDao.getTotalAmountByCategoryFiltered(
+                userId,
+                type,
+                categoryId,
+                startDate,
+                endDate,
+                walletId
+        );
+    }
+
+    public LiveData<NetIncomeDTO> getNetIncomeSummary(String userId,
+                                                      long startDate,
+                                                      long endDate,
+                                                      @Nullable String walletId,
+                                                      String periodLabel) {
+        return transactionDao.getNetIncomeSummary(userId, startDate, endDate, walletId, periodLabel);
+    }
+
+    public LiveData<List<NetIncomeDTO>> getNetIncomeTrend(String userId,
+                                                          long startDate,
+                                                          long endDate,
+                                                          @Nullable String walletId,
+                                                          String periodFormat) {
+        return transactionDao.getNetIncomeTrend(userId, startDate, endDate, walletId, periodFormat);
+    }
+
+    public LiveData<List<CategorySumDTO>> getCategorySums(String userId,
+                                                          String type,
+                                                          long startDate,
+                                                          long endDate,
+                                                          @Nullable String walletId) {
+        return transactionDao.getCategorySums(userId, type, startDate, endDate, walletId);
+    }
+
+    public LiveData<List<CategorySumDTO>> getRootCategorySums(String userId,
+                                                              String type,
+                                                              long startDate,
+                                                              long endDate,
+                                                              @Nullable String walletId) {
+        return transactionDao.getRootCategorySums(userId, type, startDate, endDate, walletId);
+    }
+
+    public LiveData<List<CategorySumDTO>> getChildCategorySums(String userId,
+                                                               String type,
+                                                               long startDate,
+                                                               long endDate,
+                                                               @Nullable String walletId,
+                                                               @NonNull String parentCategoryId) {
+        return transactionDao.getChildCategorySums(
+                userId,
+                type,
+                startDate,
+                endDate,
+                walletId,
+                parentCategoryId
+        );
+    }
+
+    public LiveData<List<CategorySumDTO>> getCategoryBranchSums(String userId,
+                                                                String type,
+                                                                long startDate,
+                                                                long endDate,
+                                                                @Nullable String walletId,
+                                                                @NonNull String parentCategoryId) {
+        return transactionDao.getCategoryBranchSums(
+                userId,
+                type,
+                startDate,
+                endDate,
+                walletId,
+                parentCategoryId
+        );
+    }
+
+    public LiveData<Double> getParentCategoryBranchTotalAmount(String userId,
+                                                               String type,
+                                                               @NonNull String parentCategoryId,
+                                                               long startDate,
+                                                               long endDate,
+                                                               @Nullable String walletId) {
+        return transactionDao.getParentCategoryBranchTotalAmount(
+                userId,
+                type,
+                parentCategoryId,
+                startDate,
+                endDate,
+                walletId
+        );
+    }
+
+    public LiveData<List<TransactionEntity>> getTransactionsForStatisticsDrillDown(String userId,
+                                                                                   String type,
+                                                                                   long startDate,
+                                                                                   long endDate,
+                                                                                   @Nullable String walletId,
+                                                                                   @NonNull String categoryId) {
+        return transactionDao.getTransactionsForStatisticsDrillDown(
+                userId,
+                type,
+                startDate,
+                endDate,
+                walletId,
+                categoryId
+        );
+    }
+
+    public LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
+                                                        String type,
+                                                        long startDate,
+                                                        long endDate,
+                                                        @Nullable String walletId,
+                                                        String periodFormat) {
+        return transactionDao.getAmountTrend(userId, type, startDate, endDate, walletId, periodFormat);
+    }
+
+    public LiveData<List<DailyTrendDTO>> getCategoryAmountTrend(String userId,
+                                                                String type,
+                                                                String categoryId,
+                                                                long startDate,
+                                                                long endDate,
+                                                                @Nullable String walletId,
+                                                                String periodFormat) {
+        return transactionDao.getCategoryAmountTrend(
+                userId,
+                type,
+                categoryId,
+                startDate,
+                endDate,
+                walletId,
+                periodFormat
+        );
+    }
+
+    public LiveData<List<DailyTrendDTO>> getParentCategoryBranchAmountTrend(String userId,
+                                                                            String type,
+                                                                            @NonNull String parentCategoryId,
+                                                                            long startDate,
+                                                                            long endDate,
+                                                                            @Nullable String walletId,
+                                                                            String periodFormat) {
+        return transactionDao.getParentCategoryBranchAmountTrend(
+                userId,
+                type,
+                parentCategoryId,
+                startDate,
+                endDate,
+                walletId,
+                periodFormat
+        );
+    }
+
     public LiveData<Double> getTotalExpenseByCategory(String userId,
                                                       @Nullable String categoryId,
                                                       @Nullable String walletId,
@@ -114,88 +284,25 @@ public class TransactionRepository {
 
     // ─── Write ────────────────────────────────────────────────────────────────
 
-    /**
-     * Thêm giao dịch mới và cập nhật số dư ví tương ứng.
-     */
     public void insertTransaction(TransactionEntity transaction) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
             transaction.setUpdatedAt(System.currentTimeMillis());
             transactionDao.insertTransaction(transaction);
-            applyBalanceChange(transaction, false);
         });
     }
 
-    /**
-     * Cập nhật giao dịch: hoàn tác số dư cũ, áp dụng số dư mới.
-     *
-     * @param oldTransaction bản ghi cũ (để hoàn tác số dư)
-     * @param newTransaction bản ghi mới
-     */
     public void updateTransaction(TransactionEntity oldTransaction, TransactionEntity newTransaction) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             newTransaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
             newTransaction.setUpdatedAt(System.currentTimeMillis());
-            // Hoàn tác số dư của giao dịch cũ
-            applyBalanceChange(oldTransaction, true);
-            // Áp dụng số dư của giao dịch mới
-            applyBalanceChange(newTransaction, false);
             transactionDao.updateTransaction(newTransaction);
         });
     }
 
-    /**
-     * Soft delete giao dịch và hoàn tác số dư ví.
-     */
     public void softDeleteTransaction(TransactionEntity transaction) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            applyBalanceChange(transaction, true);
             transactionDao.softDelete(transaction.getId(), System.currentTimeMillis());
         });
-    }
-
-    // ─── Balance helper ───────────────────────────────────────────────────────
-
-    /**
-     * Cập nhật balance của ví theo loại giao dịch.
-     *
-     * @param transaction giao dịch cần xử lý
-     * @param reverse     true = hoàn tác (undo), false = áp dụng
-     */
-    private void applyBalanceChange(TransactionEntity transaction, boolean reverse) {
-        if (transaction.getWalletId() == null) return;
-
-        WalletEntity wallet = walletDao.getByIdSync(transaction.getWalletId());
-        if (wallet == null) return;
-
-        double amount = transaction.getAmount();
-        String type = transaction.getType();
-
-        double delta;
-        if ("INCOME".equals(type)) {
-            delta = reverse ? -amount : amount;
-        } else if ("EXPENSE".equals(type)) {
-            delta = reverse ? amount : -amount;
-        } else {
-            // TRANSFER: trừ ví nguồn
-            delta = reverse ? amount : -amount;
-        }
-
-        wallet.setBalance(wallet.getBalance() + delta);
-        wallet.setUpdatedAt(System.currentTimeMillis());
-        wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        walletDao.update(wallet);
-
-        // TRANSFER: cộng ví đích
-        if ("TRANSFER".equals(type) && transaction.getToWalletId() != null) {
-            WalletEntity toWallet = walletDao.getByIdSync(transaction.getToWalletId());
-            if (toWallet != null) {
-                double toDelta = reverse ? -amount : amount;
-                toWallet.setBalance(toWallet.getBalance() + toDelta);
-                toWallet.setUpdatedAt(System.currentTimeMillis());
-                toWallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-                walletDao.update(toWallet);
-            }
-        }
     }
 }

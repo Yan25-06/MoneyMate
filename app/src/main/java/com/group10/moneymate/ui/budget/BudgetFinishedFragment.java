@@ -159,11 +159,13 @@ public class BudgetFinishedFragment extends Fragment {
                         selectedWalletId = walletId;
                         viewModel.setSelectedWalletFilter(walletId);
                         updateWalletFilterLabel();
+                        updateWalletFilterIcon();
                     });
             savedStateHandle.getLiveData(RESULT_SELECTED_WALLET_LABEL, getString(R.string.budget_wallet_scope_total))
                     .observe(getViewLifecycleOwner(), label -> {
                         selectedWalletLabel = label != null ? label : getString(R.string.budget_wallet_scope_total);
                         updateWalletFilterLabel();
+                        updateWalletFilterIcon();
                     });
         }
 
@@ -184,6 +186,7 @@ public class BudgetFinishedFragment extends Fragment {
             wallets = walletEntities != null ? walletEntities : new ArrayList<>();
             hasWallets = !wallets.isEmpty();
             updateWalletFilterLabel();
+            updateWalletFilterIcon();
             renderEmptyState(finishedAdapter.getCurrentList().isEmpty());
         });
         viewModel.getFinishedBudgets().observe(getViewLifecycleOwner(), budgets -> {
@@ -192,6 +195,7 @@ public class BudgetFinishedFragment extends Fragment {
             renderEmptyState(items.isEmpty());
         });
         updateWalletFilterLabel();
+        updateWalletFilterIcon();
     }
 
     private void renderEmptyState(boolean isEmpty) {
@@ -229,6 +233,29 @@ public class BudgetFinishedFragment extends Fragment {
             }
         }
         binding.tvWalletFilterLabel.setText(compactWalletLabel(selectedWalletLabel));
+    }
+
+    private void updateWalletFilterIcon() {
+        if (binding == null) {
+            return;
+        }
+        if (selectedWalletId == null) {
+            binding.ivWalletFilterIcon.setVisibility(View.GONE);
+            return;
+        }
+        for (WalletEntity wallet : wallets) {
+            if (selectedWalletId.equals(wallet.getId())) {
+                int iconRes = com.group10.moneymate.utils.IconProvider.resolveWalletIcon(
+                        requireContext(),
+                        wallet.getIconName(),
+                        wallet.getType()
+                );
+                binding.ivWalletFilterIcon.setImageResource(iconRes);
+                binding.ivWalletFilterIcon.setVisibility(View.VISIBLE);
+                return;
+            }
+        }
+        binding.ivWalletFilterIcon.setVisibility(View.GONE);
     }
 
     private void navigateBackWithFilter() {

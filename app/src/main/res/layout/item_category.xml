@@ -25,7 +25,7 @@
             android:layout_height="40dp"
             android:padding="8dp"
             android:background="@drawable/bg_circle_icon"
-            android:src="@drawable/ic_other"
+            android:src="@drawable/ic_category_other"
             android:layout_marginEnd="12dp"
             android:contentDescription="@null" />
 

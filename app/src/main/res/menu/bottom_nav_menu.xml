@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/homeFragment" android:icon="@drawable/outline_home_24" android:title="@string/home" />
     <item android:id="@+id/transactionListFragment" android:icon="@drawable/outline_receipt_24" android:title="@string/transactions" />
+    <item
+        android:id="@+id/menuCenterPlaceholder"
+        android:enabled="false"
+        android:icon="@drawable/ic_nav_placeholder"
+        android:title="" />
     <item android:id="@+id/budgetListFragment" android:icon="@drawable/outline_account_balance_wallet_24" android:title="@string/budgets" />
-    <item android:id="@+id/settingsFragment" android:icon="@drawable/outline_settings_24" android:title="@string/title_settings" />
+    <item android:id="@+id/settingsFragment" android:icon="@drawable/outline_person_24" android:title="@string/section_account" />
 </menu>

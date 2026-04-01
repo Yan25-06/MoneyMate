@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
@@ -19,7 +20,7 @@ public class WalletViewModel extends AndroidViewModel {
 
     private final AppContainer container;
     private final String userId;
-    private final LiveData<List<WalletEntity>> wallets;
+    private final LiveData<List<WalletWithBalance>> wallets;
     private final LiveData<Double> totalBalance;
 
     public WalletViewModel(@NonNull Application application) {
@@ -29,11 +30,11 @@ public class WalletViewModel extends AndroidViewModel {
 
         userId = container.authRepository.getCurrentUserId();
 
-        wallets = container.walletRepository.getAllByUser(userId);
+        wallets = container.walletRepository.getAllByUserWithBalance(userId);
         totalBalance = container.walletRepository.getTotalBalance(userId);
     }
 
-    public LiveData<List<WalletEntity>> getWallets() {
+    public LiveData<List<WalletWithBalance>> getWallets() {
         return wallets;
     }
 
@@ -45,7 +46,11 @@ public class WalletViewModel extends AndroidViewModel {
         return container.walletRepository.getById(walletId);
     }
 
-    public void addWallet(String name, WalletType type, double balance) {
+    public LiveData<WalletWithBalance> getWalletWithBalanceById(String walletId) {
+        return container.walletRepository.getByIdWithBalance(walletId);
+    }
+
+    public void addWallet(String name, WalletType type, double balance, @NonNull String iconName) {
         long now = System.currentTimeMillis();
         WalletEntity wallet = new WalletEntity();
         wallet.setId(UUID.randomUUID().toString());
@@ -53,7 +58,7 @@ public class WalletViewModel extends AndroidViewModel {
         wallet.setName(name);
         wallet.setType(type.name());
         wallet.setBalance(balance);
-        wallet.setColorHex("#4CAF50");
+        wallet.setIconName(iconName);
         wallet.setExcluded(false);
         wallet.setCreatedAt(now);
         wallet.setUpdatedAt(now);
@@ -62,10 +67,15 @@ public class WalletViewModel extends AndroidViewModel {
         container.walletRepository.insert(wallet);
     }
 
-    public void updateWallet(WalletEntity wallet, String name, WalletType type, double balance) {
+    public void updateWallet(WalletEntity wallet,
+                             String name,
+                             WalletType type,
+                             double balance,
+                             @NonNull String iconName) {
         wallet.setName(name);
         wallet.setType(type.name());
         wallet.setBalance(balance);
+        wallet.setIconName(iconName);
         wallet.setUpdatedAt(System.currentTimeMillis());
         wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
         container.walletRepository.update(wallet);
@@ -73,5 +83,13 @@ public class WalletViewModel extends AndroidViewModel {
 
     public void deleteWallet(WalletEntity wallet) {
         container.walletRepository.softDelete(wallet);
+    }
+
+    public void archiveWallet(WalletEntity wallet) {
+        container.walletRepository.archive(wallet);
+    }
+
+    public void restoreWallet(WalletEntity wallet) {
+        container.walletRepository.restore(wallet);
     }
 }

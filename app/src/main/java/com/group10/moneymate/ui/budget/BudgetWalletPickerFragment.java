@@ -15,6 +15,7 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.group10.moneymate.R;
+import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentBudgetWalletPickerBinding;
 import com.group10.moneymate.ui.wallet.WalletViewModel;
@@ -33,7 +34,7 @@ public class BudgetWalletPickerFragment extends Fragment {
     private BudgetWalletPickerAdapter adapter;
     @Nullable
     private String selectedWalletId;
-    private List<WalletEntity> wallets = new ArrayList<>();
+    private List<WalletWithBalance> wallets = new ArrayList<>();
 
     @Nullable
     @Override
@@ -100,6 +101,9 @@ public class BudgetWalletPickerFragment extends Fragment {
         viewModel.getTotalBalance().observe(getViewLifecycleOwner(), total -> {
             double value = total != null ? total : 0d;
             binding.tvAllWalletsBalance.setText(CurrencyFormatter.format(value, "VND"));
+            binding.tvAllWalletsBalance.setTextColor(requireContext().getColor(
+                    value < 0d ? R.color.expense_red : R.color.statistics_text_primary
+            ));
         });
     }
 

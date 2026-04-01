@@ -24,13 +24,13 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.databinding.FragmentBudgetDetailBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
-import com.group10.moneymate.ui.main.HomeActivity;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,6 +52,8 @@ public class BudgetDetailFragment extends Fragment {
     private boolean isAggregate;
     @Nullable
     private String aggregateWalletFilterLabel;
+    @Nullable
+    private String walletFilterId;
     @NonNull
     private BudgetViewModel.BudgetTab budgetTab = BudgetViewModel.BudgetTab.THIS_MONTH;
     private final Map<String, LiveData<List<TransactionEntity>>> chartSources = new HashMap<>();
@@ -138,13 +140,14 @@ public class BudgetDetailFragment extends Fragment {
                 : new Bundle());
         isAggregate = args.getIsAggregate();
         aggregateWalletFilterLabel = args.getWalletFilterLabel();
+        walletFilterId = args.getWalletFilterId();
         try {
             budgetTab = BudgetViewModel.BudgetTab.valueOf(args.getBudgetTab());
         } catch (IllegalArgumentException | NullPointerException exception) {
             budgetTab = BudgetViewModel.BudgetTab.THIS_MONTH;
         }
         viewModel.setSelectedTab(budgetTab);
-        viewModel.setSelectedWalletFilter(args.getWalletFilterId());
+        viewModel.setSelectedWalletFilter(walletFilterId);
     }
 
     private void setupActions() {
@@ -223,7 +226,6 @@ public class BudgetDetailFragment extends Fragment {
         renderDetail(new DetailRenderModel(
                 getString(R.string.budget_all_categories),
                 "",
-                "#4CAF50",
                 aggregateWalletFilterLabel != null
                         ? aggregateWalletFilterLabel
                         : getString(R.string.budget_total_scope),
@@ -252,19 +254,14 @@ public class BudgetDetailFragment extends Fragment {
                 ? 0f
                 : (float) ((model.spentAmount / model.entity.getAmount()) * 100f);
         int progress = Math.max(0, Math.min(100, Math.round(percent)));
-        int iconTint = BudgetUiUtils.parseColorOrDefault(
-                model.colorHex,
-                ContextCompat.getColor(requireContext(), R.color.budget_safe_green)
-        );
-
         binding.ivCategoryIcon.setImageResource(BudgetUiUtils.resolveCategoryIcon(
                 requireContext(),
                 model.iconName,
                 model.title
         ));
-        binding.ivCategoryIcon.setImageTintList(ColorStateList.valueOf(iconTint));
+        binding.ivCategoryIcon.setImageTintList(null);
         binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
-                androidx.core.graphics.ColorUtils.setAlphaComponent(iconTint, 32)
+                ContextCompat.getColor(requireContext(), android.R.color.white)
         ));
         binding.tvCategoryName.setText(model.title);
         binding.tvAmount.setText(BudgetUiUtils.formatCurrency(model.entity.getAmount()));
@@ -328,7 +325,6 @@ public class BudgetDetailFragment extends Fragment {
         return new DetailRenderModel(
                 item.getCategoryName(),
                 item.getCategoryIcon(),
-                item.getCategoryColorHex(),
                 item.getWalletName(),
                 item.getBudgetEntity(),
                 item.getSpentAmount(),
@@ -451,12 +447,19 @@ public class BudgetDetailFragment extends Fragment {
         if (isAggregate || currentItem == null) {
             return;
         }
-        new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new MaterialAlertDialogBuilder(
+                requireContext(),
+                R.style.ThemeOverlay_MoneyMate_MaterialAlertDialog
+        )
                 .setTitle(R.string.budget_delete_action)
                 .setMessage(R.string.budget_delete_confirm)
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.btn_delete, this::deleteBudget)
                 .show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(requireContext().getColor(R.color.budget_danger_red));
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
     }
 
     private void deleteBudget(DialogInterface dialog, int which) {
@@ -469,13 +472,15 @@ public class BudgetDetailFragment extends Fragment {
     }
 
     private void openTransactionsTab() {
-        Bundle args = new Bundle();
+        BudgetDetailFragmentDirections.ActionBudgetDetailToReportTransactionListFragment action =
+                BudgetDetailFragmentDirections.actionBudgetDetailToReportTransactionListFragment();
+
         if (!isAggregate && currentItem != null) {
-            args = new Bundle();
-            args.putString("budgetCategoryId", currentItem.getBudgetEntity().getCategoryId());
-            args.putString("budgetWalletId", currentItem.getBudgetEntity().getWalletId());
-            args.putLong("budgetStartDate", currentItem.getBudgetEntity().getStartDate());
-            args.putLong("budgetEndDate", currentItem.getBudgetEntity().getEndDate());
+            action.setCategoryId(currentItem.getBudgetEntity().getCategoryId());
+            action.setWalletId(currentItem.getBudgetEntity().getWalletId());
+            action.setStartDate(currentItem.getBudgetEntity().getStartDate());
+            action.setEndDate(currentItem.getBudgetEntity().getEndDate());
+            action.setTransactionType("EXPENSE");
         } else if (isAggregate && currentActiveBudgets != null && !currentActiveBudgets.isEmpty()) {
             long earliestStart = Long.MAX_VALUE;
             long latestEnd = 0L;
@@ -483,23 +488,19 @@ public class BudgetDetailFragment extends Fragment {
                 earliestStart = Math.min(earliestStart, item.getBudgetEntity().getStartDate());
                 latestEnd = Math.max(latestEnd, item.getBudgetEntity().getEndDate());
             }
-            if (earliestStart != Long.MAX_VALUE && latestEnd > 0L) {
-                args.putLong("budgetStartDate", earliestStart);
-                args.putLong("budgetEndDate", latestEnd);
-                args.putString("budgetAggregateFilters", buildAggregateBudgetFilterSpec(currentActiveBudgets));
+            if (earliestStart == Long.MAX_VALUE || latestEnd <= 0L) {
+                return;
             }
-        }
-
-        if (requireActivity() instanceof HomeActivity) {
-            ((HomeActivity) requireActivity()).navigateToBottomDestination(
-                    R.id.transactionListFragment,
-                    args
-            );
+            action.setWalletId(walletFilterId);
+            action.setStartDate(earliestStart);
+            action.setEndDate(latestEnd);
+            action.setTransactionType("EXPENSE");
+        } else {
             return;
         }
 
         NavController navController = Navigation.findNavController(binding.getRoot());
-        navController.navigate(R.id.transactionListFragment, args);
+        navController.navigate(action);
     }
 
     @NonNull
@@ -528,8 +529,6 @@ public class BudgetDetailFragment extends Fragment {
         @NonNull
         private final String iconName;
         @NonNull
-        private final String colorHex;
-        @NonNull
         private final String walletScopeLabel;
         @NonNull
         private final BudgetEntity entity;
@@ -542,7 +541,6 @@ public class BudgetDetailFragment extends Fragment {
 
         private DetailRenderModel(@NonNull String title,
                                   @NonNull String iconName,
-                                  @NonNull String colorHex,
                                   @NonNull String walletScopeLabel,
                                   @NonNull BudgetEntity entity,
                                   double spentAmount,
@@ -551,7 +549,6 @@ public class BudgetDetailFragment extends Fragment {
                                   boolean showBreakdown) {
             this.title = title;
             this.iconName = iconName;
-            this.colorHex = colorHex;
             this.walletScopeLabel = walletScopeLabel;
             this.entity = entity;
             this.spentAmount = spentAmount;
