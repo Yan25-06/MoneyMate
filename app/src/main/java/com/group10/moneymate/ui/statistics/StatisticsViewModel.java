@@ -16,10 +16,10 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.models.TransactionType;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -414,7 +414,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         public static FilterState createCurrentMonth(@Nullable String walletId) {
-            return createMonth(walletId, LocalDate.now());
+            return createMonth(walletId, LocalDate.now(ZoneOffset.UTC));
         }
 
         @Nullable
@@ -442,9 +442,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         public String getStartDatePreview() {
-            LocalDate date = Instant.ofEpochMilli(startDate)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate();
+            LocalDate date = toLocalDate(startDate);
             int month = date.getMonthValue();
             int year = date.getYear();
             return String.format("%02d/%d", month, year);
@@ -508,7 +506,7 @@ public class StatisticsViewModel extends ViewModel {
         @NonNull
         public static FilterState createForPeriodType(@NonNull PeriodType periodType,
                                                       @Nullable String walletId) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             switch (periodType) {
                 case DAY:
                     return createDay(walletId, today);
@@ -556,9 +554,8 @@ public class StatisticsViewModel extends ViewModel {
         public static FilterState createMonth(@Nullable String walletId, @NonNull LocalDate monthDate) {
             LocalDate start = monthDate.withDayOfMonth(1);
             LocalDate end = monthDate.withDayOfMonth(monthDate.lengthOfMonth());
-            ZoneId zoneId = ZoneId.systemDefault();
-            long startMillis = start.atStartOfDay(zoneId).toInstant().toEpochMilli();
-            long endMillis = end.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1L;
+            long startMillis = toStartMillis(start);
+            long endMillis = toEndMillis(end);
             String label = formatMonthLabel(start);
             return new FilterState(walletId, startMillis, endMillis, label, PeriodType.MONTH);
         }
@@ -628,27 +625,22 @@ public class StatisticsViewModel extends ViewModel {
         @NonNull
         private static LocalDate toLocalDate(long epochMillis) {
             if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
-                return LocalDate.now();
+                return LocalDate.now(ZoneOffset.UTC);
             }
-            return Instant.ofEpochMilli(epochMillis)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate();
+            return TimeWindowUtils.toUtcLocalDate(epochMillis);
         }
 
         private static long toStartMillis(@NonNull LocalDate date) {
-            return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            return TimeWindowUtils.startOfDayUtc(date);
         }
 
         private static long toEndMillis(@NonNull LocalDate date) {
-            return date.plusDays(1)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli() - 1L;
+            return TimeWindowUtils.startOfDayUtc(date.plusDays(1)) - 1L;
         }
 
         @NonNull
         private static String formatDayLabel(@NonNull LocalDate date) {
-            if (date.equals(LocalDate.now())) {
+            if (date.equals(LocalDate.now(ZoneOffset.UTC))) {
                 return "HÔM NAY";
             }
             return String.format(Locale.getDefault(), "%02d/%02d/%d",
@@ -659,7 +651,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatWeekLabel(@NonNull LocalDate start, @NonNull LocalDate end) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             LocalDate currentWeekStart = today.minusDays(today.getDayOfWeek().getValue() - 1L);
             if (start.equals(currentWeekStart)) {
                 return "TUẦN NÀY";
@@ -673,7 +665,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatMonthLabel(@NonNull LocalDate start) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             if (start.getMonthValue() == today.getMonthValue() && start.getYear() == today.getYear()) {
                 return "THÁNG NÀY";
             }
@@ -682,7 +674,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatQuarterLabel(@NonNull LocalDate start) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             int quarter = ((start.getMonthValue() - 1) / 3) + 1;
             int currentQuarter = ((today.getMonthValue() - 1) / 3) + 1;
             if (quarter == currentQuarter && start.getYear() == today.getYear()) {
@@ -693,7 +685,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatYearLabel(@NonNull LocalDate start) {
-            if (start.getYear() == LocalDate.now().getYear()) {
+            if (start.getYear() == LocalDate.now(ZoneOffset.UTC).getYear()) {
                 return "NĂM NÀY";
             }
             return String.valueOf(start.getYear());

@@ -176,7 +176,7 @@ public interface TransactionDao {
                                                String periodLabel);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') AS periodLabel, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END), 0.0) AS totalIncome, " +
             "COALESCE(SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END), 0.0) AS totalExpense, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount WHEN t.type = 'EXPENSE' THEN -t.amount ELSE 0 END), 0.0) AS netAmount, " +
@@ -189,7 +189,7 @@ public interface TransactionDao {
             "AND t.sync_status != 2 " +
             "AND t.type != 'TRANSFER' " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<NetIncomeDTO>> getNetIncomeTrend(String userId,
                                                    long startDate,
@@ -336,7 +336,7 @@ public interface TransactionDao {
                                                                             String categoryId);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -347,7 +347,7 @@ public interface TransactionDao {
             "AND t.sync_status != 2 " +
             "AND t.type = :type " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
                                                  String type,
@@ -357,7 +357,7 @@ public interface TransactionDao {
                                                  String periodFormat);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -369,7 +369,7 @@ public interface TransactionDao {
             "AND t.type = :type " +
             "AND t.category_id = :categoryId " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getCategoryAmountTrend(String userId,
                                                          String type,
@@ -380,7 +380,7 @@ public interface TransactionDao {
                                                          String periodFormat);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -393,7 +393,7 @@ public interface TransactionDao {
             "AND t.type = :type " +
             "AND (c.id = :parentCategoryId OR c.parent_id = :parentCategoryId) " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getParentCategoryBranchAmountTrend(String userId,
                                                                      String type,

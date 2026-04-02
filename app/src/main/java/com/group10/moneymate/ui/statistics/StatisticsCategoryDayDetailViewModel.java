@@ -11,11 +11,11 @@ import androidx.lifecycle.ViewModelProvider;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.models.TransactionType;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -525,32 +525,23 @@ public class StatisticsCategoryDayDetailViewModel extends ViewModel {
     }
 
     private long endOfToday() {
-        return LocalDate.now()
-                .plusDays(1)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli() - 1L;
+        return toEndMillis(LocalDate.now(ZoneOffset.UTC));
     }
 
     @NonNull
     private LocalDate toLocalDate(long epochMillis) {
         if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
-            return LocalDate.now();
+            return LocalDate.now(ZoneOffset.UTC);
         }
-        return Instant.ofEpochMilli(epochMillis)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
+        return TimeWindowUtils.toUtcLocalDate(epochMillis);
     }
 
     private long toStartMillis(@NonNull LocalDate date) {
-        return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        return TimeWindowUtils.startOfDayUtc(date);
     }
 
     private long toEndMillis(@NonNull LocalDate date) {
-        return date.plusDays(1)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli() - 1L;
+        return TimeWindowUtils.startOfDayUtc(date.plusDays(1)) - 1L;
     }
 
     @NonNull
