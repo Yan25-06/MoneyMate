@@ -18,6 +18,10 @@ public final class Migration11To12 {
                             + "ON `transactions` (`user_id`, `sync_status`, `updated_at`, `id`)"
             );
             database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `idx_transactions_wallet_deleted_type_timestamp` "
+                            + "ON `transactions` (`wallet_id`, `is_deleted`, `type`, `timestamp`)"
+            );
+            database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_budgets_user_sync_updated_id` "
                             + "ON `budgets` (`user_id`, `sync_status`, `updated_at`, `id`)"
             );

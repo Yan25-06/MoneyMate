@@ -8,12 +8,20 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.group10.moneymate.data.local.entity.BudgetEntity;
+import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.DebtEntity;
+import com.group10.moneymate.data.local.entity.EventEntity;
 import com.group10.moneymate.data.local.entity.SyncMetadataEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
+import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.AuthRepository;
 import com.group10.moneymate.data.repository.BudgetRepository;
+import com.group10.moneymate.data.repository.CategoryRepository;
+import com.group10.moneymate.data.repository.DebtRepository;
+import com.group10.moneymate.data.repository.EventRepository;
 import com.group10.moneymate.data.repository.SyncMetadataRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
+import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.ForegroundUiNotifier;
 import com.group10.moneymate.utils.NotificationHelper;
@@ -24,12 +32,20 @@ public class SyncWorker extends Worker {
 
     public static final String DOMAIN_TRANSACTIONS = "transactions";
     public static final String DOMAIN_BUDGETS = "budgets";
+    public static final String DOMAIN_CATEGORIES = "categories";
+    public static final String DOMAIN_WALLETS = "wallets";
+    public static final String DOMAIN_DEBTS = "debts";
+    public static final String DOMAIN_EVENTS = "events";
 
     private static final int MAX_ATTEMPTS = 3;
     private static final int SYNC_BATCH_SIZE = 100;
 
     private final TransactionRepository transactionRepository;
     private final BudgetRepository budgetRepository;
+    private final CategoryRepository categoryRepository;
+    private final WalletRepository walletRepository;
+    private final DebtRepository debtRepository;
+    private final EventRepository eventRepository;
     private final SyncMetadataRepository syncMetadataRepository;
     private final AuthRepository authRepository;
 
@@ -37,11 +53,19 @@ public class SyncWorker extends Worker {
                       @NonNull WorkerParameters workerParameters,
                       @NonNull TransactionRepository transactionRepository,
                       @NonNull BudgetRepository budgetRepository,
+                      @NonNull CategoryRepository categoryRepository,
+                      @NonNull WalletRepository walletRepository,
+                      @NonNull DebtRepository debtRepository,
+                      @NonNull EventRepository eventRepository,
                       @NonNull SyncMetadataRepository syncMetadataRepository,
                       @NonNull AuthRepository authRepository) {
         super(context, workerParameters);
         this.transactionRepository = transactionRepository;
         this.budgetRepository = budgetRepository;
+        this.categoryRepository = categoryRepository;
+        this.walletRepository = walletRepository;
+        this.debtRepository = debtRepository;
+        this.eventRepository = eventRepository;
         this.syncMetadataRepository = syncMetadataRepository;
         this.authRepository = authRepository;
     }
@@ -57,6 +81,10 @@ public class SyncWorker extends Worker {
         try {
             syncTransactions(userId);
             syncBudgets(userId);
+            syncCategories(userId);
+            syncWallets(userId);
+            syncDebts(userId);
+            syncEvents(userId);
             return Result.success();
         } catch (Exception exception) {
             if (getRunAttemptCount() >= MAX_ATTEMPTS - 1) {
@@ -76,11 +104,12 @@ public class SyncWorker extends Worker {
         String lastSyncedId = checkpoint.getLastSyncedId();
 
         while (true) {
-            List<TransactionEntity> pending = transactionRepository.getPendingSyncSince(
+            List<TransactionEntity> pending = transactionRepository.getPendingSyncPagedSince(
                     userId,
                     lastSyncedAt,
                     lastSyncedId,
-                    SYNC_BATCH_SIZE
+                    SYNC_BATCH_SIZE,
+                    0
             );
             if (pending == null || pending.isEmpty()) {
                 return;
@@ -102,6 +131,130 @@ public class SyncWorker extends Worker {
                         lastSyncedAt,
                         lastSyncedId
                 );
+            }
+        }
+    }
+
+    private void syncCategories(@NonNull String userId) {
+        SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(userId, DOMAIN_CATEGORIES);
+        long lastSyncedAt = checkpoint.getLastSyncedAt();
+        String lastSyncedId = checkpoint.getLastSyncedId();
+
+        while (true) {
+            List<CategoryEntity> pending = categoryRepository.getPendingSyncPagedSince(
+                    userId,
+                    lastSyncedAt,
+                    lastSyncedId,
+                    SYNC_BATCH_SIZE,
+                    0
+            );
+            if (pending == null || pending.isEmpty()) {
+                return;
+            }
+
+            for (CategoryEntity category : pending) {
+                if (category.getSyncStatus() == SyncStatus.PENDING_DELETE) {
+                    categoryRepository.hardDeleteById(category.getId());
+                } else {
+                    categoryRepository.markSynced(category.getId());
+                }
+
+                lastSyncedAt = category.getUpdatedAt();
+                lastSyncedId = category.getId();
+                syncMetadataRepository.updateCheckpoint(userId, DOMAIN_CATEGORIES, lastSyncedAt, lastSyncedId);
+            }
+        }
+    }
+
+    private void syncWallets(@NonNull String userId) {
+        SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(userId, DOMAIN_WALLETS);
+        long lastSyncedAt = checkpoint.getLastSyncedAt();
+        String lastSyncedId = checkpoint.getLastSyncedId();
+
+        while (true) {
+            List<WalletEntity> pending = walletRepository.getPendingSyncPagedSince(
+                    userId,
+                    lastSyncedAt,
+                    lastSyncedId,
+                    SYNC_BATCH_SIZE,
+                    0
+            );
+            if (pending == null || pending.isEmpty()) {
+                return;
+            }
+
+            for (WalletEntity wallet : pending) {
+                if (wallet.getSyncStatus() == SyncStatus.PENDING_DELETE) {
+                    walletRepository.hardDeleteById(wallet.getId());
+                } else {
+                    walletRepository.markSynced(wallet.getId());
+                }
+
+                lastSyncedAt = wallet.getUpdatedAt();
+                lastSyncedId = wallet.getId();
+                syncMetadataRepository.updateCheckpoint(userId, DOMAIN_WALLETS, lastSyncedAt, lastSyncedId);
+            }
+        }
+    }
+
+    private void syncDebts(@NonNull String userId) {
+        SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(userId, DOMAIN_DEBTS);
+        long lastSyncedAt = checkpoint.getLastSyncedAt();
+        String lastSyncedId = checkpoint.getLastSyncedId();
+
+        while (true) {
+            List<DebtEntity> pending = debtRepository.getPendingSyncPagedSince(
+                    userId,
+                    lastSyncedAt,
+                    lastSyncedId,
+                    SYNC_BATCH_SIZE,
+                    0
+            );
+            if (pending == null || pending.isEmpty()) {
+                return;
+            }
+
+            for (DebtEntity debt : pending) {
+                if (debt.getSyncStatus() == SyncStatus.PENDING_DELETE) {
+                    debtRepository.hardDeleteById(debt.getId());
+                } else {
+                    debtRepository.markSynced(debt.getId());
+                }
+
+                lastSyncedAt = debt.getUpdatedAt();
+                lastSyncedId = debt.getId();
+                syncMetadataRepository.updateCheckpoint(userId, DOMAIN_DEBTS, lastSyncedAt, lastSyncedId);
+            }
+        }
+    }
+
+    private void syncEvents(@NonNull String userId) {
+        SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(userId, DOMAIN_EVENTS);
+        long lastSyncedAt = checkpoint.getLastSyncedAt();
+        String lastSyncedId = checkpoint.getLastSyncedId();
+
+        while (true) {
+            List<EventEntity> pending = eventRepository.getPendingSyncPagedSince(
+                    userId,
+                    lastSyncedAt,
+                    lastSyncedId,
+                    SYNC_BATCH_SIZE,
+                    0
+            );
+            if (pending == null || pending.isEmpty()) {
+                return;
+            }
+
+            for (EventEntity event : pending) {
+                if (event.getSyncStatus() == SyncStatus.PENDING_DELETE) {
+                    eventRepository.hardDeleteById(event.getId());
+                } else {
+                    eventRepository.markSynced(event.getId());
+                }
+
+                lastSyncedAt = event.getUpdatedAt();
+                lastSyncedId = event.getId();
+                syncMetadataRepository.updateCheckpoint(userId, DOMAIN_EVENTS, lastSyncedAt, lastSyncedId);
             }
         }
     }

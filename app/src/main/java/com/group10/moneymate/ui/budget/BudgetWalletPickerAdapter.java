@@ -16,7 +16,6 @@ import com.group10.moneymate.databinding.ItemBudgetWalletPickerBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 
-import java.util.ArrayList;
 import java.util.Objects;
 
 public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, BudgetWalletPickerAdapter.ViewHolder> {
@@ -39,8 +38,31 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
     }
 
     public void setSelectedWalletId(String selectedWalletId) {
+        String previousSelectedWalletId = this.selectedWalletId;
         this.selectedWalletId = selectedWalletId;
-        submitList(new ArrayList<>(getCurrentList()));
+
+        int previousIndex = findWalletIndex(previousSelectedWalletId);
+        int newIndex = findWalletIndex(selectedWalletId);
+
+        if (previousIndex >= 0) {
+            notifyItemChanged(previousIndex);
+        }
+        if (newIndex >= 0 && newIndex != previousIndex) {
+            notifyItemChanged(newIndex);
+        }
+    }
+
+    private int findWalletIndex(String walletId) {
+        if (walletId == null) {
+            return -1;
+        }
+        for (int i = 0; i < getCurrentList().size(); i++) {
+            WalletWithBalance item = getCurrentList().get(i);
+            if (item != null && item.getWallet() != null && walletId.equals(item.getWallet().getId())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @NonNull

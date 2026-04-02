@@ -101,7 +101,7 @@
                             android:layout_height="22dp"
                             android:contentDescription="@null"
                             android:src="@drawable/outline_attach_money_24"
-                            android:tint="@color/budget_text_secondary" />
+                            app:tint="@color/budget_text_secondary" />
 
                         <TextView
                             android:id="@+id/tv_type_label"
@@ -132,7 +132,7 @@
                             android:layout_height="22dp"
                             android:contentDescription="@null"
                             android:src="@drawable/outline_account_tree_24"
-                            android:tint="@color/budget_text_secondary" />
+                            app:tint="@color/budget_text_secondary" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -165,7 +165,7 @@
                             android:contentDescription="@null"
                             android:rotation="180"
                             android:src="@drawable/outline_arrow_back_24"
-                            android:tint="@color/transaction_muted_icon" />
+                            app:tint="@color/transaction_muted_icon" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -227,3 +227,4 @@
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+

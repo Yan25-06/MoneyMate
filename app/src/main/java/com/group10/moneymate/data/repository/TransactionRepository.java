@@ -5,6 +5,7 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -30,6 +31,11 @@ public class TransactionRepository {
     public interface PageCallback<T> {
         void onSuccess(T data);
         void onError(Exception exception);
+    }
+
+    public interface WriteCallback {
+        void onSuccess();
+        void onError(@NonNull Throwable throwable);
     }
 
     private final TransactionDao transactionDao;
@@ -345,10 +351,25 @@ public class TransactionRepository {
         return transactionDao.getPendingSyncSince(userId, lastSyncedAt, lastSyncedId, limit);
     }
 
+    public List<TransactionEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                            long lastSyncedAt,
+                                                            @NonNull String lastSyncedId,
+                                                            int limit,
+                                                            int offset) {
+        return transactionDao.getPendingSyncTransactionsPagedSince(
+                userId,
+                lastSyncedAt,
+                lastSyncedId,
+                limit,
+                offset
+        );
+    }
+
     public void markSynced(@NonNull String id) {
         transactionDao.markSynced(id);
     }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     public void hardDeleteById(@NonNull String id) {
         transactionDao.hardDeleteById(id);
     }
@@ -356,34 +377,70 @@ public class TransactionRepository {
     // ─── Write ────────────────────────────────────────────────────────────────
 
     public void insertTransaction(TransactionEntity transaction) {
-        upsertTransactionInternal(transaction);
+        upsertTransactionInternal(transaction, null);
+    }
+
+    public void insertTransaction(TransactionEntity transaction, @Nullable WriteCallback callback) {
+        upsertTransactionInternal(transaction, callback);
     }
 
     public void updateTransaction(TransactionEntity newTransaction) {
-        upsertTransactionInternal(newTransaction);
+        upsertTransactionInternal(newTransaction, null);
     }
 
-    private void upsertTransactionInternal(TransactionEntity transaction) {
+    public void updateTransaction(TransactionEntity newTransaction, @Nullable WriteCallback callback) {
+        upsertTransactionInternal(newTransaction, callback);
+    }
+
+    private void upsertTransactionInternal(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            long now = System.currentTimeMillis();
-            if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
-                transaction.setId(UUID.randomUUID().toString());
+            try {
+                long now = System.currentTimeMillis();
+                if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
+                    transaction.setId(UUID.randomUUID().toString());
+                }
+                if (transaction.getCreatedAt() <= 0L) {
+                    transaction.setCreatedAt(now);
+                }
+                transaction.setUpdatedAt(now);
+                transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+                transactionDao.upsertLocal(transaction);
+                scheduleSyncIfEnabled();
+                notifyWriteSuccess(callback);
+            } catch (Exception exception) {
+                notifyWriteError(callback, exception);
             }
-            if (transaction.getCreatedAt() <= 0L) {
-                transaction.setCreatedAt(now);
-            }
-            transaction.setUpdatedAt(now);
-            transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-            transactionDao.upsertLocal(transaction);
-            scheduleSyncIfEnabled();
         });
     }
 
     public void softDeleteTransaction(TransactionEntity transaction) {
+        softDeleteTransaction(transaction, null);
+    }
+
+    public void softDeleteTransaction(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            transactionDao.softDelete(transaction.getId(), System.currentTimeMillis());
-            scheduleSyncIfEnabled();
+            try {
+                transactionDao.softDelete(transaction.getId(), System.currentTimeMillis());
+                scheduleSyncIfEnabled();
+                notifyWriteSuccess(callback);
+            } catch (Exception exception) {
+                notifyWriteError(callback, exception);
+            }
         });
+    }
+
+    private void notifyWriteSuccess(@Nullable WriteCallback callback) {
+        if (callback == null) {
+            return;
+        }
+        mainHandler.post(callback::onSuccess);
+    }
+
+    private void notifyWriteError(@Nullable WriteCallback callback, @NonNull Throwable throwable) {
+        if (callback == null) {
+            return;
+        }
+        mainHandler.post(() -> callback.onError(throwable));
     }
 
     private void scheduleSyncIfEnabled() {

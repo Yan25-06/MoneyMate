@@ -1,5 +1,11 @@
 package com.group10.moneymate.data.repository;
 
+import android.os.Handler;
+import android.os.Looper;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -15,7 +21,14 @@ import java.util.UUID;
  * Repository for wallet data.
  */
 public class WalletRepository {
+
+    public interface WriteCallback {
+        void onSuccess();
+        void onError(@NonNull Throwable throwable);
+    }
+
     private final WalletDao walletDao;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public WalletRepository(WalletDao walletDao) {
         this.walletDao = walletDao;
@@ -50,29 +63,56 @@ public class WalletRepository {
     }
 
     public void insert(WalletEntity wallet) {
-        upsertWalletInternal(wallet);
+        upsertWalletInternal(wallet, null);
+    }
+
+    public void insert(WalletEntity wallet, @Nullable WriteCallback callback) {
+        upsertWalletInternal(wallet, callback);
     }
 
     public void update(WalletEntity wallet) {
-        upsertWalletInternal(wallet);
+        upsertWalletInternal(wallet, null);
     }
 
-    private void upsertWalletInternal(WalletEntity wallet) {
+    public void update(WalletEntity wallet, @Nullable WriteCallback callback) {
+        upsertWalletInternal(wallet, callback);
+    }
+
+    private void upsertWalletInternal(WalletEntity wallet, @Nullable WriteCallback callback) {
         if (wallet.getIconName().trim().isEmpty()) {
             wallet.setIconName("ic_wallet_default");
         }
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            long now = System.currentTimeMillis();
-            if (wallet.getId() == null || wallet.getId().trim().isEmpty()) {
-                wallet.setId(UUID.randomUUID().toString());
+            try {
+                long now = System.currentTimeMillis();
+                if (wallet.getId() == null || wallet.getId().trim().isEmpty()) {
+                    wallet.setId(UUID.randomUUID().toString());
+                }
+                if (wallet.getCreatedAt() <= 0L) {
+                    wallet.setCreatedAt(now);
+                }
+                wallet.setUpdatedAt(now);
+                wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+                walletDao.upsertLocal(wallet);
+                notifySuccess(callback);
+            } catch (Exception exception) {
+                notifyError(callback, exception);
             }
-            if (wallet.getCreatedAt() <= 0L) {
-                wallet.setCreatedAt(now);
-            }
-            wallet.setUpdatedAt(now);
-            wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-            walletDao.upsertLocal(wallet);
         });
+    }
+
+    private void notifySuccess(@Nullable WriteCallback callback) {
+        if (callback == null) {
+            return;
+        }
+        mainHandler.post(callback::onSuccess);
+    }
+
+    private void notifyError(@Nullable WriteCallback callback, @NonNull Throwable throwable) {
+        if (callback == null) {
+            return;
+        }
+        mainHandler.post(() -> callback.onError(throwable));
     }
 
     public void softDelete(WalletEntity wallet) {
@@ -98,6 +138,23 @@ public class WalletRepository {
         wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
         wallet.setUpdatedAt(updatedAt);
         AppDatabase.databaseWriteExecutor.execute(() -> walletDao.restore(wallet.getId(), updatedAt));
+    }
+
+    public List<WalletEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                       long lastSyncedAt,
+                                                       @NonNull String lastSyncedId,
+                                                       int limit,
+                                                       int offset) {
+        return walletDao.getPendingSyncWalletsPagedSince(userId, lastSyncedAt, lastSyncedId, limit, offset);
+    }
+
+    public void markSynced(@NonNull String id) {
+        walletDao.markSynced(id);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void hardDeleteById(@NonNull String id) {
+        walletDao.hardDeleteById(id);
     }
 
     public WalletEntity getByIdSync(String id) {

@@ -1,10 +1,14 @@
 package com.group10.moneymate.data.local.dao;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Query;
+import androidx.room.RawQuery;
 import androidx.room.Transaction;
+import androidx.sqlite.db.SimpleSQLiteQuery;
+import androidx.sqlite.db.SupportSQLiteQuery;
 
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 
@@ -12,41 +16,27 @@ import java.util.List;
 
 @Dao
 public interface CategoryDao {
-    @Query("INSERT INTO categories (" +
-            "id, user_id, name, type, icon_name, parent_id, wallet_id, is_default, " +
-            "created_at, updated_at, sync_status, is_deleted" +
-            ") VALUES (" +
-            ":id, :userId, :name, :type, :iconName, :parentId, :walletId, :isDefault, " +
-            ":createdAt, :updatedAt, :syncStatus, :isDeleted" +
-            ") ON CONFLICT(id) DO UPDATE SET " +
-            "user_id = excluded.user_id, " +
-            "name = excluded.name, " +
-            "type = excluded.type, " +
-            "icon_name = excluded.icon_name, " +
-            "parent_id = excluded.parent_id, " +
-            "wallet_id = excluded.wallet_id, " +
-            "is_default = excluded.is_default, " +
-            "updated_at = excluded.updated_at, " +
-            "sync_status = CASE WHEN categories.sync_status = 2 THEN 2 ELSE excluded.sync_status END, " +
-            "is_deleted = CASE WHEN categories.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, " +
-            "created_at = CASE " +
-            "WHEN categories.created_at IS NULL OR categories.created_at <= 0 THEN excluded.created_at " +
-            "ELSE categories.created_at END")
-    void upsertLocalRaw(String id,
-                        String userId,
-                        String name,
-                        String type,
-                        String iconName,
-                        String parentId,
-                        String walletId,
-                        boolean isDefault,
-                        long createdAt,
-                        long updatedAt,
-                        int syncStatus,
-                        boolean isDeleted);
+    @RawQuery
+    int upsertLocalRaw(SupportSQLiteQuery query);
 
     default void upsertLocal(CategoryEntity category) {
-        upsertLocalRaw(
+        String sql = "INSERT INTO categories ("
+                + "id, user_id, name, type, icon_name, parent_id, wallet_id, is_default, "
+                + "created_at, updated_at, sync_status, is_deleted"
+                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "ON CONFLICT(id) DO UPDATE SET "
+                + "user_id = excluded.user_id, "
+                + "name = excluded.name, "
+                + "type = excluded.type, "
+                + "icon_name = excluded.icon_name, "
+                + "parent_id = excluded.parent_id, "
+                + "wallet_id = excluded.wallet_id, "
+                + "is_default = excluded.is_default, "
+                + "updated_at = excluded.updated_at, "
+                + "sync_status = CASE WHEN categories.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
+                + "is_deleted = CASE WHEN categories.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
+                + "created_at = CASE WHEN categories.created_at IS NULL OR categories.created_at <= 0 THEN excluded.created_at ELSE categories.created_at END";
+        upsertLocalRaw(new SimpleSQLiteQuery(sql, new Object[] {
                 category.getId(),
                 category.getUserId(),
                 category.getName(),
@@ -54,12 +44,12 @@ public interface CategoryDao {
                 category.getIconName(),
                 category.getParentId(),
                 category.getWalletId(),
-                category.isDefault(),
+                category.isDefault() ? 1 : 0,
                 category.getCreatedAt(),
                 category.getUpdatedAt(),
                 category.getSyncStatus(),
-                category.isDeleted()
-        );
+                category.isDeleted() ? 1 : 0
+        }));
     }
 
     default void insertCategory(CategoryEntity category) {
@@ -206,7 +196,24 @@ public interface CategoryDao {
     void softDeleteCascade(String id, long updatedAt);
 
     @Query("SELECT * FROM categories WHERE user_id = :userId AND sync_status != 0")
+    @Deprecated
     List<CategoryEntity> getPendingSyncCategories(String userId);
+
+    @Query("SELECT * FROM categories WHERE user_id = :userId AND sync_status != 0 " +
+            "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
+            "ORDER BY updated_at ASC, id ASC LIMIT :limit OFFSET :offset")
+    List<CategoryEntity> getPendingSyncCategoriesPagedSince(String userId,
+                                                            long lastSyncedAt,
+                                                            String lastSyncedId,
+                                                            int limit,
+                                                            int offset);
+
+    @Query("UPDATE categories SET sync_status = 0 WHERE id = :id")
+    void markSynced(String id);
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @Query("DELETE FROM categories WHERE id = :id")
+    void hardDeleteById(String id);
 
     @Query("UPDATE categories SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
             "WHERE user_id = :userId AND is_default = 0")

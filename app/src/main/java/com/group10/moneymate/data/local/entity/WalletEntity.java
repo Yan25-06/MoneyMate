@@ -22,7 +22,7 @@ import java.util.Objects;
     },
     indices = {
         @Index(name = "index_wallets_user_archived_deleted", value = {"user_id", "is_archived", "is_deleted"}),
-        @Index(name = "index_wallets_user_sync_updated", value = {"user_id", "sync_status", "updated_at"})
+        @Index(name = "idx_wallet_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
     }
 )
 public class WalletEntity {

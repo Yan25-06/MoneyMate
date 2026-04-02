@@ -30,6 +30,10 @@ public class MoneyMateWorkerFactory extends WorkerFactory {
                     workerParameters,
                     appContainer.transactionRepository,
                     appContainer.budgetRepository,
+                    appContainer.categoryRepository,
+                    appContainer.walletRepository,
+                    appContainer.debtRepository,
+                    appContainer.eventRepository,
                     appContainer.syncMetadataRepository,
                     appContainer.authRepository
             );

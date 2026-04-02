@@ -52,6 +52,14 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
     }
 
     public void addWallet(String name, WalletType type, double balance, @NonNull String iconName) {
+        addWallet(name, type, balance, iconName, null);
+    }
+
+    public void addWallet(String name,
+                          WalletType type,
+                          double balance,
+                          @NonNull String iconName,
+                          com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
         long now = System.currentTimeMillis();
         WalletEntity wallet = new WalletEntity();
         wallet.setId(UUID.randomUUID().toString());
@@ -65,7 +73,7 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
         wallet.setUpdatedAt(now);
         wallet.setDeleted(false);
         wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        container.walletRepository.insert(wallet);
+        container.walletRepository.insert(wallet, callback);
     }
 
     public void updateWallet(WalletEntity wallet,
@@ -73,13 +81,22 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
                              WalletType type,
                              double balance,
                              @NonNull String iconName) {
+        updateWallet(wallet, name, type, balance, iconName, null);
+    }
+
+    public void updateWallet(WalletEntity wallet,
+                             String name,
+                             WalletType type,
+                             double balance,
+                             @NonNull String iconName,
+                             com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
         wallet.setName(name);
         wallet.setType(type.name());
         wallet.setBalance(balance);
         wallet.setIconName(iconName);
         wallet.setUpdatedAt(System.currentTimeMillis());
         wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        container.walletRepository.update(wallet);
+        container.walletRepository.update(wallet, callback);
     }
 
     public void deleteWallet(WalletEntity wallet) {

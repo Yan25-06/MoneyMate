@@ -38,7 +38,7 @@ public class ParentCategoryPickerAdapter
 
     public void setSelectedParentId(@Nullable String selectedParentId) {
         this.selectedParentId = selectedParentId;
-        notifyDataSetChanged();
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     @NonNull

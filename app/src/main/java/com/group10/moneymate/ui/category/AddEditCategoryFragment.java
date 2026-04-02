@@ -29,6 +29,7 @@ import com.group10.moneymate.databinding.FragmentAddEditCategoryBinding;
 import com.group10.moneymate.ui.transaction.CategoryIconPickerFragment;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.IconProvider;
+import com.group10.moneymate.utils.LoadingHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,8 @@ public class AddEditCategoryFragment extends Fragment {
     private CategoryViewModel.CategoryAction pendingCategoryAction;
     @NonNull
     private String selectedType = Constants.TYPE_EXPENSE;
+    private boolean isSaving;
+    private final LoadingHelper loadingHelper = new LoadingHelper();
 
     @Nullable
     @Override
@@ -93,8 +96,12 @@ public class AddEditCategoryFragment extends Fragment {
     }
 
     private void setupToolbar() {
-        binding.topAppBar.setNavigationOnClickListener(v ->
-                Navigation.findNavController(v).navigateUp());
+        binding.topAppBar.setNavigationOnClickListener(v -> {
+            if (isSaving) {
+                return;
+            }
+            Navigation.findNavController(v).navigateUp();
+        });
         if (categoryId != null) {
             binding.topAppBar.inflateMenu(R.menu.menu_edit_category);
             binding.topAppBar.setOnMenuItemClickListener(item -> {
@@ -181,6 +188,7 @@ public class AddEditCategoryFragment extends Fragment {
                 .setNegativeButton(R.string.btn_cancel, null)
                 .setPositiveButton(R.string.btn_delete, (dialogInterface, which) -> {
                     pendingCategoryAction = CategoryViewModel.CategoryAction.DELETE;
+                    startSavingUi();
                     viewModel.deleteCategory(existingCategory);
                 })
                 .show();
@@ -295,6 +303,9 @@ public class AddEditCategoryFragment extends Fragment {
     }
 
     private void saveCategory() {
+        if (isSaving) {
+            return;
+        }
         String name = binding.etCategoryName.getText() != null
                 ? binding.etCategoryName.getText().toString().trim().replaceAll("\\s{2,}", " ")
                 : "";
@@ -312,11 +323,11 @@ public class AddEditCategoryFragment extends Fragment {
                 existingCategory.setType(selectedType);
             }
             pendingCategoryAction = CategoryViewModel.CategoryAction.UPDATE;
-            binding.btnSave.setEnabled(false);
+            startSavingUi();
             viewModel.updateCategory(existingCategory);
         } else {
             pendingCategoryAction = CategoryViewModel.CategoryAction.ADD;
-            binding.btnSave.setEnabled(false);
+            startSavingUi();
             viewModel.addCategory(name, selectedIconResId, "", selectedType, selectedParentId);
         }
     }
@@ -334,7 +345,7 @@ public class AddEditCategoryFragment extends Fragment {
                 return;
             }
 
-            binding.btnSave.setEnabled(true);
+            stopSavingUi();
             CategoryRepository.CategoryValidationResult validationResult = result.getValidationResult();
             if (!validationResult.isValid()) {
                 showValidationError(validationResult);
@@ -354,6 +365,20 @@ public class AddEditCategoryFragment extends Fragment {
             viewModel.clearCategoryActionResult();
             Navigation.findNavController(requireView()).navigateUp();
         });
+    }
+
+    private void startSavingUi() {
+        isSaving = true;
+        binding.btnSave.setEnabled(false);
+        loadingHelper.show(this, R.string.common_saving);
+    }
+
+    private void stopSavingUi() {
+        isSaving = false;
+        if (binding != null) {
+            binding.btnSave.setEnabled(true);
+        }
+        loadingHelper.dismiss();
     }
 
     private void showValidationError(@NonNull CategoryRepository.CategoryValidationResult result) {
@@ -403,6 +428,7 @@ public class AddEditCategoryFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        loadingHelper.dismiss();
         if (childrenSource != null) {
             childrenSource.removeObservers(getViewLifecycleOwner());
         }

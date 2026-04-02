@@ -28,6 +28,7 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentAddEditWalletBinding;
 import com.group10.moneymate.models.WalletType;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.LoadingHelper;
 
 public class AddEditWalletFragment extends Fragment {
 
@@ -39,6 +40,8 @@ public class AddEditWalletFragment extends Fragment {
     private boolean hasInitializedEdit;
     private BottomNavigationView bottomNavigationView;
     private boolean isFormattingBalance;
+    private boolean isSaving;
+    private final LoadingHelper loadingHelper = new LoadingHelper();
 
     @Nullable
     @Override
@@ -76,7 +79,12 @@ public class AddEditWalletFragment extends Fragment {
             binding.topAppBar.setTitle(R.string.add_wallet);
         }
 
-        binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+        binding.topAppBar.setNavigationOnClickListener(v -> {
+            if (isSaving) {
+                return;
+            }
+            Navigation.findNavController(v).navigateUp();
+        });
         binding.btnSave.setOnClickListener(v -> saveWallet());
     }
 
@@ -163,7 +171,7 @@ public class AddEditWalletFragment extends Fragment {
 
                 @Override
                 protected void publishResults(CharSequence constraint, FilterResults results) {
-                    notifyDataSetChanged();
+                    // Static options; no dynamic dataset update is required here.
                 }
             };
         }
@@ -228,6 +236,9 @@ public class AddEditWalletFragment extends Fragment {
     }
 
     private void saveWallet() {
+        if (isSaving) {
+            return;
+        }
         String name = normalizeSingleLineText(binding.etName.getText() == null
                 ? ""
                 : binding.etName.getText().toString());
@@ -252,13 +263,65 @@ public class AddEditWalletFragment extends Fragment {
         }
 
         WalletType type = labelToType(typeLabel);
+        startSavingUi();
 
         if (editingWallet == null) {
-            viewModel.addWallet(name, type, balance, selectedIconName);
-        } else {
-            viewModel.updateWallet(editingWallet, name, type, balance, selectedIconName);
-        }
+            viewModel.addWallet(name, type, balance, selectedIconName,
+                    new com.group10.moneymate.data.repository.WalletRepository.WriteCallback() {
+                        @Override
+                        public void onSuccess() {
+                            finishSavingAndNavigateUp();
+                        }
 
+                        @Override
+                        public void onError(@NonNull Throwable throwable) {
+                            stopSavingUi();
+                            if (isAdded()) {
+                                Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+        } else {
+            viewModel.updateWallet(editingWallet, name, type, balance, selectedIconName,
+                    new com.group10.moneymate.data.repository.WalletRepository.WriteCallback() {
+                        @Override
+                        public void onSuccess() {
+                            finishSavingAndNavigateUp();
+                        }
+
+                        @Override
+                        public void onError(@NonNull Throwable throwable) {
+                            stopSavingUi();
+                            if (isAdded()) {
+                                Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+        }
+    }
+
+    private void startSavingUi() {
+        isSaving = true;
+        binding.btnSave.setEnabled(false);
+        binding.topAppBar.setNavigationIcon(null);
+        loadingHelper.show(this, R.string.common_saving);
+    }
+
+    private void stopSavingUi() {
+        isSaving = false;
+        if (binding != null) {
+            binding.btnSave.setEnabled(true);
+            binding.topAppBar.setNavigationIcon(R.drawable.outline_close_24);
+        }
+        loadingHelper.dismiss();
+    }
+
+    private void finishSavingAndNavigateUp() {
+        if (binding == null || !isAdded()) {
+            loadingHelper.dismiss();
+            return;
+        }
+        stopSavingUi();
         Toast.makeText(requireContext(), R.string.wallet_saved, Toast.LENGTH_SHORT).show();
         NavController navController = Navigation.findNavController(binding.getRoot());
         navController.popBackStack();
@@ -291,6 +354,7 @@ public class AddEditWalletFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        loadingHelper.dismiss();
         if (bottomNavigationView != null) {
             bottomNavigationView.setVisibility(View.VISIBLE);
             bottomNavigationView = null;

@@ -21,7 +21,8 @@ import java.util.Objects;
         )
     },
     indices = {
-        @Index("user_id")
+        @Index("user_id"),
+        @Index(name = "idx_debt_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
     }
 )
 public class DebtEntity {

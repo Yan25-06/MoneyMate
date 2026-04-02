@@ -5,6 +5,7 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -159,6 +160,7 @@ public class BudgetRepository {
         budgetDao.markSynced(id);
     }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     public void hardDeleteById(@NonNull String id) {
         budgetDao.hardDeleteById(id);
     }

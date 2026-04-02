@@ -289,11 +289,26 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
         transactionRepository.insertTransaction(transaction);
     }
 
+    public void insertTransaction(TransactionEntity transaction,
+                                  @Nullable TransactionRepository.WriteCallback callback) {
+        transactionRepository.insertTransaction(transaction, callback);
+    }
+
     public void updateTransaction(TransactionEntity newTransaction) {
         transactionRepository.updateTransaction(newTransaction);
     }
 
+    public void updateTransaction(TransactionEntity newTransaction,
+                                  @Nullable TransactionRepository.WriteCallback callback) {
+        transactionRepository.updateTransaction(newTransaction, callback);
+    }
+
     public void deleteTransaction(TransactionEntity transaction) {
         transactionRepository.softDeleteTransaction(transaction);
+    }
+
+    public void deleteTransaction(TransactionEntity transaction,
+                                  @Nullable TransactionRepository.WriteCallback callback) {
+        transactionRepository.softDeleteTransaction(transaction, callback);
     }
 }

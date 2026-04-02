@@ -5,6 +5,7 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -143,6 +144,23 @@ public class CategoryRepository {
 
     public LiveData<CategoryEntity> getCategoryByIdIncludingDeleted(String id) {
         return categoryDao.getCategoryByIdIncludingDeleted(id);
+    }
+
+    public List<CategoryEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                         long lastSyncedAt,
+                                                         @NonNull String lastSyncedId,
+                                                         int limit,
+                                                         int offset) {
+        return categoryDao.getPendingSyncCategoriesPagedSince(userId, lastSyncedAt, lastSyncedId, limit, offset);
+    }
+
+    public void markSynced(@NonNull String id) {
+        categoryDao.markSynced(id);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void hardDeleteById(@NonNull String id) {
+        categoryDao.hardDeleteById(id);
     }
 
     // ─── Write (AppDatabase.databaseWriteExecutor) ────────────────────────────

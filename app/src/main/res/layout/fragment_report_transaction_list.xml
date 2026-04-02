@@ -26,7 +26,7 @@
             android:contentDescription="@string/common_back"
             android:padding="10dp"
             android:src="@drawable/outline_arrow_back_24"
-            android:tint="@color/statistics_text_primary"
+            app:tint="@color/statistics_text_primary"
             app:layout_constraintBottom_toBottomOf="@id/tvToolbarTitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/tvToolbarTitle" />
@@ -39,7 +39,7 @@
             android:contentDescription="@string/date"
             android:padding="10dp"
             android:src="@drawable/outline_calendar_today_24"
-            android:tint="@color/statistics_text_primary"
+            app:tint="@color/statistics_text_primary"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@id/tvToolbarTitle"
             app:layout_constraintEnd_toEndOf="parent"
@@ -204,3 +204,4 @@
     </androidx.core.widget.NestedScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

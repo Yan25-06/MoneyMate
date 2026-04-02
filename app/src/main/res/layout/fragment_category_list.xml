@@ -83,7 +83,7 @@
                         android:contentDescription="@string/category_wallet_filter_label"
                         android:rotation="-90"
                         android:src="@drawable/outline_arrow_back_24"
-                        android:tint="@color/budget_text_secondary" />
+                        app:tint="@color/budget_text_secondary" />
                 </LinearLayout>
             </FrameLayout>
 
@@ -136,3 +136,4 @@
 
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+

@@ -34,7 +34,7 @@
                 android:layout_gravity="center"
                 android:contentDescription="@string/category"
                 android:src="@drawable/outline_account_balance_wallet_24"
-                android:tint="@color/budget_safe_green" />
+                app:tint="@color/budget_safe_green" />
         </FrameLayout>
 
         <LinearLayout
@@ -67,7 +67,7 @@
                     android:layout_height="12dp"
                     android:contentDescription="@string/wallet"
                     android:src="@drawable/outline_account_balance_wallet_24"
-                    android:tint="@color/budget_text_secondary" />
+                    app:tint="@color/budget_text_secondary" />
 
                 <TextView
                     android:id="@+id/tv_wallet_scope"
@@ -197,3 +197,4 @@
         android:background="@color/budget_divider" />
 
 </LinearLayout>
+

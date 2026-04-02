@@ -27,7 +27,7 @@
                 android:contentDescription="@string/common_back"
                 android:padding="10dp"
                 android:src="@drawable/outline_close_24"
-                android:tint="@color/statistics_text_primary"
+                app:tint="@color/statistics_text_primary"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -50,7 +50,7 @@
                     android:contentDescription="@string/transaction_detail_duplicate"
                     android:padding="10dp"
                     android:src="@drawable/outline_content_copy_24"
-                    android:tint="@color/statistics_text_primary" />
+                    app:tint="@color/statistics_text_primary" />
 
                 <ImageButton
                     android:id="@+id/btnShare"
@@ -61,7 +61,7 @@
                     android:contentDescription="@string/transaction_detail_share"
                     android:padding="10dp"
                     android:src="@drawable/outline_share_24"
-                    android:tint="@color/statistics_text_primary" />
+                    app:tint="@color/statistics_text_primary" />
 
                 <ImageButton
                     android:id="@+id/btnEdit"
@@ -72,7 +72,7 @@
                     android:contentDescription="@string/transaction_edit_title"
                     android:padding="10dp"
                     android:src="@drawable/outline_edit_24"
-                    android:tint="@color/statistics_text_primary" />
+                    app:tint="@color/statistics_text_primary" />
 
                 <ImageButton
                     android:id="@+id/btnDelete"
@@ -83,7 +83,7 @@
                     android:contentDescription="@string/delete_transaction"
                     android:padding="10dp"
                     android:src="@drawable/outline_delete_24"
-                    android:tint="@color/expense_red" />
+                    app:tint="@color/expense_red" />
             </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -267,3 +267,4 @@
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>
+

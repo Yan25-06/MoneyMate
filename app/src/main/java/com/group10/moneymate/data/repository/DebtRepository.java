@@ -1,6 +1,8 @@
 package com.group10.moneymate.data.repository;
 
 import androidx.lifecycle.LiveData;
+import androidx.annotation.NonNull;
+import androidx.annotation.RestrictTo;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.DebtDao;
@@ -55,5 +57,22 @@ public class DebtRepository {
     public void softDelete(String id) {
         AppDatabase.databaseWriteExecutor.execute(() ->
                 debtDao.softDelete(id, System.currentTimeMillis()));
+    }
+
+    public List<DebtEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                     long lastSyncedAt,
+                                                     @NonNull String lastSyncedId,
+                                                     int limit,
+                                                     int offset) {
+        return debtDao.getPendingSyncDebtsPagedSince(userId, lastSyncedAt, lastSyncedId, limit, offset);
+    }
+
+    public void markSynced(@NonNull String id) {
+        debtDao.markSynced(id);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void hardDeleteById(@NonNull String id) {
+        debtDao.hardDeleteById(id);
     }
 }

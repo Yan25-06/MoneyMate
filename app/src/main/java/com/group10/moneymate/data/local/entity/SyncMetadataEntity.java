@@ -3,8 +3,15 @@ package com.group10.moneymate.data.local.entity;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Index;
 
-@Entity(tableName = "sync_metadata", primaryKeys = {"user_id", "domain"})
+@Entity(
+        tableName = "sync_metadata",
+        primaryKeys = {"user_id", "domain"},
+        indices = {
+                @Index(name = "index_sync_metadata_user_domain", value = {"user_id", "domain"})
+        }
+)
 public class SyncMetadataEntity {
 
     @NonNull
@@ -15,11 +22,11 @@ public class SyncMetadataEntity {
     @ColumnInfo(name = "domain")
     private String domain;
 
-    @ColumnInfo(name = "last_synced_at")
+    @ColumnInfo(name = "last_synced_at", defaultValue = "0")
     private long lastSyncedAt;
 
     @NonNull
-    @ColumnInfo(name = "last_synced_id")
+    @ColumnInfo(name = "last_synced_id", defaultValue = "''")
     private String lastSyncedId;
 
     public SyncMetadataEntity() {

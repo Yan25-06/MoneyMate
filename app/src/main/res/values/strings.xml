@@ -81,6 +81,8 @@
     <string name="wallet">Ví</string>
     <string name="date">Ngày</string>
     <string name="btn_save">Lưu</string>
+    <string name="common_saving">Đang lưu...</string>
+    <string name="common_save_failed">Không thể lưu dữ liệu. Vui lòng thử lại.</string>
     <string name="common_cancel">Hủy</string>
     <string name="common_back">Quay về</string>
     <string name="empty_transactions">Chưa có giao dịch nào.\nNhấn + để thêm mới.</string>

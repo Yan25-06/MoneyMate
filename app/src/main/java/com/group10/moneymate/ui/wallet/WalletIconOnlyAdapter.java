@@ -51,12 +51,12 @@ public class WalletIconOnlyAdapter extends ListAdapter<WalletIconOnlyAdapter.Wal
 
     public void setSelectedIconName(@Nullable String selectedIconName) {
         this.selectedIconName = selectedIconName;
-        notifyDataSetChanged();
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     public void setAccentColor(@ColorInt int accentColor) {
         this.accentColor = accentColor;
-        notifyDataSetChanged();
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     @NonNull

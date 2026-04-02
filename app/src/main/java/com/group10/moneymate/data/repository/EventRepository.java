@@ -1,6 +1,8 @@
 package com.group10.moneymate.data.repository;
 
 import androidx.lifecycle.LiveData;
+import androidx.annotation.NonNull;
+import androidx.annotation.RestrictTo;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.EventDao;
@@ -55,5 +57,22 @@ public class EventRepository {
     public void softDelete(String id) {
         AppDatabase.databaseWriteExecutor.execute(() ->
                 eventDao.softDelete(id, System.currentTimeMillis()));
+    }
+
+    public List<EventEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                      long lastSyncedAt,
+                                                      @NonNull String lastSyncedId,
+                                                      int limit,
+                                                      int offset) {
+        return eventDao.getPendingSyncEventsPagedSince(userId, lastSyncedAt, lastSyncedId, limit, offset);
+    }
+
+    public void markSynced(@NonNull String id) {
+        eventDao.markSynced(id);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void hardDeleteById(@NonNull String id) {
+        eventDao.hardDeleteById(id);
     }
 }

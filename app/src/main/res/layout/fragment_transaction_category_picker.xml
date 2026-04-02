@@ -68,7 +68,7 @@
                     android:backgroundTint="@color/white"
                     android:padding="6dp"
                     android:src="@drawable/outline_account_tree_24"
-                    android:tint="@color/budget_text_primary"
+                    app:tint="@color/budget_text_primary"
                     android:contentDescription="@null" />
 
                 <TextView
@@ -110,7 +110,7 @@
                     android:backgroundTint="@color/white"
                     android:padding="6dp"
                     android:src="@drawable/outline_add_24"
-                    android:tint="@color/income_green"
+                    app:tint="@color/income_green"
                     android:contentDescription="@null" />
 
                 <TextView
@@ -148,4 +148,5 @@
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
 

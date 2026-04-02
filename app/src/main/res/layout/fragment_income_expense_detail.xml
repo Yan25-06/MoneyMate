@@ -150,7 +150,7 @@
                             android:layout_height="18dp"
                             android:contentDescription="@null"
                             android:src="@drawable/outline_add_24"
-                            android:tint="@color/income_green" />
+                            app:tint="@color/income_green" />
 
                         <TextView
                             android:id="@+id/tvNetSectionValue"
@@ -405,3 +405,4 @@
     </androidx.core.widget.NestedScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

@@ -25,7 +25,7 @@ public class SyncMetadataRepository {
         created.setDomain(domain);
         created.setLastSyncedAt(0L);
         created.setLastSyncedId("");
-        syncMetadataDao.upsert(created);
+        syncMetadataDao.upsert(userId, domain, 0L, "");
         return created;
     }
 

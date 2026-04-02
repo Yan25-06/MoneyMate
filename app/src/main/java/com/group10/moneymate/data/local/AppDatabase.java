@@ -25,6 +25,7 @@ import com.group10.moneymate.data.local.entity.UserEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.local.migrations.Migration10To11;
 import com.group10.moneymate.data.local.migrations.Migration11To12;
+import com.group10.moneymate.data.local.migrations.Migration12To13;
 import com.group10.moneymate.data.local.migrations.Migration7To8;
 import com.group10.moneymate.data.local.migrations.Migration8To9;
 import com.group10.moneymate.data.local.migrations.Migration9To10;
@@ -43,7 +44,7 @@ import java.util.concurrent.Executors;
         EventEntity.class,
         SyncMetadataEntity.class
     },
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters({Converters.class})
@@ -75,7 +76,8 @@ public abstract class AppDatabase extends RoomDatabase {
                             Migration8To9.MIGRATION_8_9,
                             Migration9To10.MIGRATION_9_10,
                             Migration10To11.MIGRATION_10_11,
-                            Migration11To12.MIGRATION_11_12
+                            Migration11To12.MIGRATION_11_12,
+                            Migration12To13.MIGRATION_12_13
                     )
                     .build();
                 }

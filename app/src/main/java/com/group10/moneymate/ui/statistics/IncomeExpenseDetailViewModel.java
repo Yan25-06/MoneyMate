@@ -639,9 +639,6 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
                 }
                 LocalDate targetDate = month.withDayOfMonth(dayOfMonth);
                 Map<LocalDate, Double> monthMap = previousMaps.get(index);
-                if (!monthMap.containsKey(targetDate)) {
-                    continue;
-                }
                 averageTotal += sumRange(monthMap, month.withDayOfMonth(1), targetDate);
                 divisor++;
             }
