@@ -2,8 +2,6 @@ package com.group10.moneymate.data.local.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
-import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
@@ -13,8 +11,51 @@ import java.util.List;
 
 @Dao
 public interface BudgetDao {
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    void insert(BudgetEntity budget);
+    @Query("INSERT INTO budgets (" +
+            "id, category_id, user_id, amount, start_date, end_date, wallet_id, " +
+            "created_at, updated_at, is_deleted, sync_status" +
+            ") VALUES (" +
+            ":id, :categoryId, :userId, :amount, :startDate, :endDate, :walletId, " +
+            ":createdAt, :updatedAt, :isDeleted, :syncStatus" +
+            ") ON CONFLICT(user_id, wallet_id, start_date, end_date, category_id) DO UPDATE SET " +
+            "amount = excluded.amount, " +
+            "updated_at = excluded.updated_at, " +
+            "sync_status = CASE WHEN budgets.sync_status = 2 THEN 2 ELSE excluded.sync_status END, " +
+            "is_deleted = CASE WHEN budgets.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, " +
+            "created_at = CASE " +
+            "WHEN budgets.created_at IS NULL OR budgets.created_at <= 0 THEN excluded.created_at " +
+            "ELSE budgets.created_at END")
+    void upsertLocalRaw(String id,
+                        String categoryId,
+                        String userId,
+                        double amount,
+                        long startDate,
+                        long endDate,
+                        String walletId,
+                        long createdAt,
+                        long updatedAt,
+                        boolean isDeleted,
+                        int syncStatus);
+
+    default void upsertLocal(BudgetEntity budget) {
+        upsertLocalRaw(
+                budget.getId(),
+                budget.getCategoryId(),
+                budget.getUserId(),
+                budget.getAmount(),
+                budget.getStartDate(),
+                budget.getEndDate(),
+                budget.getWalletId(),
+                budget.getCreatedAt(),
+                budget.getUpdatedAt(),
+                budget.isDeleted(),
+                budget.getSyncStatus()
+        );
+    }
+
+    default void insert(BudgetEntity budget) {
+        upsertLocal(budget);
+    }
 
     @Update
     void update(BudgetEntity budget);

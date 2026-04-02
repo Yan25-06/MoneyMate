@@ -95,9 +95,7 @@ public class BudgetRepository {
                 appDatabase.runInTransaction(() -> {
                     BudgetEntity existing = budgetDao.getBudgetByIdSync(budget.getUserId(), budget.getId());
                     validateManualUpdate(budget);
-                    budget.setUpdatedAt(System.currentTimeMillis());
-                    budget.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-                    budgetDao.update(budget);
+                    updateBudgetInternal(budget);
                     syncOtherCategoriesBudget(
                             budget.getUserId(),
                             budget.getWalletId(),
@@ -209,13 +207,16 @@ public class BudgetRepository {
         budget.setUpdatedAt(now);
         budget.setDeleted(false);
         budget.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        budgetDao.insert(budget);
+        budgetDao.upsertLocal(budget);
     }
 
     private void updateBudgetInternal(@NonNull BudgetEntity budget) {
+        if (budget.getCreatedAt() <= 0L) {
+            budget.setCreatedAt(System.currentTimeMillis());
+        }
         budget.setUpdatedAt(System.currentTimeMillis());
         budget.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        budgetDao.update(budget);
+        budgetDao.upsertLocal(budget);
     }
 
     private void syncOtherCategoriesBudget(@NonNull String userId,

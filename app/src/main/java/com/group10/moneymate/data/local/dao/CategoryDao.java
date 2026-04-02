@@ -3,8 +3,6 @@ package com.group10.moneymate.data.local.dao;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
-import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
@@ -15,14 +13,70 @@ import java.util.List;
 
 @Dao
 public interface CategoryDao {
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    void insertCategory(CategoryEntity category);
+    @Query("INSERT INTO categories (" +
+            "id, user_id, name, type, icon_name, parent_id, wallet_id, is_default, " +
+            "created_at, updated_at, sync_status, is_deleted" +
+            ") VALUES (" +
+            ":id, :userId, :name, :type, :iconName, :parentId, :walletId, :isDefault, " +
+            ":createdAt, :updatedAt, :syncStatus, :isDeleted" +
+            ") ON CONFLICT(id) DO UPDATE SET " +
+            "user_id = excluded.user_id, " +
+            "name = excluded.name, " +
+            "type = excluded.type, " +
+            "icon_name = excluded.icon_name, " +
+            "parent_id = excluded.parent_id, " +
+            "wallet_id = excluded.wallet_id, " +
+            "is_default = excluded.is_default, " +
+            "updated_at = excluded.updated_at, " +
+            "sync_status = CASE WHEN categories.sync_status = 2 THEN 2 ELSE excluded.sync_status END, " +
+            "is_deleted = CASE WHEN categories.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, " +
+            "created_at = CASE " +
+            "WHEN categories.created_at IS NULL OR categories.created_at <= 0 THEN excluded.created_at " +
+            "ELSE categories.created_at END")
+    void upsertLocalRaw(String id,
+                        String userId,
+                        String name,
+                        String type,
+                        String iconName,
+                        String parentId,
+                        String walletId,
+                        boolean isDefault,
+                        long createdAt,
+                        long updatedAt,
+                        int syncStatus,
+                        boolean isDeleted);
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    long insertCategoryIgnore(CategoryEntity category);
+    default void upsertLocal(CategoryEntity category) {
+        upsertLocalRaw(
+                category.getId(),
+                category.getUserId(),
+                category.getName(),
+                category.getType(),
+                category.getIconName(),
+                category.getParentId(),
+                category.getWalletId(),
+                category.isDefault(),
+                category.getCreatedAt(),
+                category.getUpdatedAt(),
+                category.getSyncStatus(),
+                category.isDeleted()
+        );
+    }
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    void insertAll(List<CategoryEntity> categories);
+    default void insertCategory(CategoryEntity category) {
+        upsertLocal(category);
+    }
+
+    default long insertCategoryIgnore(CategoryEntity category) {
+        upsertLocal(category);
+        return 1L;
+    }
+
+    default void insertAll(List<CategoryEntity> categories) {
+        for (CategoryEntity category : categories) {
+            upsertLocal(category);
+        }
+    }
 
     @Update
     void updateCategory(CategoryEntity category);

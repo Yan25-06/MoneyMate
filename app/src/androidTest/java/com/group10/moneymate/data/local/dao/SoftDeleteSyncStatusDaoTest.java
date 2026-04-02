@@ -92,6 +92,48 @@ public class SoftDeleteSyncStatusDaoTest {
         assertSoftDeleted("events", eventId, updatedAt);
     }
 
+    @Test
+    public void transactionSoftDeleteAllByUser_marksRecordsPendingDelete() {
+        String firstId = "tx_soft_delete_all_1";
+        String secondId = "tx_soft_delete_all_2";
+        long updatedAt = System.currentTimeMillis();
+
+        transactionDao.insertTransaction(buildTransaction(firstId, updatedAt - 20_000L));
+        transactionDao.insertTransaction(buildTransaction(secondId, updatedAt - 10_000L));
+        transactionDao.softDeleteAllByUser(USER_ID, updatedAt);
+
+        assertSoftDeleted("transactions", firstId, updatedAt);
+        assertSoftDeleted("transactions", secondId, updatedAt);
+    }
+
+    @Test
+    public void debtSoftDeleteAllByUser_marksRecordsPendingDelete() {
+        String firstId = "debt_soft_delete_all_1";
+        String secondId = "debt_soft_delete_all_2";
+        long updatedAt = System.currentTimeMillis();
+
+        debtDao.insertDebt(buildDebt(firstId, updatedAt - 20_000L));
+        debtDao.insertDebt(buildDebt(secondId, updatedAt - 10_000L));
+        debtDao.softDeleteAllByUser(USER_ID, updatedAt);
+
+        assertSoftDeleted("debts", firstId, updatedAt);
+        assertSoftDeleted("debts", secondId, updatedAt);
+    }
+
+    @Test
+    public void eventSoftDeleteAllByUser_marksRecordsPendingDelete() {
+        String firstId = "event_soft_delete_all_1";
+        String secondId = "event_soft_delete_all_2";
+        long updatedAt = System.currentTimeMillis();
+
+        eventDao.insertEvent(buildEvent(firstId, updatedAt - 20_000L));
+        eventDao.insertEvent(buildEvent(secondId, updatedAt - 10_000L));
+        eventDao.softDeleteAllByUser(USER_ID, updatedAt);
+
+        assertSoftDeleted("events", firstId, updatedAt);
+        assertSoftDeleted("events", secondId, updatedAt);
+    }
+
     private void assertSoftDeleted(String tableName, String id, long updatedAt) {
         SupportSQLiteDatabase sqlite = database.getOpenHelper().getWritableDatabase();
         try (Cursor cursor = sqlite.query(new SimpleSQLiteQuery(
@@ -197,4 +239,5 @@ public class SoftDeleteSyncStatusDaoTest {
         return entity;
     }
 }
+
 

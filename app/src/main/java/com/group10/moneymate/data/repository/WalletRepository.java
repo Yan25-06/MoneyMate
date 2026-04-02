@@ -9,6 +9,7 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.models.SyncStatus;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Repository for wallet data.
@@ -49,28 +50,29 @@ public class WalletRepository {
     }
 
     public void insert(WalletEntity wallet) {
-        if (wallet.getIconName().trim().isEmpty()) {
-            wallet.setIconName("ic_wallet_default");
-        }
-        AppDatabase.databaseWriteExecutor.execute(() -> walletDao.insert(wallet));
+        upsertWalletInternal(wallet);
     }
 
     public void update(WalletEntity wallet) {
+        upsertWalletInternal(wallet);
+    }
+
+    private void upsertWalletInternal(WalletEntity wallet) {
         if (wallet.getIconName().trim().isEmpty()) {
             wallet.setIconName("ic_wallet_default");
         }
-        wallet.setUpdatedAt(System.currentTimeMillis());
-        wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        AppDatabase.databaseWriteExecutor.execute(() -> walletDao.updateEditableFieldsById(
-                wallet.getId(),
-                wallet.getName(),
-                wallet.getBalance(),
-                wallet.getType(),
-                wallet.getIconName(),
-                wallet.isExcluded(),
-                wallet.getUpdatedAt(),
-                wallet.getSyncStatus()
-        ));
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            long now = System.currentTimeMillis();
+            if (wallet.getId() == null || wallet.getId().trim().isEmpty()) {
+                wallet.setId(UUID.randomUUID().toString());
+            }
+            if (wallet.getCreatedAt() <= 0L) {
+                wallet.setCreatedAt(now);
+            }
+            wallet.setUpdatedAt(now);
+            wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+            walletDao.upsertLocal(wallet);
+        });
     }
 
     public void softDelete(WalletEntity wallet) {

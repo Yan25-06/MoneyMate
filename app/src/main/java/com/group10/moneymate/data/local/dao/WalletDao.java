@@ -2,8 +2,6 @@ package com.group10.moneymate.data.local.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
-import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
 
@@ -13,8 +11,59 @@ import java.util.List;
 
 @Dao
 public abstract class WalletDao {
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    public abstract void insert(WalletEntity wallet);
+    @Query("INSERT INTO wallets (" +
+            "id, user_id, name, balance, type, icon_name, is_archived, is_excluded, " +
+            "updated_at, sync_status, is_deleted, created_at" +
+            ") VALUES (" +
+            ":id, :userId, :name, :balance, :type, :iconName, :isArchived, :isExcluded, " +
+            ":updatedAt, :syncStatus, :isDeleted, :createdAt" +
+            ") ON CONFLICT(id) DO UPDATE SET " +
+            "user_id = excluded.user_id, " +
+            "name = excluded.name, " +
+            "balance = excluded.balance, " +
+            "type = excluded.type, " +
+            "icon_name = excluded.icon_name, " +
+            "is_archived = excluded.is_archived, " +
+            "is_excluded = excluded.is_excluded, " +
+            "updated_at = excluded.updated_at, " +
+            "sync_status = CASE WHEN wallets.sync_status = 2 THEN 2 ELSE excluded.sync_status END, " +
+            "is_deleted = CASE WHEN wallets.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, " +
+            "created_at = CASE " +
+            "WHEN wallets.created_at IS NULL OR wallets.created_at <= 0 THEN excluded.created_at " +
+            "ELSE wallets.created_at END")
+    public abstract void upsertLocalRaw(String id,
+                                        String userId,
+                                        String name,
+                                        double balance,
+                                        String type,
+                                        String iconName,
+                                        boolean isArchived,
+                                        boolean isExcluded,
+                                        long updatedAt,
+                                        int syncStatus,
+                                        boolean isDeleted,
+                                        long createdAt);
+
+    public void upsertLocal(WalletEntity wallet) {
+        upsertLocalRaw(
+                wallet.getId(),
+                wallet.getUserId(),
+                wallet.getName(),
+                wallet.getBalance(),
+                wallet.getType(),
+                wallet.getIconName(),
+                wallet.isArchived(),
+                wallet.isExcluded(),
+                wallet.getUpdatedAt(),
+                wallet.getSyncStatus(),
+                wallet.isDeleted(),
+                wallet.getCreatedAt()
+        );
+    }
+
+    public void insert(WalletEntity wallet) {
+        upsertLocal(wallet);
+    }
 
     @Query("UPDATE wallets SET " +
             "name = :name, " +

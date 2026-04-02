@@ -28,7 +28,11 @@ import java.util.UUID;
             onDelete = ForeignKey.NO_ACTION
         )
     },
-    indices = {@Index("user_id"), @Index("category_id")}
+    indices = {
+        @Index("user_id"),
+        @Index("category_id"),
+        @Index(value = {"user_id", "wallet_id", "start_date", "end_date", "category_id"}, unique = true)
+    }
 )
 public class BudgetEntity {
 

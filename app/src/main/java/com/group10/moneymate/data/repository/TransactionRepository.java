@@ -15,6 +15,7 @@ import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Repository for transaction data.
@@ -288,18 +289,25 @@ public class TransactionRepository {
     // ─── Write ────────────────────────────────────────────────────────────────
 
     public void insertTransaction(TransactionEntity transaction) {
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-            transaction.setUpdatedAt(System.currentTimeMillis());
-            transactionDao.insertTransaction(transaction);
-        });
+        upsertTransactionInternal(transaction);
     }
 
     public void updateTransaction(TransactionEntity newTransaction) {
+        upsertTransactionInternal(newTransaction);
+    }
+
+    private void upsertTransactionInternal(TransactionEntity transaction) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            newTransaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-            newTransaction.setUpdatedAt(System.currentTimeMillis());
-            transactionDao.updateTransaction(newTransaction);
+            long now = System.currentTimeMillis();
+            if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
+                transaction.setId(UUID.randomUUID().toString());
+            }
+            if (transaction.getCreatedAt() <= 0L) {
+                transaction.setCreatedAt(now);
+            }
+            transaction.setUpdatedAt(now);
+            transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+            transactionDao.upsertLocal(transaction);
         });
     }
 

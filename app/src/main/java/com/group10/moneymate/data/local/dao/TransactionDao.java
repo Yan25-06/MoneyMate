@@ -2,11 +2,7 @@ package com.group10.moneymate.data.local.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
-import androidx.room.Delete;
-import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
-import androidx.room.Update;
 
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
@@ -17,14 +13,77 @@ import java.util.List;
 
 @Dao
 public interface TransactionDao {
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    void insertTransaction(TransactionEntity transaction);
+    @Query("INSERT INTO transactions (" +
+            "id, wallet_id, category_id, debt_id, event_id, amount, type, to_wallet_id, note, " +
+            "timestamp, image_path, created_at, updated_at, sync_status, is_deleted, user_id" +
+            ") VALUES (" +
+            ":id, :walletId, :categoryId, :debtId, :eventId, " +
+            ":amount, :type, :toWalletId, :note, :timestamp, " +
+            ":imagePath, :createdAt, :updatedAt, :syncStatus, " +
+            ":isDeleted, :userId" +
+            ") ON CONFLICT(id) DO UPDATE SET " +
+            "wallet_id = excluded.wallet_id, " +
+            "category_id = excluded.category_id, " +
+            "debt_id = excluded.debt_id, " +
+            "event_id = excluded.event_id, " +
+            "amount = excluded.amount, " +
+            "type = excluded.type, " +
+            "to_wallet_id = excluded.to_wallet_id, " +
+            "note = excluded.note, " +
+            "timestamp = excluded.timestamp, " +
+            "image_path = excluded.image_path, " +
+            "updated_at = excluded.updated_at, " +
+            "sync_status = CASE WHEN transactions.sync_status = 2 THEN 2 ELSE excluded.sync_status END, " +
+            "is_deleted = CASE WHEN transactions.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, " +
+            "created_at = CASE " +
+            "WHEN transactions.created_at IS NULL OR transactions.created_at <= 0 THEN excluded.created_at " +
+            "ELSE transactions.created_at END, " +
+            "user_id = excluded.user_id")
+    void upsertLocalRaw(String id,
+                        String walletId,
+                        String categoryId,
+                        String debtId,
+                        String eventId,
+                        double amount,
+                        String type,
+                        String toWalletId,
+                        String note,
+                        long timestamp,
+                        String imagePath,
+                        long createdAt,
+                        long updatedAt,
+                        int syncStatus,
+                        boolean isDeleted,
+                        String userId);
 
-    @Update
-    void updateTransaction(TransactionEntity transaction);
+    default void upsertLocal(TransactionEntity transaction) {
+        upsertLocalRaw(
+                transaction.getId(),
+                transaction.getWalletId(),
+                transaction.getCategoryId(),
+                transaction.getDebtId(),
+                transaction.getEventId(),
+                transaction.getAmount(),
+                transaction.getType(),
+                transaction.getToWalletId(),
+                transaction.getNote(),
+                transaction.getTimestamp(),
+                transaction.getImagePath(),
+                transaction.getCreatedAt(),
+                transaction.getUpdatedAt(),
+                transaction.getSyncStatus(),
+                transaction.isDeleted(),
+                transaction.getUserId()
+        );
+    }
 
-    @Delete
-    void deleteTransaction(TransactionEntity transaction);
+    default void insertTransaction(TransactionEntity transaction) {
+        upsertLocal(transaction);
+    }
+
+    default void updateTransaction(TransactionEntity transaction) {
+        upsertLocal(transaction);
+    }
 
     @Query("SELECT t.* FROM transactions t " +
             "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
@@ -479,6 +538,7 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0")
     List<TransactionEntity> getPendingSyncTransactions(String userId);
 
-    @Query("DELETE FROM transactions WHERE user_id = :userId")
-    void deleteAllByUser(String userId);
+    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
+            "WHERE user_id = :userId AND is_deleted = 0")
+    void softDeleteAllByUser(String userId, long updatedAt);
 }
