@@ -15,10 +15,13 @@ import java.util.List;
 
 @Dao
 public interface CategoryDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     void insertCategory(CategoryEntity category);
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    long insertCategoryIgnore(CategoryEntity category);
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     void insertAll(List<CategoryEntity> categories);
 
     @Update

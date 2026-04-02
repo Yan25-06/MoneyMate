@@ -401,10 +401,10 @@ public class CategoryRepository {
 
     private void ensureVirtualOtherCategoriesExistInternal() {
         if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER) == null) {
-            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER));
+            categoryDao.insertCategoryIgnore(buildOtherCategory(Constants.CATEGORY_ID_OTHER));
         }
         if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER_LEGACY) == null) {
-            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER_LEGACY));
+            categoryDao.insertCategoryIgnore(buildOtherCategory(Constants.CATEGORY_ID_OTHER_LEGACY));
         }
     }
 

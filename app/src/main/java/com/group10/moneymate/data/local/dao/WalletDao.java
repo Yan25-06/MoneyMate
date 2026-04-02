@@ -13,7 +13,7 @@ import java.util.List;
 
 @Dao
 public abstract class WalletDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     public abstract void insert(WalletEntity wallet);
 
     @Query("UPDATE wallets SET " +

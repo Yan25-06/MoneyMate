@@ -14,7 +14,7 @@ import java.util.List;
 
 @Dao
 public interface DebtDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     void insertDebt(DebtEntity debt);
 
     @Update

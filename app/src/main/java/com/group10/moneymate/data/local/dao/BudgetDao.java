@@ -13,7 +13,7 @@ import java.util.List;
 
 @Dao
 public interface BudgetDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     void insert(BudgetEntity budget);
 
     @Update
