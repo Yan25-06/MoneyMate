@@ -5,7 +5,6 @@ import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Query;
 import androidx.room.Transaction;
-import androidx.room.Update;
 
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 
@@ -78,8 +77,6 @@ public interface CategoryDao {
         }
     }
 
-    @Update
-    void updateCategory(CategoryEntity category);
 
     @Query("SELECT * FROM categories WHERE (user_id = :userId OR is_default = 1) " +
             "AND is_deleted = 0 " +

@@ -3,7 +3,6 @@ package com.group10.moneymate.data.local.dao;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Query;
-import androidx.room.Update;
 
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 
@@ -57,8 +56,6 @@ public interface BudgetDao {
         upsertLocal(budget);
     }
 
-    @Update
-    void update(BudgetEntity budget);
 
     @Query("SELECT * FROM budgets WHERE user_id = :userId AND is_deleted = 0 ORDER BY start_date ASC, updated_at DESC")
     LiveData<List<BudgetEntity>> getAllBudgets(String userId);
