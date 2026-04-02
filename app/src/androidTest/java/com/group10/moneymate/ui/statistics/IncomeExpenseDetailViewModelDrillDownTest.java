@@ -21,6 +21,7 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.UserEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.models.SyncStatus;
@@ -60,8 +61,9 @@ public class IncomeExpenseDetailViewModelDrillDownTest {
         seedBaseData();
 
         TransactionRepository transactionRepository =
-                new TransactionRepository(database.transactionDao(), database.walletDao());
+                new TransactionRepository(database.transactionDao());
         WalletRepository walletRepository = new WalletRepository(database.walletDao());
+        CategoryRepository categoryRepository = new CategoryRepository(database.categoryDao());
 
         long now = System.currentTimeMillis();
         long start = now - TimeUnit.DAYS.toMillis(7);
@@ -71,6 +73,7 @@ public class IncomeExpenseDetailViewModelDrillDownTest {
                 new IncomeExpenseDetailViewModel(
                         transactionRepository,
                         walletRepository,
+                        categoryRepository,
                         USER_ID,
                         WALLET_ID,
                         start,
