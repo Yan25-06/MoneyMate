@@ -50,7 +50,9 @@ import java.util.Objects;
         @Index("debt_id"),
         @Index("event_id"),
         @Index("to_wallet_id"),
-        @Index("user_id")
+        @Index("user_id"),
+        @Index(name = "index_transactions_user_deleted_timestamp_id", value = {"user_id", "is_deleted", "timestamp", "id"}),
+        @Index(name = "index_transactions_user_sync_updated_id", value = {"user_id", "sync_status", "updated_at", "id"})
     }
 )
 public class TransactionEntity {

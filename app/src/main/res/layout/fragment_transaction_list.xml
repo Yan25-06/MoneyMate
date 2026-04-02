@@ -14,168 +14,161 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/scrollContent"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardLedgerSummary"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:fillViewport="true"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="12dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardCornerRadius="22dp"
+        app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/statisticsHeader">
+        app:layout_constraintTop_toBottomOf="@id/statisticsHeader"
+        app:strokeColor="@color/statistics_card_stroke"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="12dp">
+            android:paddingStart="16dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="16dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardLedgerSummary"
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginEnd="12dp"
-                app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/statistics_card_stroke"
-                app:strokeWidth="1dp">
+                android:layout_height="wrap_content">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tvIncomeLabel"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingStart="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="16dp">
+                    android:text="@string/ledger_income_label"
+                    android:textColor="@color/statistics_text_secondary"
+                    android:textSize="15sp"
+                    app:layout_constraintEnd_toStartOf="@id/tvIncomeValue"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
-                    <androidx.constraintlayout.widget.ConstraintLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                <TextView
+                    android:id="@+id/tvIncomeValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/default_currency_zero"
+                    android:textColor="@color/transfer_blue"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
-                        <TextView
-                            android:id="@+id/tvIncomeLabel"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:text="@string/ledger_income_label"
-                            android:textColor="@color/statistics_text_secondary"
-                            android:textSize="15sp"
-                            app:layout_constraintEnd_toStartOf="@id/tvIncomeValue"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent" />
+                <TextView
+                    android:id="@+id/tvExpenseLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/ledger_expense_label"
+                    android:textColor="@color/statistics_text_secondary"
+                    android:textSize="15sp"
+                    app:layout_constraintEnd_toStartOf="@id/tvExpenseValue"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/tvIncomeLabel" />
 
-                        <TextView
-                            android:id="@+id/tvIncomeValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/default_currency_zero"
-                            android:textColor="@color/transfer_blue"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toTopOf="parent" />
+                <TextView
+                    android:id="@+id/tvExpenseValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/default_currency_zero"
+                    android:textColor="@color/expense_red"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/tvIncomeValue" />
 
-                        <TextView
-                            android:id="@+id/tvExpenseLabel"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:text="@string/ledger_expense_label"
-                            android:textColor="@color/statistics_text_secondary"
-                            android:textSize="15sp"
-                            app:layout_constraintEnd_toStartOf="@id/tvExpenseValue"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@id/tvIncomeLabel" />
+                <View
+                    android:id="@+id/viewNetDivider"
+                    android:layout_width="120dp"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/statistics_card_stroke"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/tvExpenseValue" />
 
-                        <TextView
-                            android:id="@+id/tvExpenseValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:text="@string/default_currency_zero"
-                            android:textColor="@color/expense_red"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toBottomOf="@id/tvIncomeValue" />
+                <TextView
+                    android:id="@+id/tvNetValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/default_currency_zero"
+                    android:textColor="@color/statistics_text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/viewNetDivider" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-                        <View
-                            android:id="@+id/viewNetDivider"
-                            android:layout_width="120dp"
-                            android:layout_height="1dp"
-                            android:layout_marginTop="12dp"
-                            android:background="@color/statistics_card_stroke"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toBottomOf="@id/tvExpenseValue" />
-
-                        <TextView
-                            android:id="@+id/tvNetValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:text="@string/default_currency_zero"
-                            android:textColor="@color/statistics_text_primary"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toBottomOf="@id/viewNetDivider" />
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnViewPeriodReport"
-                        style="@style/Widget.Material3.Button"
-                        android:layout_width="wrap_content"
-                        android:layout_height="44dp"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="16dp"
-                        android:insetBottom="0dp"
-                        android:insetTop="0dp"
-                        android:minWidth="0dp"
-                        android:paddingStart="18dp"
-                        android:paddingEnd="18dp"
-                        android:text="@string/ledger_view_period_report"
-                        android:textAllCaps="false"
-                        android:textColor="@color/white"
-                        app:backgroundTint="@color/income_green"
-                        app:cornerRadius="22dp"
-                        app:strokeWidth="0dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvTransactions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false"
-                android:nestedScrollingEnabled="false"
-                android:paddingTop="4dp"
-                android:paddingBottom="20dp" />
-
-            <ProgressBar
-                android:id="@+id/pbLoadingMore"
-                style="?android:attr/progressBarStyleSmall"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnViewPeriodReport"
+                style="@style/Widget.Material3.Button"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/tvEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:padding="32dp"
-                android:text="@string/ledger_empty_state"
-                android:textColor="@color/statistics_text_muted"
-                android:textSize="15sp"
-                android:visibility="gone" />
+                android:layout_marginTop="16dp"
+                android:insetBottom="0dp"
+                android:insetTop="0dp"
+                android:minWidth="0dp"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:text="@string/ledger_view_period_report"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                app:backgroundTint="@color/income_green"
+                app:cornerRadius="22dp"
+                app:strokeWidth="0dp" />
         </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+    </com.google.android.material.card.MaterialCardView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvTransactions"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:nestedScrollingEnabled="true"
+        android:paddingTop="4dp"
+        android:paddingBottom="20dp"
+        app:layout_constraintBottom_toTopOf="@id/pbLoadingMore"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cardLedgerSummary" />
+
+    <ProgressBar
+        android:id="@+id/pbLoadingMore"
+        style="?android:attr/progressBarStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/tvEmpty"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="32dp"
+        android:text="@string/ledger_empty_state"
+        android:textColor="@color/statistics_text_muted"
+        android:textSize="15sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

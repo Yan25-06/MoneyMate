@@ -26,6 +26,20 @@ import java.util.Map;
 
 public class TransactionViewModel extends DebounceableAndroidViewModel {
 
+    public static class FilterParams {
+        @Nullable
+        private final String walletId;
+
+        public FilterParams(@Nullable String walletId) {
+            this.walletId = walletId;
+        }
+
+        @Nullable
+        public String getWalletId() {
+            return walletId;
+        }
+    }
+
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final String userId;
@@ -188,11 +202,7 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
             return;
         }
         isLoadingMore.setValue(true);
-        transactionRepository.getTransactionsPageByCursor(
-                userId,
-                PAGE_SIZE,
-                lastTimestamp,
-                lastId,
+        TransactionRepository.PageCallback<List<TransactionEntity>> callback =
                 new TransactionRepository.PageCallback<List<TransactionEntity>>() {
             @Override
             public void onSuccess(List<TransactionEntity> page) {
@@ -224,7 +234,29 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
             public void onError(Exception exception) {
                 isLoadingMore.setValue(false);
             }
-        });
+        };
+
+        if (lastTimestamp == Long.MAX_VALUE) {
+            transactionRepository.getFirstTransactionsPage(userId, PAGE_SIZE, callback);
+            return;
+        }
+
+        transactionRepository.getTransactionsPageByCursor(
+                userId,
+                PAGE_SIZE,
+                lastTimestamp,
+                lastId,
+                callback
+        );
+    }
+
+    public void applyFilter(@Nullable FilterParams filterParams) {
+        // Placeholder for future filter-specific keyset sources.
+        resetPagination();
+    }
+
+    public void resetPaginationForNewFilter() {
+        resetPagination();
     }
 
     // ─── Load transaction by id (cho Edit mode) ───────────────────────────────

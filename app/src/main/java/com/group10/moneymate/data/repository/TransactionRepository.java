@@ -108,6 +108,19 @@ public class TransactionRepository {
         return transactionDao.searchTransactions(userId, keyword);
     }
 
+    public void getFirstTransactionsPage(String userId,
+                                         int limit,
+                                         @NonNull PageCallback<List<TransactionEntity>> callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                List<TransactionEntity> page = transactionDao.getFirstTransactionsPageSync(userId, limit);
+                mainHandler.post(() -> callback.onSuccess(page));
+            } catch (Exception exception) {
+                mainHandler.post(() -> callback.onError(exception));
+            }
+        });
+    }
+
     public void getTransactionsPageByCursor(String userId,
                                             int limit,
                                             long lastTimestamp,

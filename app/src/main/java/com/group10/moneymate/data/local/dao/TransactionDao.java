@@ -106,6 +106,14 @@ public interface TransactionDao {
             "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
             "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
             "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
+            "ORDER BY t.timestamp DESC, t.id DESC LIMIT :limit")
+    List<TransactionEntity> getFirstTransactionsPageSync(String userId, int limit);
+
+    @Query("SELECT t.* FROM transactions t " +
+            "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
+            "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
+            "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
+            "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
             "AND (t.timestamp < :lastTimestamp OR (t.timestamp = :lastTimestamp AND t.id < :lastId)) " +
             "ORDER BY t.timestamp DESC, t.id DESC LIMIT :limit")
     List<TransactionEntity> getTransactionsPagedByCursorSync(String userId,
@@ -547,7 +555,7 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 
-    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0 " +
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status IN (1, 2) " +
             "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
             "ORDER BY updated_at ASC, id ASC LIMIT :limit")
     List<TransactionEntity> getPendingSyncSince(String userId,
@@ -561,7 +569,7 @@ public interface TransactionDao {
     @Query("DELETE FROM transactions WHERE id = :id")
     void hardDeleteById(String id);
 
-    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status IN (1, 2)")
     List<TransactionEntity> getPendingSyncTransactions(String userId);
 
     @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +

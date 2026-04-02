@@ -32,7 +32,8 @@ import java.util.UUID;
     indices = {
         @Index("user_id"),
         @Index("category_id"),
-        @Index(value = {"user_id", "wallet_id", "start_date", "end_date", "category_id"}, unique = true)
+        @Index(value = {"user_id", "wallet_id", "start_date", "end_date", "category_id"}, unique = true),
+        @Index(name = "index_budgets_user_sync_updated_id", value = {"user_id", "sync_status", "updated_at", "id"})
     }
 )
 public class BudgetEntity {

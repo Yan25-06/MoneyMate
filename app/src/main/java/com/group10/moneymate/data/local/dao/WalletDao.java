@@ -215,7 +215,7 @@ public abstract class WalletDao {
         markDeletedById(id, updatedAt);
     }
 
-    @Query("SELECT * FROM wallets WHERE user_id = :userId AND sync_status != 0")
+    @Query("SELECT * FROM wallets WHERE user_id = :userId AND sync_status IN (1, 2)")
     public abstract List<WalletEntity> getPendingSyncWallets(String userId);
 
     @Query("UPDATE wallets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE user_id = :userId AND is_deleted = 0")

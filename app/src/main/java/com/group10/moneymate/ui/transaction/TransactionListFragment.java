@@ -18,7 +18,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -165,23 +164,11 @@ public class TransactionListFragment extends Fragment {
                 }
                 int totalItemCount = layoutManager.getItemCount();
                 int lastVisible = layoutManager.findLastVisibleItemPosition();
-                if (lastVisible >= totalItemCount - 3) {
+                boolean hasMore = Boolean.TRUE.equals(viewModel.getHasMore().getValue());
+                boolean isLoading = Boolean.TRUE.equals(viewModel.getIsLoadingMore().getValue());
+                if (hasMore && !isLoading && lastVisible >= totalItemCount - 3) {
                     viewModel.loadNextPage();
                 }
-            }
-        });
-
-        binding.scrollContent.setOnScrollChangeListener((NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-            if (scrollY <= oldScrollY) {
-                return;
-            }
-            View content = binding.scrollContent.getChildAt(0);
-            if (content == null) {
-                return;
-            }
-            int threshold = 200;
-            if (scrollY + binding.scrollContent.getHeight() + threshold >= content.getHeight()) {
-                viewModel.loadNextPage();
             }
         });
     }

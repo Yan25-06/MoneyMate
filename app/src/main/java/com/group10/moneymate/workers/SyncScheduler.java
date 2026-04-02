@@ -22,13 +22,14 @@ public class SyncScheduler {
     private static final long ONE_TIME_DEBOUNCE_SECONDS = 5L;
     private static final long BACKOFF_INITIAL_SECONDS = 30L;
 
-    private final WorkManager workManager;
+    private final Context applicationContext;
 
     public SyncScheduler(@NonNull Context context) {
-        workManager = WorkManager.getInstance(context);
+        applicationContext = context.getApplicationContext();
     }
 
     public void scheduleOneTimeSyncDebounced() {
+        WorkManager workManager = WorkManager.getInstance(applicationContext);
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(SyncWorker.class)
                 .setConstraints(buildConnectedConstraints())
                 .setInitialDelay(ONE_TIME_DEBOUNCE_SECONDS, TimeUnit.SECONDS)
@@ -47,6 +48,7 @@ public class SyncScheduler {
     }
 
     public void ensurePeriodicSync() {
+        WorkManager workManager = WorkManager.getInstance(applicationContext);
         PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(
                 SyncWorker.class,
                 1,
