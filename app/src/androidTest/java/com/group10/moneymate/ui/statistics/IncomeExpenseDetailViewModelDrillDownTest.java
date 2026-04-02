@@ -61,7 +61,7 @@ public class IncomeExpenseDetailViewModelDrillDownTest {
         seedBaseData();
 
         TransactionRepository transactionRepository =
-                new TransactionRepository(database.transactionDao());
+                new TransactionRepository(database.transactionDao(), database.walletDao());
         WalletRepository walletRepository = new WalletRepository(database.walletDao());
         CategoryRepository categoryRepository = new CategoryRepository(database.categoryDao());
 

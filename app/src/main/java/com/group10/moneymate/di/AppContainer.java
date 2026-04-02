@@ -36,7 +36,7 @@ public class AppContainer {
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());
         categoryRepository    = new CategoryRepository(database.categoryDao());
-        transactionRepository = new TransactionRepository(database.transactionDao());
+        transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao());
         this.budgetRepository = new BudgetRepository(database.budgetDao());
         debtRepository        = new DebtRepository(database.debtDao());
         eventRepository       = new EventRepository(database.eventDao());

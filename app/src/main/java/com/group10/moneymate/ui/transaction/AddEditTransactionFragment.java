@@ -588,7 +588,7 @@ public class AddEditTransactionFragment extends Fragment {
                 updated.setTimestamp(selectedTimestamp);
                 updated.setSyncStatus(SyncStatus.PENDING_UPLOAD);
                 updated.setUpdatedAt(System.currentTimeMillis());
-                viewModel.updateTransaction(originalTransaction, updated);
+                viewModel.updateTransaction(updated);
             } else {
                 // Add mode
                 TransactionEntity transaction = new TransactionEntity();

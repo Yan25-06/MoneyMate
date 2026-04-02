@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.TransactionDao;
+import com.group10.moneymate.data.local.dao.WalletDao;
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
 import com.group10.moneymate.data.local.dto.NetIncomeDTO;
@@ -22,9 +23,11 @@ import java.util.List;
 public class TransactionRepository {
 
     private final TransactionDao transactionDao;
+    private final WalletDao walletDao;
 
-    public TransactionRepository(TransactionDao transactionDao) {
+    public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
         this.transactionDao = transactionDao;
+        this.walletDao = walletDao;
     }
 
     // ─── Read ─────────────────────────────────────────────────────────────────
@@ -292,7 +295,7 @@ public class TransactionRepository {
         });
     }
 
-    public void updateTransaction(TransactionEntity oldTransaction, TransactionEntity newTransaction) {
+    public void updateTransaction(TransactionEntity newTransaction) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             newTransaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
             newTransaction.setUpdatedAt(System.currentTimeMillis());
