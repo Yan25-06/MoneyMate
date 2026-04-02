@@ -45,10 +45,12 @@ public class BudgetRepository {
     }
 
     private final BudgetDao budgetDao;
+    private final AppDatabase appDatabase;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    public BudgetRepository(BudgetDao budgetDao) {
+    public BudgetRepository(BudgetDao budgetDao, AppDatabase appDatabase) {
         this.budgetDao = budgetDao;
+        this.appDatabase = appDatabase;
     }
 
     public LiveData<List<BudgetEntity>> getAllBudgets(String userId) {
@@ -66,14 +68,16 @@ public class BudgetRepository {
     public void addBudget(BudgetEntity budget, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                validateManualInsert(budget);
-                insertBudgetInternal(budget);
-                syncOtherCategoriesBudget(
-                        budget.getUserId(),
-                        budget.getWalletId(),
-                        budget.getStartDate(),
-                        budget.getEndDate()
-                );
+                appDatabase.runInTransaction(() -> {
+                    validateManualInsert(budget);
+                    insertBudgetInternal(budget);
+                    syncOtherCategoriesBudget(
+                            budget.getUserId(),
+                            budget.getWalletId(),
+                            budget.getStartDate(),
+                            budget.getEndDate()
+                    );
+                });
                 notifySuccess(callback);
             } catch (Exception exception) {
                 notifyError(callback, exception);
@@ -88,25 +92,27 @@ public class BudgetRepository {
     public void updateBudget(BudgetEntity budget, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                BudgetEntity existing = budgetDao.getBudgetByIdSync(budget.getUserId(), budget.getId());
-                validateManualUpdate(budget);
-                budget.setUpdatedAt(System.currentTimeMillis());
-                budget.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-                budgetDao.update(budget);
-                syncOtherCategoriesBudget(
-                        budget.getUserId(),
-                        budget.getWalletId(),
-                        budget.getStartDate(),
-                        budget.getEndDate()
-                );
-                if (existing != null && !isSameScope(existing, budget)) {
+                appDatabase.runInTransaction(() -> {
+                    BudgetEntity existing = budgetDao.getBudgetByIdSync(budget.getUserId(), budget.getId());
+                    validateManualUpdate(budget);
+                    budget.setUpdatedAt(System.currentTimeMillis());
+                    budget.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+                    budgetDao.update(budget);
                     syncOtherCategoriesBudget(
-                            existing.getUserId(),
-                            existing.getWalletId(),
-                            existing.getStartDate(),
-                            existing.getEndDate()
+                            budget.getUserId(),
+                            budget.getWalletId(),
+                            budget.getStartDate(),
+                            budget.getEndDate()
                     );
-                }
+                    if (existing != null && !isSameScope(existing, budget)) {
+                        syncOtherCategoriesBudget(
+                                existing.getUserId(),
+                                existing.getWalletId(),
+                                existing.getStartDate(),
+                                existing.getEndDate()
+                        );
+                    }
+                });
                 notifySuccess(callback);
             } catch (Exception exception) {
                 notifyError(callback, exception);
@@ -116,16 +122,18 @@ public class BudgetRepository {
 
     public void softDeleteBudget(String userId, String id) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            BudgetEntity existing = budgetDao.getBudgetByIdSync(userId, id);
-            budgetDao.softDelete(userId, id, System.currentTimeMillis());
-            if (existing != null) {
-                syncOtherCategoriesBudget(
-                        existing.getUserId(),
-                        existing.getWalletId(),
-                        existing.getStartDate(),
-                        existing.getEndDate()
-                );
-            }
+            appDatabase.runInTransaction(() -> {
+                BudgetEntity existing = budgetDao.getBudgetByIdSync(userId, id);
+                budgetDao.softDelete(userId, id, System.currentTimeMillis());
+                if (existing != null) {
+                    syncOtherCategoriesBudget(
+                            existing.getUserId(),
+                            existing.getWalletId(),
+                            existing.getStartDate(),
+                            existing.getEndDate()
+                    );
+                }
+            });
         });
     }
 
