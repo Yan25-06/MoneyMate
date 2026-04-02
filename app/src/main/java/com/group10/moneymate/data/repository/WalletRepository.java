@@ -61,7 +61,16 @@ public class WalletRepository {
         }
         wallet.setUpdatedAt(System.currentTimeMillis());
         wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        AppDatabase.databaseWriteExecutor.execute(() -> walletDao.update(wallet));
+        AppDatabase.databaseWriteExecutor.execute(() -> walletDao.updateEditableFieldsById(
+                wallet.getId(),
+                wallet.getName(),
+                wallet.getBalance(),
+                wallet.getType(),
+                wallet.getIconName(),
+                wallet.isExcluded(),
+                wallet.getUpdatedAt(),
+                wallet.getSyncStatus()
+        ));
     }
 
     public void softDelete(WalletEntity wallet) {
