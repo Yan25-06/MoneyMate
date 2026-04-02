@@ -16,6 +16,7 @@ import com.group10.moneymate.data.local.dto.NetIncomeDTO;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.workers.SyncScheduler;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,11 +34,20 @@ public class TransactionRepository {
 
     private final TransactionDao transactionDao;
     private final WalletDao walletDao;
+    @Nullable
+    private final SyncScheduler syncScheduler;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
+        this(transactionDao, walletDao, null);
+    }
+
+    public TransactionRepository(TransactionDao transactionDao,
+                                 WalletDao walletDao,
+                                 @Nullable SyncScheduler syncScheduler) {
         this.transactionDao = transactionDao;
         this.walletDao = walletDao;
+        this.syncScheduler = syncScheduler;
     }
 
     // ─── Read ─────────────────────────────────────────────────────────────────
@@ -315,6 +325,21 @@ public class TransactionRepository {
         return transactionDao.getTotalExpenseByCategory(userId, categoryId, walletId, startDate, endDate);
     }
 
+    public List<TransactionEntity> getPendingSyncSince(@NonNull String userId,
+                                                       long lastSyncedAt,
+                                                       @NonNull String lastSyncedId,
+                                                       int limit) {
+        return transactionDao.getPendingSyncSince(userId, lastSyncedAt, lastSyncedId, limit);
+    }
+
+    public void markSynced(@NonNull String id) {
+        transactionDao.markSynced(id);
+    }
+
+    public void hardDeleteById(@NonNull String id) {
+        transactionDao.hardDeleteById(id);
+    }
+
     // ─── Write ────────────────────────────────────────────────────────────────
 
     public void insertTransaction(TransactionEntity transaction) {
@@ -337,12 +362,20 @@ public class TransactionRepository {
             transaction.setUpdatedAt(now);
             transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
             transactionDao.upsertLocal(transaction);
+            scheduleSyncIfEnabled();
         });
     }
 
     public void softDeleteTransaction(TransactionEntity transaction) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             transactionDao.softDelete(transaction.getId(), System.currentTimeMillis());
+            scheduleSyncIfEnabled();
         });
+    }
+
+    private void scheduleSyncIfEnabled() {
+        if (syncScheduler != null) {
+            syncScheduler.scheduleOneTimeSyncDebounced();
+        }
     }
 }

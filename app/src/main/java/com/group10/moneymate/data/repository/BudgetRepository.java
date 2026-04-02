@@ -12,6 +12,7 @@ import com.group10.moneymate.data.local.dao.BudgetDao;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.workers.SyncScheduler;
 
 import java.util.List;
 import java.util.UUID;
@@ -46,11 +47,20 @@ public class BudgetRepository {
 
     private final BudgetDao budgetDao;
     private final AppDatabase appDatabase;
+    @Nullable
+    private final SyncScheduler syncScheduler;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public BudgetRepository(BudgetDao budgetDao, AppDatabase appDatabase) {
+        this(budgetDao, appDatabase, null);
+    }
+
+    public BudgetRepository(BudgetDao budgetDao,
+                            AppDatabase appDatabase,
+                            @Nullable SyncScheduler syncScheduler) {
         this.budgetDao = budgetDao;
         this.appDatabase = appDatabase;
+        this.syncScheduler = syncScheduler;
     }
 
     public LiveData<List<BudgetEntity>> getAllBudgets(String userId) {
@@ -78,6 +88,7 @@ public class BudgetRepository {
                             budget.getEndDate()
                     );
                 });
+                scheduleSyncIfEnabled();
                 notifySuccess(callback);
             } catch (Exception exception) {
                 notifyError(callback, exception);
@@ -111,6 +122,7 @@ public class BudgetRepository {
                         );
                     }
                 });
+                scheduleSyncIfEnabled();
                 notifySuccess(callback);
             } catch (Exception exception) {
                 notifyError(callback, exception);
@@ -132,7 +144,23 @@ public class BudgetRepository {
                     );
                 }
             });
+            scheduleSyncIfEnabled();
         });
+    }
+
+    public List<BudgetEntity> getPendingSyncSince(@NonNull String userId,
+                                                  long lastSyncedAt,
+                                                  @NonNull String lastSyncedId,
+                                                  int limit) {
+        return budgetDao.getPendingSyncSince(userId, lastSyncedAt, lastSyncedId, limit);
+    }
+
+    public void markSynced(@NonNull String id) {
+        budgetDao.markSynced(id);
+    }
+
+    public void hardDeleteById(@NonNull String id) {
+        budgetDao.hardDeleteById(id);
     }
 
     public void insert(BudgetEntity budget) {
@@ -264,5 +292,11 @@ public class BudgetRepository {
         String leftWallet = left.getWalletId();
         String rightWallet = right.getWalletId();
         return leftWallet == null ? rightWallet == null : leftWallet.equals(rightWallet);
+    }
+
+    private void scheduleSyncIfEnabled() {
+        if (syncScheduler != null) {
+            syncScheduler.scheduleOneTimeSyncDebounced();
+        }
     }
 }

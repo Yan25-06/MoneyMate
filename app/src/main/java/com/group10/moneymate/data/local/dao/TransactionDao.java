@@ -547,6 +547,20 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0 " +
+            "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
+            "ORDER BY updated_at ASC, id ASC LIMIT :limit")
+    List<TransactionEntity> getPendingSyncSince(String userId,
+                                                long lastSyncedAt,
+                                                String lastSyncedId,
+                                                int limit);
+
+    @Query("UPDATE transactions SET sync_status = 0 WHERE id = :id")
+    void markSynced(String id);
+
+    @Query("DELETE FROM transactions WHERE id = :id")
+    void hardDeleteById(String id);
+
     @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0")
     List<TransactionEntity> getPendingSyncTransactions(String userId);
 

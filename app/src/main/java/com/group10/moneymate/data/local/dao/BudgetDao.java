@@ -116,4 +116,18 @@ public interface BudgetDao {
 
     @Query("UPDATE budgets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE user_id = :userId AND id = :id")
     void softDelete(String userId, String id, long updatedAt);
+
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND sync_status != 0 " +
+            "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
+            "ORDER BY updated_at ASC, id ASC LIMIT :limit")
+    List<BudgetEntity> getPendingSyncSince(String userId,
+                                           long lastSyncedAt,
+                                           String lastSyncedId,
+                                           int limit);
+
+    @Query("UPDATE budgets SET sync_status = 0 WHERE id = :id")
+    void markSynced(String id);
+
+    @Query("DELETE FROM budgets WHERE id = :id")
+    void hardDeleteById(String id);
 }
