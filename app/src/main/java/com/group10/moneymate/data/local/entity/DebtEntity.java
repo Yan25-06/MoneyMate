@@ -8,6 +8,8 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import java.util.Objects;
+
 @Entity(
     tableName = "debts",
     foreignKeys = {
@@ -94,4 +96,21 @@ public class DebtEntity {
     public void setSyncStatus(int syncStatus) { this.syncStatus = syncStatus; }
     public boolean isDeleted() { return isDeleted; }
     public void setDeleted(boolean deleted) { isDeleted = deleted; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof DebtEntity)) {
+            return false;
+        }
+        DebtEntity that = (DebtEntity) o;
+        return updatedAt == that.updatedAt && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, updatedAt);
+    }
 }

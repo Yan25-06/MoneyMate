@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.group10.moneymate.data.local.entity.TransactionEntity;
@@ -15,24 +17,23 @@ import com.group10.moneymate.databinding.ItemTransactionTimeGroupRowBinding;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-public class TransactionTimeGroupAdapter extends RecyclerView.Adapter<TransactionTimeGroupAdapter.ViewHolder> {
+public class TransactionTimeGroupAdapter extends ListAdapter<TransactionTimeGroupAdapter.GroupItem, TransactionTimeGroupAdapter.ViewHolder> {
 
     public interface OnTransactionClickListener {
         void onTransactionClick(@NonNull TransactionEntity transaction);
     }
 
-    @NonNull
-    private final List<GroupItem> items = new ArrayList<>();
     @Nullable
     private OnTransactionClickListener clickListener;
 
+    public TransactionTimeGroupAdapter() {
+        super(DIFF_CALLBACK);
+    }
+
     public void submitList(@Nullable List<GroupItem> nextItems) {
-        items.clear();
-        if (nextItems != null) {
-            items.addAll(nextItems);
-        }
-        notifyDataSetChanged();
+        super.submitList(nextItems == null ? new ArrayList<>() : new ArrayList<>(nextItems));
     }
 
     public void setOnTransactionClickListener(@Nullable OnTransactionClickListener clickListener) {
@@ -52,12 +53,7 @@ public class TransactionTimeGroupAdapter extends RecyclerView.Adapter<Transactio
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(items.get(position), clickListener);
-    }
-
-    @Override
-    public int getItemCount() {
-        return items.size();
+        holder.bind(getItem(position), clickListener);
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
@@ -217,4 +213,42 @@ public class TransactionTimeGroupAdapter extends RecyclerView.Adapter<Transactio
             return amountColor;
         }
     }
+
+    private static final DiffUtil.ItemCallback<GroupItem> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<GroupItem>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull GroupItem oldItem, @NonNull GroupItem newItem) {
+                    return oldItem.getId().equals(newItem.getId());
+                }
+
+                @Override
+                public boolean areContentsTheSame(@NonNull GroupItem oldItem, @NonNull GroupItem newItem) {
+                    if (!Objects.equals(oldItem.getPrimaryValue(), newItem.getPrimaryValue())
+                            || !Objects.equals(oldItem.getTitle(), newItem.getTitle())
+                            || !Objects.equals(oldItem.getSubtitle(), newItem.getSubtitle())
+                            || !Objects.equals(oldItem.getTotalLabel(), newItem.getTotalLabel())) {
+                        return false;
+                    }
+
+                    List<RowItem> oldRows = oldItem.getRows();
+                    List<RowItem> newRows = newItem.getRows();
+                    if (oldRows.size() != newRows.size()) {
+                        return false;
+                    }
+                    for (int i = 0; i < oldRows.size(); i++) {
+                        RowItem oldRow = oldRows.get(i);
+                        RowItem newRow = newRows.get(i);
+                        if (!oldRow.getTransaction().getId().equals(newRow.getTransaction().getId())
+                                || oldRow.getTransaction().getUpdatedAt() != newRow.getTransaction().getUpdatedAt()
+                                || oldRow.getIconRes() != newRow.getIconRes()
+                                || oldRow.getAmountColor() != newRow.getAmountColor()
+                                || !Objects.equals(oldRow.getTitle(), newRow.getTitle())
+                                || !Objects.equals(oldRow.getSubtitle(), newRow.getSubtitle())
+                                || !Objects.equals(oldRow.getAmountLabel(), newRow.getAmountLabel())) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            };
 }

@@ -50,10 +50,9 @@ import com.group10.moneymate.models.TransactionType;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -742,8 +741,8 @@ public class IncomeExpenseDetailFragment extends Fragment {
                 return;
             }
             viewModel.updateCustomDateRange(
-                    startDate[0].atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                    endDate[0].plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1L
+                    TimeWindowUtils.startOfDayLocalDateUtc(startDate[0]),
+                    TimeWindowUtils.endOfDayLocalDateUtc(endDate[0])
             );
             dialog.dismiss();
         });
@@ -832,11 +831,7 @@ public class IncomeExpenseDetailFragment extends Fragment {
     }
 
     private long endOfToday() {
-        return LocalDate.now()
-                .plusDays(1)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli() - 1L;
+        return TimeWindowUtils.endOfTodayUtc();
     }
 
     @NonNull
@@ -844,9 +839,7 @@ public class IncomeExpenseDetailFragment extends Fragment {
         if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
             return LocalDate.now();
         }
-        return Instant.ofEpochMilli(epochMillis)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
+        return TimeWindowUtils.toDeviceLocalDate(epochMillis);
     }
 
     @Override

@@ -16,6 +16,7 @@ import com.group10.moneymate.databinding.ItemBudgetWalletPickerBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, BudgetWalletPickerAdapter.ViewHolder> {
@@ -39,7 +40,7 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
 
     public void setSelectedWalletId(String selectedWalletId) {
         this.selectedWalletId = selectedWalletId;
-        notifyDataSetChanged();
+        submitList(new ArrayList<>(getCurrentList()));
     }
 
     @NonNull

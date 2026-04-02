@@ -1,5 +1,8 @@
 package com.group10.moneymate.data.repository;
 
+import android.os.Handler;
+import android.os.Looper;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
@@ -23,8 +26,14 @@ import java.util.UUID;
  */
 public class TransactionRepository {
 
+    public interface PageCallback<T> {
+        void onSuccess(T data);
+        void onError(Exception exception);
+    }
+
     private final TransactionDao transactionDao;
     private final WalletDao walletDao;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
         this.transactionDao = transactionDao;
@@ -87,6 +96,26 @@ public class TransactionRepository {
 
     public LiveData<List<TransactionEntity>> searchTransactions(String userId, String keyword) {
         return transactionDao.searchTransactions(userId, keyword);
+    }
+
+    public void getTransactionsPageByCursor(String userId,
+                                            int limit,
+                                            long lastTimestamp,
+                                            @NonNull String lastId,
+                                            @NonNull PageCallback<List<TransactionEntity>> callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                List<TransactionEntity> page = transactionDao.getTransactionsPagedByCursorSync(
+                        userId,
+                        lastTimestamp,
+                        lastId,
+                        limit
+                );
+                mainHandler.post(() -> callback.onSuccess(page));
+            } catch (Exception exception) {
+                mainHandler.post(() -> callback.onError(exception));
+            }
+        });
     }
 
     public LiveData<Double> getTotalIncome(String userId, long startDate, long endDate) {

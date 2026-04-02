@@ -155,6 +155,16 @@
                 android:paddingTop="4dp"
                 android:paddingBottom="20dp" />
 
+            <ProgressBar
+                android:id="@+id/pbLoadingMore"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/tvEmpty"
                 android:layout_width="match_parent"

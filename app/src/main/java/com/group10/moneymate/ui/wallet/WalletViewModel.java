@@ -3,7 +3,6 @@ package com.group10.moneymate.ui.wallet;
 import android.app.Application;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.dto.WalletWithBalance;
@@ -12,11 +11,13 @@ import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.models.WalletType;
+import com.group10.moneymate.ui.common.DebounceableAndroidViewModel;
+import com.group10.moneymate.utils.DistinctLiveData;
 
 import java.util.List;
 import java.util.UUID;
 
-public class WalletViewModel extends AndroidViewModel {
+public class WalletViewModel extends DebounceableAndroidViewModel {
 
     private final AppContainer container;
     private final String userId;
@@ -30,7 +31,7 @@ public class WalletViewModel extends AndroidViewModel {
 
         userId = container.authRepository.getCurrentUserId();
 
-        wallets = container.walletRepository.getAllByUserWithBalance(userId);
+        wallets = DistinctLiveData.distinctUntilChanged(container.walletRepository.getAllByUserWithBalance(userId));
         totalBalance = container.walletRepository.getTotalBalance(userId);
     }
 

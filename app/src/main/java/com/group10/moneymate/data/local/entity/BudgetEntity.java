@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey;
 
 import com.group10.moneymate.models.SyncStatus;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity(
@@ -172,5 +173,22 @@ public class BudgetEntity {
 
     public void setSyncStatus(int syncStatus) {
         this.syncStatus = syncStatus;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof BudgetEntity)) {
+            return false;
+        }
+        BudgetEntity that = (BudgetEntity) o;
+        return updatedAt == that.updatedAt && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, updatedAt);
     }
 }

@@ -101,6 +101,18 @@ public interface TransactionDao {
             "ORDER BY t.timestamp DESC LIMIT :limit")
     LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit);
 
+    @Query("SELECT t.* FROM transactions t " +
+            "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
+            "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
+            "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
+            "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
+            "AND (t.timestamp < :lastTimestamp OR (t.timestamp = :lastTimestamp AND t.id < :lastId)) " +
+            "ORDER BY t.timestamp DESC, t.id DESC LIMIT :limit")
+    List<TransactionEntity> getTransactionsPagedByCursorSync(String userId,
+                                                             long lastTimestamp,
+                                                             String lastId,
+                                                             int limit);
+
     @Query("SELECT * FROM transactions WHERE id = :id AND is_deleted = 0")
     LiveData<TransactionEntity> getTransactionById(String id);
 

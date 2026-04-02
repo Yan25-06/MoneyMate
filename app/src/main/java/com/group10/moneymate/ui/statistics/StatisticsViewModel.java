@@ -16,6 +16,8 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.models.TransactionType;
+import com.group10.moneymate.ui.common.DebounceableViewModel;
+import com.group10.moneymate.utils.DistinctLiveData;
 import com.group10.moneymate.utils.TimeWindowUtils;
 
 import java.time.LocalDate;
@@ -25,7 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class StatisticsViewModel extends ViewModel {
+public class StatisticsViewModel extends DebounceableViewModel {
+
+    private static final long FILTER_DEBOUNCE_MS = 80L;
 
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
@@ -56,8 +60,8 @@ public class StatisticsViewModel extends ViewModel {
         netIncomeSummary = createNetIncomeSummarySource();
         totalIncomeAmount = createTotalAmountSource(TransactionType.INCOME);
         totalExpenseAmount = createTotalAmountSource(TransactionType.EXPENSE);
-        incomeCategorySums = createCategorySumSource(TransactionType.INCOME);
-        expenseCategorySums = createCategorySumSource(TransactionType.EXPENSE);
+        incomeCategorySums = DistinctLiveData.distinctUntilChanged(createCategorySumSource(TransactionType.INCOME));
+        expenseCategorySums = DistinctLiveData.distinctUntilChanged(createCategorySumSource(TransactionType.EXPENSE));
     }
 
     public LiveData<Double> getHeaderBalance() {
@@ -122,17 +126,17 @@ public class StatisticsViewModel extends ViewModel {
 
     public void shiftCurrentPeriod(int direction) {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(current.shift(direction));
+        scheduleFilterUpdate(current.shift(direction));
     }
 
     public void resetToCurrentMonth() {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(FilterState.createForPeriodType(current.getPeriodType(), current.getWalletId()));
+        scheduleFilterUpdate(FilterState.createForPeriodType(current.getPeriodType(), current.getWalletId()));
     }
 
     public void updateWalletFilter(@Nullable String walletId, @Nullable String label) {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(current.withWalletId(walletId));
+        scheduleFilterUpdate(current.withWalletId(walletId));
         if (label == null || label.trim().isEmpty()) {
             walletLabel.setValue("Tổng cộng");
             return;
@@ -145,7 +149,7 @@ public class StatisticsViewModel extends ViewModel {
             return;
         }
         FilterState current = getCurrentFilterState();
-        filterState.setValue(FilterState.createRange(
+        scheduleFilterUpdate(FilterState.createRange(
                 current.getWalletId(),
                 startDate,
                 endDate
@@ -154,7 +158,7 @@ public class StatisticsViewModel extends ViewModel {
 
     public void updatePresetPeriod(@NonNull PeriodType periodType) {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(FilterState.createForPeriodType(periodType, current.getWalletId()));
+        scheduleFilterUpdate(FilterState.createForPeriodType(periodType, current.getWalletId()));
     }
 
     public void applyExternalFilter(@Nullable String walletId,
@@ -177,10 +181,14 @@ public class StatisticsViewModel extends ViewModel {
         } else {
             nextState = FilterState.createCurrentMonth(walletId);
         }
-        filterState.setValue(nextState);
+        scheduleFilterUpdate(nextState);
         walletLabel.setValue(walletLabelValue == null || walletLabelValue.trim().isEmpty()
                 ? "Tổng cộng"
                 : walletLabelValue);
+    }
+
+    private void scheduleFilterUpdate(@NonNull FilterState nextState) {
+        debounce(() -> filterState.setValue(nextState), FILTER_DEBOUNCE_MS);
     }
 
     @NonNull

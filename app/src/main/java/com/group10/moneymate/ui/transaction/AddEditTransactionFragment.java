@@ -37,9 +37,9 @@ import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.models.DebtType;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -162,17 +162,12 @@ public class AddEditTransactionFragment extends Fragment {
 
     private void setupDatePicker() {
         binding.etDate.setOnClickListener(v -> {
-            Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(selectedTimestamp);
             MoneyMateDatePickerHelper.showSingleDatePicker(
                     this,
-                    java.time.Instant.ofEpochMilli(selectedTimestamp)
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toLocalDate(),
+                    TimeWindowUtils.toDeviceLocalDate(selectedTimestamp),
                     "transaction_single_date",
                     date -> {
-                        cal.set(date.getYear(), date.getMonthValue() - 1, date.getDayOfMonth());
-                        selectedTimestamp = cal.getTimeInMillis();
+                        selectedTimestamp = TimeWindowUtils.startOfDayLocalDateUtc(date);
                         binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
                     }
             );
@@ -182,10 +177,9 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void shiftSelectedDate(int dayOffset) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis(selectedTimestamp);
-        cal.add(Calendar.DAY_OF_MONTH, dayOffset);
-        selectedTimestamp = cal.getTimeInMillis();
+        java.time.LocalDate shiftedDate = TimeWindowUtils.toDeviceLocalDate(selectedTimestamp)
+                .plusDays(dayOffset);
+        selectedTimestamp = TimeWindowUtils.startOfDayLocalDateUtc(shiftedDate);
         binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
     }
 

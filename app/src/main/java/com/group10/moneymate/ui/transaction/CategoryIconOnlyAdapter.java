@@ -18,6 +18,8 @@ import com.group10.moneymate.databinding.ItemCategoryIconOnlyBinding;
 import com.group10.moneymate.ui.category.CategoryIconAdapter;
 import com.group10.moneymate.utils.IconProvider;
 
+import java.util.ArrayList;
+
 public class CategoryIconOnlyAdapter extends ListAdapter<CategoryIconAdapter.CategoryIconItem,
         CategoryIconOnlyAdapter.ViewHolder> {
 
@@ -42,12 +44,12 @@ public class CategoryIconOnlyAdapter extends ListAdapter<CategoryIconAdapter.Cat
 
     public void setSelectedIconResId(@Nullable String selectedIconResId) {
         this.selectedIconResId = selectedIconResId;
-        notifyDataSetChanged();
+        submitList(new ArrayList<>(getCurrentList()));
     }
 
     public void setTintColor(@ColorInt int tintColor) {
         this.tintColor = tintColor;
-        notifyDataSetChanged();
+        submitList(new ArrayList<>(getCurrentList()));
     }
 
     @NonNull

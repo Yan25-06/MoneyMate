@@ -4,7 +4,6 @@ import android.app.Application;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
@@ -17,17 +16,27 @@ import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.ui.common.DebounceableAndroidViewModel;
+import com.group10.moneymate.utils.DistinctLiveData;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
-public class TransactionViewModel extends AndroidViewModel {
+public class TransactionViewModel extends DebounceableAndroidViewModel {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final String userId;
 
     // ─── Transactions list ────────────────────────────────────────────────────
-    private final LiveData<List<TransactionEntity>> allTransactions;
+    private static final int PAGE_SIZE = 30;
+    private final MutableLiveData<List<TransactionEntity>> allTransactions = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<Boolean> isLoadingMore = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> hasMore = new MutableLiveData<>(true);
+    private long lastTimestamp = Long.MAX_VALUE;
+    private String lastId = "~";
 
     // ─── Filter state ─────────────────────────────────────────────────────────
     /** null = show all, "INCOME"/"EXPENSE" = filter by type */
@@ -60,40 +69,52 @@ public class TransactionViewModel extends AndroidViewModel {
 
         userId = app.getAppContainer().authRepository.getCurrentUserId();
 
-        allTransactions = transactionRepository.getAllTransactions(userId);
+        resetPagination();
 
         // Filter theo type (switchMap: khi filterType thay đổi → query lại)
-        filteredTransactions = Transformations.switchMap(filterType, type -> {
+        filteredTransactions = DistinctLiveData.distinctUntilChanged(Transformations.switchMap(filterType, type -> {
             if (type == null || type.isEmpty()) {
-                return transactionRepository.getAllTransactions(userId);
+                return allTransactions;
             } else {
                 return transactionRepository.getTransactionsByType(userId, type);
             }
-        });
+        }));
 
         // Search
-        searchResults = Transformations.switchMap(searchQuery, query -> {
+        searchResults = DistinctLiveData.distinctUntilChanged(Transformations.switchMap(searchQuery, query -> {
             if (query == null || query.trim().isEmpty()) {
-                return transactionRepository.getAllTransactions(userId);
+                return allTransactions;
             }
             return transactionRepository.searchTransactions(userId, query.trim());
-        });
+        }));
 
-        wallets = walletRepository.getAllByUser(userId);
-        walletsWithBalance = walletRepository.getAllByUserWithBalance(userId);
-        activeWallets = walletRepository.getActiveByUser(userId);
-        expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
-        incomeCategories  = categoryRepository.getCategoriesByType(userId, "INCOME");
+        wallets = DistinctLiveData.distinctUntilChanged(walletRepository.getAllByUser(userId));
+        walletsWithBalance = DistinctLiveData.distinctUntilChanged(walletRepository.getAllByUserWithBalance(userId));
+        activeWallets = DistinctLiveData.distinctUntilChanged(walletRepository.getActiveByUser(userId));
+        expenseCategories = DistinctLiveData.distinctUntilChanged(categoryRepository.getCategoriesByType(userId, "EXPENSE"));
+        incomeCategories  = DistinctLiveData.distinctUntilChanged(categoryRepository.getCategoriesByType(userId, "INCOME"));
         expenseCategoriesIncludingDeleted =
-                categoryRepository.getCategoriesByTypeIncludingDeleted(userId, "EXPENSE");
+                DistinctLiveData.distinctUntilChanged(
+                        categoryRepository.getCategoriesByTypeIncludingDeleted(userId, "EXPENSE")
+                );
         incomeCategoriesIncludingDeleted =
-                categoryRepository.getCategoriesByTypeIncludingDeleted(userId, "INCOME");
+                DistinctLiveData.distinctUntilChanged(
+                        categoryRepository.getCategoriesByTypeIncludingDeleted(userId, "INCOME")
+                );
     }
 
     // ─── Expose LiveData ──────────────────────────────────────────────────────
 
     public LiveData<List<TransactionEntity>> getAllTransactions() {
         return allTransactions;
+    }
+
+    public LiveData<Boolean> getIsLoadingMore() {
+        return isLoadingMore;
+    }
+
+    public LiveData<Boolean> getHasMore() {
+        return hasMore;
     }
 
     public LiveData<List<TransactionEntity>> getFilteredTransactions() {
@@ -147,11 +168,63 @@ public class TransactionViewModel extends AndroidViewModel {
     // ─── Filter & Search ──────────────────────────────────────────────────────
 
     public void setFilterType(String type) {
-        filterType.setValue(type);
+        debounce(() -> filterType.setValue(type), 80L);
     }
 
     public void setSearchQuery(String query) {
-        searchQuery.setValue(query);
+        debounce(() -> searchQuery.setValue(query), 120L);
+    }
+
+    public void resetPagination() {
+        lastTimestamp = Long.MAX_VALUE;
+        lastId = "~";
+        allTransactions.setValue(new ArrayList<>());
+        hasMore.setValue(true);
+        loadNextPage();
+    }
+
+    public void loadNextPage() {
+        if (Boolean.TRUE.equals(isLoadingMore.getValue()) || Boolean.FALSE.equals(hasMore.getValue())) {
+            return;
+        }
+        isLoadingMore.setValue(true);
+        transactionRepository.getTransactionsPageByCursor(
+                userId,
+                PAGE_SIZE,
+                lastTimestamp,
+                lastId,
+                new TransactionRepository.PageCallback<List<TransactionEntity>>() {
+            @Override
+            public void onSuccess(List<TransactionEntity> page) {
+                Map<String, TransactionEntity> mergedById = new LinkedHashMap<>();
+                List<TransactionEntity> current = allTransactions.getValue();
+                if (current != null) {
+                    for (TransactionEntity entity : current) {
+                        mergedById.put(entity.getId(), entity);
+                    }
+                }
+                if (page != null) {
+                    for (TransactionEntity entity : page) {
+                        mergedById.put(entity.getId(), entity);
+                    }
+                }
+                allTransactions.setValue(new ArrayList<>(mergedById.values()));
+                if (page != null && !page.isEmpty()) {
+                    TransactionEntity lastItem = page.get(page.size() - 1);
+                    lastTimestamp = lastItem.getTimestamp();
+                    lastId = lastItem.getId();
+                }
+                if (page == null || page.size() < PAGE_SIZE) {
+                    hasMore.setValue(false);
+                }
+                isLoadingMore.setValue(false);
+            }
+
+            @Override
+            public void onError(Exception exception) {
+                isLoadingMore.setValue(false);
+            }
+        });
     }
 
     // ─── Load transaction by id (cho Edit mode) ───────────────────────────────
