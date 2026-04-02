@@ -473,7 +473,7 @@ public interface TransactionDao {
             "WHERE t.user_id = :userId AND t.type = 'EXPENSE' AND t.category_id = :categoryId AND t.timestamp BETWEEN :startDate AND :endDate AND t.is_deleted = 0")
     double getTotalExpenseByCategorySync(String userId, String categoryId, long startDate, long endDate);
 
-    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 
     @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0")

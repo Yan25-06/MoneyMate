@@ -35,7 +35,7 @@ public interface DebtDao {
     @Query("SELECT * FROM debts WHERE id = :id AND is_deleted = 0")
     LiveData<DebtEntity> getDebtById(String id);
 
-    @Query("UPDATE debts SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    @Query("UPDATE debts SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 
     @Query("SELECT * FROM debts WHERE user_id = :userId AND sync_status != 0")
