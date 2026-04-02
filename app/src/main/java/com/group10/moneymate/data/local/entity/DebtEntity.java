@@ -54,6 +54,9 @@ public class DebtEntity {
     @ColumnInfo(name = "note")
     private String note;
 
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
+
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
 
@@ -83,6 +86,8 @@ public class DebtEntity {
     public void setStatus(String status) { this.status = status; }
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
     public int getSyncStatus() { return syncStatus; }

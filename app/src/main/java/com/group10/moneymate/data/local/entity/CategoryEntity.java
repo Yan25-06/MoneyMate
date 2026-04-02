@@ -54,6 +54,9 @@ public class CategoryEntity {
     @ColumnInfo(name = "is_default")
     private boolean isDefault;
 
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
+
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
 
@@ -96,6 +99,9 @@ public class CategoryEntity {
 
     public boolean isDefault() { return isDefault; }
     public void setDefault(boolean aDefault) { isDefault = aDefault; }
+
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }

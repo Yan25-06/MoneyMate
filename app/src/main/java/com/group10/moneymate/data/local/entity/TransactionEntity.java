@@ -92,6 +92,9 @@ public class TransactionEntity {
     @ColumnInfo(name = "image_path")
     private String imagePath;
 
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
+
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
 
@@ -142,6 +145,9 @@ public class TransactionEntity {
 
     @Nullable public String getImagePath() { return imagePath; }
     public void setImagePath(@Nullable String imagePath) { this.imagePath = imagePath; }
+
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }

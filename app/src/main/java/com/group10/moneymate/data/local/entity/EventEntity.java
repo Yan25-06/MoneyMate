@@ -48,6 +48,9 @@ public class EventEntity {
     @ColumnInfo(name = "is_active")
     private boolean isActive;
 
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
+
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
 
@@ -73,6 +76,8 @@ public class EventEntity {
     public void setEndDate(long endDate) { this.endDate = endDate; }
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
     public int getSyncStatus() { return syncStatus; }

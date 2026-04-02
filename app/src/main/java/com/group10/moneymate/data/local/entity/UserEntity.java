@@ -43,6 +43,9 @@ public class UserEntity {
     @ColumnInfo(name = "created_at")
     private long createdAt;
 
+    @ColumnInfo(name = "updated_at")
+    private long updatedAt;
+
     public UserEntity() {
         this.id = "";
     }
@@ -80,4 +83,7 @@ public class UserEntity {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public long getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 }
