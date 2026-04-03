@@ -4,9 +4,6 @@ import androidx.lifecycle.LiveData;
 import androidx.annotation.RestrictTo;
 import androidx.room.Dao;
 import androidx.room.Query;
-import androidx.room.RawQuery;
-import androidx.sqlite.db.SimpleSQLiteQuery;
-import androidx.sqlite.db.SupportSQLiteQuery;
 
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 
@@ -14,21 +11,31 @@ import java.util.List;
 
 @Dao
 public interface BudgetDao {
-    @RawQuery
-    int upsertLocalRaw(SupportSQLiteQuery query);
+    @Query("INSERT INTO budgets ("
+            + "id, category_id, user_id, amount, start_date, end_date, wallet_id, "
+            + "created_at, updated_at, is_deleted, sync_status"
+            + ") VALUES (:id, :categoryId, :userId, :amount, :startDate, :endDate, :walletId, "
+            + ":createdAt, :updatedAt, :isDeleted, :syncStatus) "
+            + "ON CONFLICT(user_id, wallet_id, start_date, end_date, category_id) DO UPDATE SET "
+            + "amount = excluded.amount, "
+            + "updated_at = excluded.updated_at, "
+            + "sync_status = CASE WHEN budgets.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
+            + "is_deleted = CASE WHEN budgets.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
+            + "created_at = CASE WHEN budgets.created_at IS NULL OR budgets.created_at <= 0 THEN excluded.created_at ELSE budgets.created_at END")
+    void upsertLocalInternal(String id,
+                             String categoryId,
+                             String userId,
+                             double amount,
+                             long startDate,
+                             long endDate,
+                             String walletId,
+                             long createdAt,
+                             long updatedAt,
+                             boolean isDeleted,
+                             int syncStatus);
 
     default void upsertLocal(BudgetEntity budget) {
-        String sql = "INSERT INTO budgets ("
-                + "id, category_id, user_id, amount, start_date, end_date, wallet_id, "
-                + "created_at, updated_at, is_deleted, sync_status"
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-                + "ON CONFLICT(user_id, wallet_id, start_date, end_date, category_id) DO UPDATE SET "
-                + "amount = excluded.amount, "
-                + "updated_at = excluded.updated_at, "
-                + "sync_status = CASE WHEN budgets.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
-                + "is_deleted = CASE WHEN budgets.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
-                + "created_at = CASE WHEN budgets.created_at IS NULL OR budgets.created_at <= 0 THEN excluded.created_at ELSE budgets.created_at END";
-        upsertLocalRaw(new SimpleSQLiteQuery(sql, new Object[] {
+        upsertLocalInternal(
                 budget.getId(),
                 budget.getCategoryId(),
                 budget.getUserId(),
@@ -38,9 +45,9 @@ public interface BudgetDao {
                 budget.getWalletId(),
                 budget.getCreatedAt(),
                 budget.getUpdatedAt(),
-                budget.isDeleted() ? 1 : 0,
+                budget.isDeleted(),
                 budget.getSyncStatus()
-        }));
+        );
     }
 
     default void insert(BudgetEntity budget) {

@@ -85,6 +85,7 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
     private final Handler invalidationHandler = new Handler(Looper.getMainLooper());
     private final Runnable applyInvalidatedTransactionsRunnable = this::applyInvalidatedTransactions;
     private boolean invalidationRefreshScheduled;
+    private boolean invalidationRefreshPending;
     private long lastInvalidationRefreshAt;
 
     public TransactionViewModel(@NonNull Application application) {
@@ -206,6 +207,9 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
     }
 
     public void resetPagination() {
+        invalidationHandler.removeCallbacks(applyInvalidatedTransactionsRunnable);
+        invalidationRefreshScheduled = false;
+        invalidationRefreshPending = false;
         lastTimestamp = Long.MAX_VALUE;
         lastId = "~";
         allTransactions.setValue(new ArrayList<>());
@@ -337,19 +341,18 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
     }
 
     private void scheduleInvalidationRefresh() {
+        if (invalidationRefreshScheduled) {
+            invalidationRefreshPending = true;
+            return;
+        }
         long now = System.currentTimeMillis();
         long elapsed = now - lastInvalidationRefreshAt;
         long delay = Math.max(0L, INVALIDATION_REFRESH_DEBOUNCE_MS - elapsed);
-
-        if (invalidationRefreshScheduled) {
-            invalidationHandler.removeCallbacks(applyInvalidatedTransactionsRunnable);
-        }
         invalidationRefreshScheduled = true;
         invalidationHandler.postDelayed(applyInvalidatedTransactionsRunnable, delay);
     }
 
     private void applyInvalidatedTransactions() {
-        invalidationRefreshScheduled = false;
         final int loadedCount = Math.max(PAGE_SIZE, getLoadedTransactionCount());
         final int requestLimit = loadedCount + 1;
 
@@ -361,14 +364,24 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
                     public void onSuccess(List<TransactionEntity> page) {
                         applyPageSnapshot(page, loadedCount);
                         lastInvalidationRefreshAt = System.currentTimeMillis();
+                        completeInvalidationRefreshCycle();
                     }
 
                     @Override
                     public void onError(Exception exception) {
                         lastInvalidationRefreshAt = System.currentTimeMillis();
+                        completeInvalidationRefreshCycle();
                     }
                 }
         );
+    }
+
+    private void completeInvalidationRefreshCycle() {
+        invalidationRefreshScheduled = false;
+        if (invalidationRefreshPending) {
+            invalidationRefreshPending = false;
+            scheduleInvalidationRefresh();
+        }
     }
 
     private int getLoadedTransactionCount() {

@@ -21,6 +21,7 @@ import com.group10.moneymate.workers.SyncScheduler;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Repository for transaction data.
@@ -43,6 +44,9 @@ public class TransactionRepository {
     @Nullable
     private final SyncScheduler syncScheduler;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    // Keep updated_at strictly increasing so MAX(updated_at)-based invalidation
+    // cannot miss rapid consecutive writes that land in the same millisecond.
+    private static final AtomicLong LAST_WRITE_TIMESTAMP = new AtomicLong(0L);
 
     public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
         this(transactionDao, walletDao, null);
@@ -399,7 +403,7 @@ public class TransactionRepository {
     private void upsertTransactionInternal(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                long now = System.currentTimeMillis();
+                long now = nextWriteTimestamp();
                 if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
                     transaction.setId(UUID.randomUUID().toString());
                 }
@@ -424,13 +428,23 @@ public class TransactionRepository {
     public void softDeleteTransaction(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                transactionDao.softDelete(transaction.getId(), System.currentTimeMillis());
+                transactionDao.softDelete(transaction.getId(), nextWriteTimestamp());
                 scheduleSyncIfEnabled();
                 notifyWriteSuccess(callback);
             } catch (Exception exception) {
                 notifyWriteError(callback, exception);
             }
         });
+    }
+
+    private long nextWriteTimestamp() {
+        while (true) {
+            long previous = LAST_WRITE_TIMESTAMP.get();
+            long candidate = Math.max(System.currentTimeMillis(), previous + 1L);
+            if (LAST_WRITE_TIMESTAMP.compareAndSet(previous, candidate)) {
+                return candidate;
+            }
+        }
     }
 
     private void notifyWriteSuccess(@Nullable WriteCallback callback) {

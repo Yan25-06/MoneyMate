@@ -69,6 +69,8 @@ public class BudgetViewModel extends DebounceableViewModel {
     private final Map<String, WalletEntity> walletValues = new HashMap<>();
     private final Map<String, Double> spentValues = new HashMap<>();
     private List<BudgetEntity> currentBudgets = new ArrayList<>();
+    private boolean uiRebuildScheduled;
+    private boolean uiRebuildPending;
     private final Observer<List<BudgetEntity>> budgetObserver = this::onBudgetsChanged;
     private final Observer<String> selectedWalletObserver = ignored -> scheduleRebuildUiModels();
     private final Observer<BudgetTab> selectedTabObserver = ignored -> scheduleRebuildUiModels();
@@ -312,7 +314,21 @@ public class BudgetViewModel extends DebounceableViewModel {
     }
 
     private void scheduleRebuildUiModels() {
-        debounce(this::rebuildUiModels, UI_REBUILD_DEBOUNCE_MS);
+        if (uiRebuildScheduled) {
+            uiRebuildPending = true;
+            return;
+        }
+        uiRebuildScheduled = true;
+        debounce(this::runRebuildUiModels, UI_REBUILD_DEBOUNCE_MS);
+    }
+
+    private void runRebuildUiModels() {
+        uiRebuildScheduled = false;
+        rebuildUiModels();
+        if (uiRebuildPending) {
+            uiRebuildPending = false;
+            scheduleRebuildUiModels();
+        }
     }
 
     private void syncChildSources() {

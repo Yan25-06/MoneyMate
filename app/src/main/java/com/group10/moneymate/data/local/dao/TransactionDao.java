@@ -4,9 +4,6 @@ import androidx.lifecycle.LiveData;
 import androidx.annotation.RestrictTo;
 import androidx.room.Dao;
 import androidx.room.Query;
-import androidx.room.RawQuery;
-import androidx.sqlite.db.SimpleSQLiteQuery;
-import androidx.sqlite.db.SupportSQLiteQuery;
 
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
@@ -17,31 +14,46 @@ import java.util.List;
 
 @Dao
 public interface TransactionDao {
-    @RawQuery
-    int upsertLocalRaw(SupportSQLiteQuery query);
+    @Query("INSERT INTO transactions ("
+            + "id, wallet_id, category_id, debt_id, event_id, amount, type, to_wallet_id, note, "
+            + "timestamp, image_path, created_at, updated_at, sync_status, is_deleted, user_id"
+            + ") VALUES (:id, :walletId, :categoryId, :debtId, :eventId, :amount, :type, :toWalletId, :note, "
+            + ":timestamp, :imagePath, :createdAt, :updatedAt, :syncStatus, :isDeleted, :userId) "
+            + "ON CONFLICT(id) DO UPDATE SET "
+            + "wallet_id = excluded.wallet_id, "
+            + "category_id = excluded.category_id, "
+            + "debt_id = excluded.debt_id, "
+            + "event_id = excluded.event_id, "
+            + "amount = excluded.amount, "
+            + "type = excluded.type, "
+            + "to_wallet_id = excluded.to_wallet_id, "
+            + "note = excluded.note, "
+            + "timestamp = excluded.timestamp, "
+            + "image_path = excluded.image_path, "
+            + "updated_at = excluded.updated_at, "
+            + "sync_status = CASE WHEN transactions.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
+            + "is_deleted = CASE WHEN transactions.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
+            + "created_at = CASE WHEN transactions.created_at IS NULL OR transactions.created_at <= 0 THEN excluded.created_at ELSE transactions.created_at END, "
+            + "user_id = excluded.user_id")
+    void upsertLocalInternal(String id,
+                             String walletId,
+                             String categoryId,
+                             String debtId,
+                             String eventId,
+                             double amount,
+                             String type,
+                             String toWalletId,
+                             String note,
+                             long timestamp,
+                             String imagePath,
+                             long createdAt,
+                             long updatedAt,
+                             int syncStatus,
+                             boolean isDeleted,
+                             String userId);
 
     default void upsertLocal(TransactionEntity transaction) {
-        String sql = "INSERT INTO transactions ("
-                + "id, wallet_id, category_id, debt_id, event_id, amount, type, to_wallet_id, note, "
-                + "timestamp, image_path, created_at, updated_at, sync_status, is_deleted, user_id"
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-                + "ON CONFLICT(id) DO UPDATE SET "
-                + "wallet_id = excluded.wallet_id, "
-                + "category_id = excluded.category_id, "
-                + "debt_id = excluded.debt_id, "
-                + "event_id = excluded.event_id, "
-                + "amount = excluded.amount, "
-                + "type = excluded.type, "
-                + "to_wallet_id = excluded.to_wallet_id, "
-                + "note = excluded.note, "
-                + "timestamp = excluded.timestamp, "
-                + "image_path = excluded.image_path, "
-                + "updated_at = excluded.updated_at, "
-                + "sync_status = CASE WHEN transactions.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
-                + "is_deleted = CASE WHEN transactions.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
-                + "created_at = CASE WHEN transactions.created_at IS NULL OR transactions.created_at <= 0 THEN excluded.created_at ELSE transactions.created_at END, "
-                + "user_id = excluded.user_id";
-        upsertLocalRaw(new SimpleSQLiteQuery(sql, new Object[] {
+        upsertLocalInternal(
                 transaction.getId(),
                 transaction.getWalletId(),
                 transaction.getCategoryId(),
@@ -56,9 +68,9 @@ public interface TransactionDao {
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt(),
                 transaction.getSyncStatus(),
-                transaction.isDeleted() ? 1 : 0,
+                transaction.isDeleted(),
                 transaction.getUserId()
-        }));
+        );
     }
 
     default void insertTransaction(TransactionEntity transaction) {
