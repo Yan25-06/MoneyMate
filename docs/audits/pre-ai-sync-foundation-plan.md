@@ -90,25 +90,155 @@
 
 ## Phase 3 - Conflict Resolution & Deletion
 
-### [X] Task 3.1 - Bỏ `OnConflictStrategy.REPLACE` trên các bảng mutable
-**Files:** `TransactionDao.java`, `WalletDao.java`, `CategoryDao.java`, `BudgetDao.java`, `DebtDao.java`, `EventDao.java`
+### Goal
+Refactor all changes made in Phase 3 (Tasks 3.1, 3.2, 3.3) to use the **UPSERT pattern** described below. Ensure that:
+- All DAOs use `@Query` UPSERT methods instead of `@Insert` with `ABORT` or `REPLACE`.
+- All Repositories call the UPSERT methods directly, without pre-checking existence.
+- Soft-delete semantics remain correct (`sync_status = 2`, `is_deleted = 1`).
+- No hard-delete APIs remain in production paths.
+- The app builds successfully and passes all relevant tests.
 
-**Action:**
-- Chuyển sang `ABORT`/`IGNORE` + update có điều kiện.
-- Tách rõ local write và remote merge path.
+### Step-by-Step Instructions
 
-### [X] Task 3.2 - Sửa toàn bộ soft-delete về `sync_status = 2`
-**Files:** `TransactionDao.java`, `DebtDao.java`, `EventDao.java`
+#### Step 1: Revert previous incorrect changes (if needed)
+- Identify all DAO methods that were changed to `@Insert(onConflict = OnConflictStrategy.ABORT)` or similar.
+- Identify all Repository methods that were changed to use `findById` + conditional insert/update.
+- You may either delete those changes and replace, or overwrite them with the new pattern.
 
-**Action:**
-- Update SQL soft-delete thành `is_deleted = 1, sync_status = 2, updated_at = :updatedAt`.
+#### Step 2: Implement Conditional UPSERT in each DAO (the optimal way)
 
-### [X] Task 3.3 - Loại bỏ hard-delete API khỏi production path
-**Files:** `TransactionDao.java`, `DebtDao.java`, `EventDao.java`
+For **each** of these DAOs: `TransactionDao.java`, `WalletDao.java`, `CategoryDao.java`, `BudgetDao.java`, `DebtDao.java`, `EventDao.java`
 
-**Action:**
-- Xóa hoặc cô lập `deleteAllByUser(...)` khỏi luồng app chính.
-- Nếu cần maintenance, chuyển sang debug-only path.
+##### Pattern A: Standard entity with `id` primary key (Transaction, Wallet, Category, Debt, Event)
+Add a method named `upsertLocal` (or `upsert`) as follows:
+
+```java
+@Query("INSERT INTO table_name (all_columns_except_auto) "
+     + "VALUES (:all_values) "
+     + "ON CONFLICT(id) DO UPDATE SET "
+     + "column1 = excluded.column1, "
+     + "column2 = excluded.column2, "
+     + "updated_at = excluded.updated_at, "
+     + "sync_status = CASE WHEN table_name.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
+     + "is_deleted = CASE WHEN table_name.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
+     + "created_at = COALESCE(table_name.created_at, excluded.created_at)")
+void upsertLocal(Entity entity);
+```
+
+**Important:**
+- Replace `table_name` with actual table name.
+- List all columns except those that should never be overwritten (e.g., `id` is used for conflict, `created_at` is coalesced, `sync_status` and `is_deleted` are conditionally kept).
+- Ensure `updated_at` is always overwritten with the new value.
+
+##### Pattern B: BudgetEntity with unique composite key
+For `BudgetDao.java`, add:
+
+```java
+@Query("INSERT INTO budgets (id, user_id, wallet_id, period, category_id, amount, spent, sync_status, created_at, updated_at) "
+     + "VALUES (:id, :userId, :walletId, :period, :categoryId, :amount, :spent, :syncStatus, :createdAt, :updatedAt) "
+     + "ON CONFLICT(user_id, wallet_id, period, category_id) DO UPDATE SET "
+     + "amount = excluded.amount, "
+     + "spent = excluded.spent, "
+     + "updated_at = excluded.updated_at, "
+     + "sync_status = CASE WHEN budgets.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
+     + "created_at = COALESCE(budgets.created_at, excluded.created_at)")
+void upsertLocal(BudgetEntity budget);
+```
+
+**Note:** Ensure that the unique index on `(user_id, wallet_id, period, category_id)` exists (create migration if not). If not, add to `BudgetEntity`:
+
+```java
+@Indices(value = {@Index(value = {"user_id", "wallet_id", "period", "category_id"}, unique = true)})
+```
+
+#### Step 3: Remove any `findById` + conditional insert/update from Repositories
+
+For each Repository (TransactionRepository, WalletRepository, CategoryRepository, BudgetRepository, DebtRepository, EventRepository):
+
+- **Remove** code that checks `findById` before insert/update.
+- **Replace** with direct call to `dao.upsertLocal(entity)`.
+- Keep all metadata setup (`setUpdatedAt`, `setSyncStatus`, `setCreatedAt` if new) before calling upsert.
+
+Example for TransactionRepository:
+
+```java
+public void saveTransaction(TransactionEntity transaction, WriteCallback callback) {
+    databaseWriteExecutor.execute(() -> {
+        try {
+            if (transaction.getId() == null) {
+                transaction.setId(UUID.randomUUID().toString());
+                transaction.setCreatedAt(System.currentTimeMillis());
+            }
+            transaction.setUpdatedAt(System.currentTimeMillis());
+            transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+            transactionDao.upsertLocal(transaction);
+            // (Optional) update wallet balance inside a transaction
+            callback.onSuccess();
+        } catch (Exception e) {
+            callback.onError(e);
+        }
+    });
+}
+```
+
+Similarly for other repositories.
+
+#### Step 4: Ensure soft-delete methods are correct (Task 3.2)
+
+Soft-delete methods in DAOs should remain as simple updates:
+
+```java
+@Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
+void softDelete(String id, long updatedAt);
+```
+
+Repository calls this directly. **No upsert for soft-delete** – it's a dedicated update.
+
+#### Step 5: Remove hard-delete APIs (Task 3.3)
+
+- Locate any `deleteAllByUser` or similar methods in DAOs.
+- Either delete them entirely, or move to a debug-only package and annotate with `@RestrictTo(RestrictTo.Scope.LIBRARY)`.
+- Ensure no production code calls them.
+
+#### Step 6: Update ViewModels and Fragments if necessary
+
+- The changes are only in data layer (DAO and Repository). ViewModels and Fragments should remain unchanged because repository method signatures stay the same (they still receive `TransactionEntity` and callback).
+- However, verify that no ViewModel directly calls `findById` or old insert methods. If any, update to use the new repository method.
+
+#### Step 7: Build and test
+
+- Run `./gradlew clean build` to ensure no compilation errors.
+- Run instrumentation tests (if any) or manually test the following scenarios:
+    1. Create new transaction → check `sync_status=1`, `created_at` and `updated_at` set.
+    2. Update existing transaction → `updated_at` changes, `sync_status` remains 1, `created_at` unchanged.
+    3. Soft-delete a transaction → `is_deleted=1`, `sync_status=2`.
+    4. Try to update a soft-deleted transaction → the UPSERT should keep `sync_status=2` (not change to 1). Verify by checking DB after update.
+    5. Create a budget with same (user, wallet, period, category) → should update existing, not duplicate.
+    6. Perform concurrent updates (optional but recommended) to ensure no race condition.
+
+#### Step 8: Commit changes
+
+Commit with message: `[Phase3] Replace ABORT+findById with optimal conditional UPSERT; ensure soft-delete semantics and remove hard-delete`
+
+#### Definition of Done for Phase 3 (after this rework)
+
+- [ ] All DAOs have `upsertLocal` method with conditional protection for `sync_status`, `is_deleted`, `created_at`.
+- [ ] No DAO uses `OnConflictStrategy.REPLACE` or `ABORT` for mutable entities.
+- [ ] All repositories use `upsertLocal` without pre-checking `findById`.
+- [ ] Soft-delete methods set `sync_status = 2`.
+- [ ] No hard-delete APIs accessible from production code.
+- [ ] App builds without errors.
+- [ ] Manual tests pass (scenarios above).
+
+#### Additional Notes
+
+- If the Room version is lower than 2.4.0, you need to upgrade `build.gradle.kts`:
+  ```kotlin
+  implementation("androidx.room:room-runtime:2.6.1")
+  kapt("androidx.room:room-compiler:2.6.1")
+  ```
+- For `BudgetEntity`, if the unique index does not exist in the current DB version, create a migration (e.g., 9→10) to add it. But since Phase 1 already upgraded to version 9, you can add the index in the same migration 9→10 (or create 10→11 if needed). The simplest: add the `@Index` annotation to the entity and let Room handle it in the next migration (recommended to create a new migration version 10).
+
 
 ---
 
@@ -511,6 +641,148 @@ public void scrollLargeList_noJank() {
 - [X] Thử nghiệm thủ công: bật AI/Sync giả lập (ghi DB liên tục), UI không bị rớt frame, không memory leak.
 - [X] (Optional) Performance test trên thiết bị low-end đạt yêu cầu.
 
+### Futhur considerations
+#### 1. Pagination strategy: LIMIT/OFFSET vs Cursor/Keyset paging
+
+##### Kết luận: **Dùng keyset/cursor paging (còn gọi là "seek method") cho TransactionListFragment, giữ LIMIT/OFFSET cho các trường hợp ít thay đổi.**
+
+##### Lý do:
+
+| Tiêu chí | LIMIT/OFFSET | Keyset (WHERE timestamp < lastTimestamp) |
+|----------|--------------|-------------------------------------------|
+| Hiệu năng trên dataset lớn | Kém (OFFSET càng lớn càng chậm) | Tốt (chỉ quét từ mốc) |
+| Ổn định khi có insert/delete trong lúc scroll | **Không ổn định** – bị trùng/sót item | Ổn định (nếu sắp xếp theo timestamp+id) |
+| Độ phức tạp triển khai | Thấp | Trung bình (cần lưu last value) |
+| Hỗ trợ refresh/load page đầu tiên | Dễ | Dễ |
+
+Với MoneyMate, **transaction list là nơi người dùng thường xuyên scroll sâu**, và **dữ liệu thay đổi liên tục** (thêm giao dịch mới, sync từ cloud). Dùng OFFSET sẽ gây hiện tượng nhảy item hoặc bỏ sót khi có insert vào đầu danh sách.
+
+##### Giải pháp keyset cụ thể:
+
+**Thay vì:**
+```sql
+LIMIT 30 OFFSET 90
+```
+
+**Dùng:**
+```sql
+SELECT * FROM transactions 
+WHERE user_id = :userId 
+AND (timestamp < :lastTimestamp OR (timestamp = :lastTimestamp AND id < :lastId))
+ORDER BY timestamp DESC, id DESC
+LIMIT :limit
+```
+
+**Trong Repository, lưu last values:**
+```java
+private long lastTimestamp = Long.MAX_VALUE;
+private String lastId = "";
+
+public void loadNextPage(LoadCallback callback) {
+    List<Transaction> page = dao.getTransactionsAfter(userId, lastTimestamp, lastId, PAGE_SIZE);
+    if (!page.isEmpty()) {
+        lastTimestamp = page.get(page.size() - 1).getTimestamp();
+        lastId = page.get(page.size() - 1).getId();
+    }
+    callback.onSuccess(page);
+}
+```
+
+**Khi refresh (kéo xuống load mới):** reset `lastTimestamp = Long.MAX_VALUE`, `lastId = ""`, và gọi lại load page đầu.
+
+**Khuyến nghị:** Task 4.6 trong Phase 4 nên được **nâng cấp lên keyset paging** thay vì LIMIT/OFFSET. Độ phức tạp tăng không đáng kể, nhưng mang lại sự ổn định cao.
+
+
+#### 2. distinctUntilChanged semantics: Objects.equals vs fingerprinting
+
+##### Kết luận: **Giữ `Objects.equals` cho toàn bộ object là đủ tốt và an toàn. Không cần fingerprinting.**
+
+##### Lý do:
+
+- `Objects.equals(listA, listB)` so sánh **nội dung từng phần tử** (gọi `equals()` của từng entity). Nếu bạn đã implement `equals()` dựa trên `id` + `updated_at` (hoặc toàn bộ field quan trọng), thì đây là cách đúng.
+- Fingerprinting (tạo hash từ id+updated_at) có thể nhanh hơn một chút với list rất lớn (hàng nghìn item), nhưng gây phức tạp hóa, dễ sai (quên cập nhật fingerprint khi thay đổi).
+- Trong thực tế, list transaction thường không quá 500-1000 item. `Objects.equals` là đủ nhanh.
+
+##### Tuy nhiên, cần đảm bảo:
+
+**Các entity (TransactionEntity, BudgetEntity, ...) phải override `equals()` và `hashCode()` đúng cách:**
+
+```java
+@Override
+public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    TransactionEntity that = (TransactionEntity) o;
+    return Objects.equals(id, that.id)
+        && updatedAt == that.updatedAt;
+}
+
+@Override
+public int hashCode() {
+    return Objects.hash(id, updatedAt);
+}
+```
+
+**Nếu chưa có, hãy thêm vào tất cả entity trong Phase 1 hoặc Phase 4 như một task nhỏ.**
+
+##### Vậy cập nhật Task 4.4:
+
+- Giữ `DistinctLiveData` dùng `Objects.equals`.
+- **Bổ sung Task 4.4.1:** Đảm bảo mọi entity đã override `equals()` và `hashCode()` dựa trên `id` + `updated_at`.
+
+
+#### 3. UTC scope boundary: Chỉ DAO/query windows hay toàn bộ UI?
+
+##### Kết luận: **Phải áp dụng UTC xuyên suốt từ DAO đến UI date-pickers và báo cáo, nhưng hiển thị thì convert về local.**
+
+##### Cụ thể:
+
+| Layer | Policy |
+|-------|--------|
+| **Database storage** | Lưu epoch millis UTC (đã có) |
+| **DAO query** | Dùng UTC boundaries (startOfDayUtc, endOfDayUtc) – không dùng `localtime` |
+| **Repository / ViewModel** | Giữ nguyên UTC, không chuyển đổi |
+| **UI date-picker (người dùng chọn ngày)** | Chuyển local date → UTC start/end trước khi gửi xuống repository |
+| **UI hiển thị (TextView hiển thị ngày/tháng)** | Chuyển UTC epoch → local date để hiển thị thân thiện |
+
+##### Những file cần sửa (ngoài TransactionDao và StatisticsViewModel):
+
+- `StatisticsOverviewFragment` – khi người dùng chọn ngày trong `DatePicker`, gọi `TimeWindowUtils.startOfDayUtc(localEpoch)`.
+- `IncomeExpenseDetailFragment` – tương tự.
+- `CategoryReportFragment` – tương tự.
+- `BudgetListFragment` – nếu có lọc theo tháng, cần dùng UTC boundaries.
+- `AddEditTransactionFragment` – khi lưu giao dịch, `timestamp` lưu là UTC epoch (đã đúng, nhưng cần đảm bảo nếu người dùng chọn ngày giờ local thì convert sang UTC).
+
+##### Thêm một helper trong `TimeWindowUtils`:
+
+```java
+public static long startOfDayLocalToUtc(long localEpochMillis, TimeZone timeZone) {
+    // Chuyển local epoch sang UTC boundary
+    Calendar cal = Calendar.getInstance(timeZone);
+    cal.setTimeInMillis(localEpochMillis);
+    cal.set(Calendar.HOUR_OF_DAY, 0);
+    cal.set(Calendar.MINUTE, 0);
+    cal.set(Calendar.SECOND, 0);
+    cal.set(Calendar.MILLISECOND, 0);
+    return cal.getTimeInMillis();
+}
+```
+
+Nhưng khuyến khích dùng `java.time` nếu min API >= 26, hoặc ThreeTenABP.
+
+##### Vậy cần mở rộng Task 4.7:
+
+- Không chỉ sửa DAO query, mà còn **rà soát tất cả fragment có date picker hoặc hiển thị báo cáo thời gian**, đảm bảo dùng `TimeWindowUtils` để chuyển đổi.
+
+
+#### Tổng hợp các bổ sung cần cập nhật vào Phase 4 (hoặc Phase riêng)
+
+| Hạng mục | Quyết định | Hành động |
+|----------|-----------|-----------|
+| Pagination | Dùng **keyset paging** thay vì LIMIT/OFFSET | Sửa Task 4.6 trong plan |
+| distinctUntilChanged | Giữ `Objects.equals`, thêm override equals/hashCode cho entity | Bổ sung Task 4.4.1 |
+| UTC scope | Toàn bộ UI date-picker và báo cáo | Mở rộng Task 4.7, rà soát thêm các fragment |
+
 
 ---
 
@@ -879,6 +1151,31 @@ WorkManager.getInstance(context).enqueue(request);
 
 **Lưu ý:** Không thay đổi logic local writes. Phase 5 chỉ thêm các worker mới và infrastructure cho sync/AI nền.
 
+### Further Considerations – Đã chốt
+
+Dựa trên phân tích hiện trạng và đề xuất của bạn, tôi xác nhận các quyết định sau:
+
+1. **Sync scope v1:** ✅ Chỉ `transactions` và `budgets`. Các bảng khác để phase sau.
+
+2. **Checkpoint key:** ✅ Dùng composite `(user_id, domain)` với domain là string `"transactions"`, `"budgets"`.
+
+3. **UniqueWork policy cho one-time sync:** ✅ `ExistingWorkPolicy.KEEP` – không tạo mới nếu đã có sync đang chạy.
+
+4. **Periodic sync interval:** ✅ **1 giờ** – tiết kiệm pin và data. User có thể manual sync qua pull-to-refresh hoặc notification.
+
+5. **Retry policy:** ✅ Max retry = **3**, backoff exponential bắt đầu **30s** (30s, 1m, 2m). Sau 3 lần → failure + notification.
+
+6. **Xử lý PENDING_DELETE sau sync thành công:** ✅ **Hard delete local** sau khi remote confirm thành công. Đảm bảo idempotent.
+
+7. **Notification fail sync:** ✅ **Chỉ khi app ở background** (dùng `ProcessLifecycleOwner` để kiểm tra foreground). Nếu foreground, dùng Snackbar.
+
+8. **AIReceiptScannerWorker v1:** ✅ **Scaffolding + validation** – chưa OCR thực. Nhận image_uri, validate, log, trả về success giả. Dễ thay thế sau.
+
+9. **Trigger enqueue sync:** ✅ **Cả hai**:
+    - One-time sync sau mỗi local write (có debounce 5 giây để gộp).
+    - Periodic sync 1 giờ.
+    - Manual retry từ notification.
+    - Dùng `KEEP` để tránh trùng lặp.
 
 ---
 ## Phase 6 - Indexing & Pagination Optimization (BẮT BUỘC MỚI, ĐÃ TỐI ƯU)
@@ -1049,6 +1346,56 @@ static final Migration MIGRATION_11_12 = new Migration(11, 12) {
 - [X] App build thành công, test thủ công với 5000+ transactions, scroll không ANR, không OOM.
 
 **Lưu ý:** Phase 6 không xử lý timezone nữa (đã chuyển sang Phase 4). Tên phase phản ánh đúng nội dung: Indexing & Pagination.
+
+### Further Considerations – Đã chốt + Bổ sung hoàn thiện (Phase 6)
+#### 1. Index strategy – chốt chỉ 3 nhóm, nhưng làm rõ sync index
+
+- ✅ **Ledger keyset index:** `transactions(user_id, is_deleted, timestamp DESC, id DESC)`
+- ✅ **Sync checkpoint index (transactions):** Thay vì `(user_id, updated_at ASC, id ASC)`, yêu cầu **dùng index `(user_id, sync_status, updated_at, id)`** và sửa query sync thành `sync_status IN (1,2)` thay vì `!=0`.  
+  → Lý do: index sẽ được sử dụng triệt để. Agent phải viết test `EXPLAIN QUERY PLAN` để xác nhận.
+- ✅ **Sync checkpoint index (budgets):** Tương tự `budgets(user_id, sync_status, updated_at, id)`
+- ✅ **Wallet index:** `wallets(user_id, sync_status, updated_at)` – thêm luôn.
+
+#### 2. Pagination hardening – bổ sung các thành phần còn thiếu
+
+- ✅ **Page size:** giữ **30**.
+- ✅ **First-page API:** thêm `getFirstTransactionPage` rõ ràng.
+- ✅ **Load-more trigger:** chỉ giữ `RecyclerView.OnScrollListener`, bỏ `NestedScrollView`.
+- ✅ **Thêm flag `hasMore`** vào ViewModel. Khi `page.size() < PAGE_SIZE`, set `hasMore = false`. Fragment ngừng gọi `loadNextPage`.
+- ✅ **Reset pagination khi filter thay đổi:** dù chưa có filter UI, **thêm ngay method `applyFilter(FilterParams)` trong ViewModel** (hoặc `resetPaginationForNewFilter()`), bên trong gọi `resetPagination()`. Để sau này không bỏ sót.
+- ✅ **Test concurrent insert trong lúc scroll:** yêu cầu agent mô tả test cụ thể: background thread insert mỗi 0.5s, scroll liên tục, kiểm tra không duplicate/skipped item.
+
+#### 3. Migration và rủi ro ANR
+
+- ✅ Migration `11→12` dùng `CREATE INDEX IF NOT EXISTS` trong một transaction.
+- ✅ Với bảng lớn (ước lượng >10k rows), index creation có thể mất vài giây trên máy yếu. **Chấp nhận rủi ro** nhưng yêu cầu agent:
+    - Ghi rõ trong release note: "Phiên bản này sẽ tối ưu database, lần đầu khởi động có thể hơi lâu hơn bình thường."
+    - Không dùng `fallbackToDestructiveMigration()`.
+
+#### 4. Verification (EXPLAIN + smoke test)
+
+- ✅ **Tự động instrumentation test** cho `EXPLAIN QUERY PLAN`:
+    - Kiểm tra ledger query dùng index `transactions(user_id, is_deleted, timestamp DESC, id DESC)`
+    - Kiểm tra sync pending query dùng index `transactions(user_id, sync_status, updated_at, id)`
+- ✅ **Smoke test pagination với dataset 5000 rows**:
+    - Scroll từ đầu đến cuối, ghi log số lần load.
+    - Trong lúc scroll, chạy background insert 100 transactions mới.
+    - Kết thúc, kiểm tra tổng số item hiển thị = 5000 + 100, không bị trùng/sót.
+
+#### 5. Phạm vi – chỉ TransactionListFragment, giữ nguyên local writes
+
+- ✅ Không mở rộng sang Budget/Debt list.
+- ✅ Tuyệt đối không thay đổi write flows (insert/update/delete vẫn dùng executor + callback).
+
+#### 6. Các yêu cầu bổ sung (bắt buộc) đối với agent trước khi code
+
+Trước khi bắt đầu implement, agent phải **cập nhật revised implementation plan** bao gồm:
+- Chi tiết index `(user_id, sync_status, updated_at, id)` và sửa query sync thành `sync_status IN (1,2)`.
+- Cách thêm `hasMore` flag và `applyFilter` stub.
+- Mô tả test concurrent insert.
+- Cảnh báo ANR trong release note.
+
+
 ---
 
 ## Phase 7 - Architecture Rules (Gate trước AI/Sync)
