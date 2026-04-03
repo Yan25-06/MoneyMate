@@ -63,42 +63,61 @@ public class WalletRepository {
     }
 
     public void insert(WalletEntity wallet) {
-        upsertWalletInternal(wallet, null);
+        insertWalletInternal(wallet, null);
     }
 
     public void insert(WalletEntity wallet, @Nullable WriteCallback callback) {
-        upsertWalletInternal(wallet, callback);
+        insertWalletInternal(wallet, callback);
     }
 
     public void update(WalletEntity wallet) {
-        upsertWalletInternal(wallet, null);
+        insertWalletInternal(wallet, null);
     }
 
     public void update(WalletEntity wallet, @Nullable WriteCallback callback) {
-        upsertWalletInternal(wallet, callback);
+        insertWalletInternal(wallet, callback);
     }
 
-    private void upsertWalletInternal(WalletEntity wallet, @Nullable WriteCallback callback) {
-        if (wallet.getIconName().trim().isEmpty()) {
-            wallet.setIconName("ic_wallet_default");
+    private void insertWalletInternal(WalletEntity wallet, @Nullable WriteCallback callback) {
+        WalletEntity writeWallet = copyWallet(wallet);
+        if (writeWallet.getIconName().trim().isEmpty()) {
+            writeWallet.setIconName("ic_wallet_default");
         }
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 long now = System.currentTimeMillis();
-                if (wallet.getId() == null || wallet.getId().trim().isEmpty()) {
-                    wallet.setId(UUID.randomUUID().toString());
+                if (writeWallet.getId() == null || writeWallet.getId().trim().isEmpty()) {
+                    writeWallet.setId(UUID.randomUUID().toString());
                 }
-                if (wallet.getCreatedAt() <= 0L) {
-                    wallet.setCreatedAt(now);
+                if (writeWallet.getCreatedAt() <= 0L) {
+                    writeWallet.setCreatedAt(now);
                 }
-                wallet.setUpdatedAt(now);
-                wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-                walletDao.upsertLocal(wallet);
+                writeWallet.setUpdatedAt(now);
+                writeWallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+                walletDao.upsertLocal(writeWallet);
                 notifySuccess(callback);
             } catch (Exception exception) {
                 notifyError(callback, exception);
             }
         });
+    }
+
+    @NonNull
+    private WalletEntity copyWallet(@NonNull WalletEntity source) {
+        WalletEntity wallet = new WalletEntity();
+        wallet.setId(source.getId());
+        wallet.setUserId(source.getUserId());
+        wallet.setName(source.getName());
+        wallet.setBalance(source.getBalance());
+        wallet.setType(source.getType());
+        wallet.setIconName(source.getIconName());
+        wallet.setArchived(source.isArchived());
+        wallet.setExcluded(source.isExcluded());
+        wallet.setUpdatedAt(source.getUpdatedAt());
+        wallet.setSyncStatus(source.getSyncStatus());
+        wallet.setDeleted(source.isDeleted());
+        wallet.setCreatedAt(source.getCreatedAt());
+        return wallet;
     }
 
     private void notifySuccess(@Nullable WriteCallback callback) {
@@ -117,26 +136,17 @@ public class WalletRepository {
 
     public void softDelete(WalletEntity wallet) {
         long updatedAt = System.currentTimeMillis();
-        wallet.setDeleted(true);
-        wallet.setSyncStatus(SyncStatus.PENDING_DELETE);
-        wallet.setUpdatedAt(updatedAt);
         AppDatabase.databaseWriteExecutor.execute(() ->
                 walletDao.softDelete(wallet.getId(), updatedAt));
     }
 
     public void archive(WalletEntity wallet) {
         long updatedAt = System.currentTimeMillis();
-        wallet.setArchived(true);
-        wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        wallet.setUpdatedAt(updatedAt);
         AppDatabase.databaseWriteExecutor.execute(() -> walletDao.archive(wallet.getId(), updatedAt));
     }
 
     public void restore(WalletEntity wallet) {
         long updatedAt = System.currentTimeMillis();
-        wallet.setArchived(false);
-        wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        wallet.setUpdatedAt(updatedAt);
         AppDatabase.databaseWriteExecutor.execute(() -> walletDao.restore(wallet.getId(), updatedAt));
     }
 

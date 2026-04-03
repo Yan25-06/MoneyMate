@@ -12,7 +12,6 @@ import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.models.WalletType;
 import com.group10.moneymate.ui.common.DebounceableAndroidViewModel;
-import com.group10.moneymate.utils.DistinctLiveData;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +30,7 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
 
         userId = container.authRepository.getCurrentUserId();
 
-        wallets = DistinctLiveData.distinctUntilChanged(container.walletRepository.getAllByUserWithBalance(userId));
+        wallets = container.walletRepository.getAllByUserWithBalance(userId);
         totalBalance = container.walletRepository.getTotalBalance(userId);
     }
 
@@ -90,13 +89,32 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
                              double balance,
                              @NonNull String iconName,
                              com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
-        wallet.setName(name);
-        wallet.setType(type.name());
-        wallet.setBalance(balance);
-        wallet.setIconName(iconName);
-        wallet.setUpdatedAt(System.currentTimeMillis());
-        wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        container.walletRepository.update(wallet, callback);
+        WalletEntity updatedWallet = copyWallet(wallet);
+        updatedWallet.setName(name);
+        updatedWallet.setType(type.name());
+        updatedWallet.setBalance(balance);
+        updatedWallet.setIconName(iconName);
+        updatedWallet.setUpdatedAt(System.currentTimeMillis());
+        updatedWallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+        container.walletRepository.update(updatedWallet, callback);
+    }
+
+    @NonNull
+    private WalletEntity copyWallet(@NonNull WalletEntity source) {
+        WalletEntity wallet = new WalletEntity();
+        wallet.setId(source.getId());
+        wallet.setUserId(source.getUserId());
+        wallet.setName(source.getName());
+        wallet.setBalance(source.getBalance());
+        wallet.setType(source.getType());
+        wallet.setIconName(source.getIconName());
+        wallet.setArchived(source.isArchived());
+        wallet.setExcluded(source.isExcluded());
+        wallet.setUpdatedAt(source.getUpdatedAt());
+        wallet.setSyncStatus(source.getSyncStatus());
+        wallet.setDeleted(source.isDeleted());
+        wallet.setCreatedAt(source.getCreatedAt());
+        return wallet;
     }
 
     public void deleteWallet(WalletEntity wallet) {

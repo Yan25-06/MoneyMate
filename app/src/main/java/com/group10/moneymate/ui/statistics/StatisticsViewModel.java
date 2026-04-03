@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
@@ -26,17 +27,19 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class StatisticsViewModel extends DebounceableViewModel {
 
     private static final long FILTER_DEBOUNCE_MS = 80L;
+    private static final String DEFAULT_WALLET_LABEL = "Tổng cộng";
 
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
     private final String userId;
     private final MutableLiveData<FilterState> filterState = new MutableLiveData<>();
     private final MutableLiveData<String> walletLabel =
-            new MutableLiveData<>("Tổng cộng");
+            new MutableLiveData<>(DEFAULT_WALLET_LABEL);
     private final MutableLiveData<TransactionType> selectedReportType =
             new MutableLiveData<>(TransactionType.INCOME);
 
@@ -47,6 +50,8 @@ public class StatisticsViewModel extends DebounceableViewModel {
     private final LiveData<List<CategorySliceUiModel>> expenseCategorySums;
     private final LiveData<Double> totalIncomeAmount;
     private final LiveData<Double> totalExpenseAmount;
+    private final LiveData<List<WalletEntity>> walletSource;
+    private final Observer<List<WalletEntity>> walletSourceObserver = this::onWalletsChanged;
 
     public StatisticsViewModel(@NonNull TransactionRepository transactionRepository,
                                @NonNull WalletRepository walletRepository,
@@ -62,6 +67,8 @@ public class StatisticsViewModel extends DebounceableViewModel {
         totalExpenseAmount = createTotalAmountSource(TransactionType.EXPENSE);
         incomeCategorySums = DistinctLiveData.distinctUntilChanged(createCategorySumSource(TransactionType.INCOME));
         expenseCategorySums = DistinctLiveData.distinctUntilChanged(createCategorySumSource(TransactionType.EXPENSE));
+        walletSource = DistinctLiveData.distinctUntilChanged(walletRepository.getAllByUser(userId));
+        walletSource.observeForever(walletSourceObserver);
     }
 
     public LiveData<Double> getHeaderBalance() {
@@ -137,11 +144,14 @@ public class StatisticsViewModel extends DebounceableViewModel {
     public void updateWalletFilter(@Nullable String walletId, @Nullable String label) {
         FilterState current = getCurrentFilterState();
         scheduleFilterUpdate(current.withWalletId(walletId));
-        if (label == null || label.trim().isEmpty()) {
-            walletLabel.setValue("Tổng cộng");
+        if (walletId == null) {
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
             return;
         }
-        walletLabel.setValue(label);
+        if (label == null || label.trim().isEmpty()) {
+            return;
+        }
+        setWalletLabelIfChanged(label);
     }
 
     public void updateCustomDateRange(long startDate, long endDate) {
@@ -182,9 +192,56 @@ public class StatisticsViewModel extends DebounceableViewModel {
             nextState = FilterState.createCurrentMonth(walletId);
         }
         scheduleFilterUpdate(nextState);
-        walletLabel.setValue(walletLabelValue == null || walletLabelValue.trim().isEmpty()
-                ? "Tổng cộng"
-                : walletLabelValue);
+        if (walletId == null) {
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
+        } else if (walletLabelValue != null && !walletLabelValue.trim().isEmpty()) {
+            setWalletLabelIfChanged(walletLabelValue);
+        }
+    }
+
+    private void onWalletsChanged(@Nullable List<WalletEntity> wallets) {
+        FilterState current = getCurrentFilterState();
+        String walletId = current.getWalletId();
+        if (walletId == null) {
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
+            return;
+        }
+
+        WalletEntity selected = findWalletById(wallets, walletId);
+        if (selected == null) {
+            scheduleFilterUpdate(current.withWalletId(null));
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
+            return;
+        }
+        setWalletLabelIfChanged(selected.getName());
+    }
+
+    @Nullable
+    private WalletEntity findWalletById(@Nullable List<WalletEntity> wallets,
+                                        @NonNull String walletId) {
+        if (wallets == null) {
+            return null;
+        }
+        for (WalletEntity wallet : wallets) {
+            if (walletId.equals(wallet.getId())) {
+                return wallet;
+            }
+        }
+        return null;
+    }
+
+    private void setWalletLabelIfChanged(@NonNull String newLabel) {
+        String currentLabel = walletLabel.getValue();
+        if (Objects.equals(currentLabel, newLabel)) {
+            return;
+        }
+        walletLabel.setValue(newLabel);
+    }
+
+    @Override
+    protected void onCleared() {
+        walletSource.removeObserver(walletSourceObserver);
+        super.onCleared();
     }
 
     private void scheduleFilterUpdate(@NonNull FilterState nextState) {

@@ -23,11 +23,11 @@ public final class WalletSelectorButtonHelper {
                                                     @Nullable WalletEntity wallet,
                                                     @Nullable CharSequence label,
                                                     @StringRes int defaultLabelRes) {
-        CharSequence resolvedLabel = !TextUtils.isEmpty(label)
+        CharSequence fallbackLabel = !TextUtils.isEmpty(label)
                 ? label
                 : context.getString(defaultLabelRes);
         if (wallet == null) {
-            button.setText(resolvedLabel);
+            button.setText(fallbackLabel);
             button.setIconResource(R.drawable.outline_account_balance_wallet_24);
             button.setIconTint(ColorStateList.valueOf(
                     ContextCompat.getColor(context, R.color.statistics_wallet_icon)
@@ -35,7 +35,8 @@ public final class WalletSelectorButtonHelper {
             return;
         }
 
-        button.setText(!TextUtils.isEmpty(label) ? label : wallet.getName());
+        // Always prefer live wallet name so UI follows wallet rename in real-time.
+        button.setText(wallet.getName());
         button.setIconResource(IconProvider.resolveWalletIcon(
                 context,
                 wallet.getIconName(),

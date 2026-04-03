@@ -23,6 +23,8 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentWalletListBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
 
+import java.util.ArrayList;
+
 public class WalletListFragment extends Fragment {
 
     private FragmentWalletListBinding binding;
@@ -72,7 +74,9 @@ public class WalletListFragment extends Fragment {
         binding.rvWallets.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvWallets.setAdapter(adapter);
 
-        viewModel.getWallets().observe(getViewLifecycleOwner(), adapter::submitList);
+        viewModel.getWallets().observe(getViewLifecycleOwner(), wallets ->
+                adapter.submitList(wallets != null ? new ArrayList<>(wallets) : new ArrayList<>())
+        );
         viewModel.getTotalBalance().observe(getViewLifecycleOwner(), total -> {
             double value = total == null ? 0d : total;
             binding.tvTotalWalletBalance.setText(CurrencyFormatter.format(value, "VND"));

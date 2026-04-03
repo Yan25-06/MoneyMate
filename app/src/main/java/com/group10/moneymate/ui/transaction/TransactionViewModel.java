@@ -1,11 +1,14 @@
 package com.group10.moneymate.ui.transaction;
 
 import android.app.Application;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.Transformations;
 
 import com.group10.moneymate.data.local.entity.CategoryEntity;
@@ -46,6 +49,7 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
 
     // ─── Transactions list ────────────────────────────────────────────────────
     private static final int PAGE_SIZE = 30;
+    private static final long INVALIDATION_REFRESH_DEBOUNCE_MS = 40L;
     private final MutableLiveData<List<TransactionEntity>> allTransactions = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Boolean> isLoadingMore = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> hasMore = new MutableLiveData<>(true);
@@ -74,6 +78,15 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
     // ─── Giao dịch đang edit ─────────────────────────────────────────────────
     private final MutableLiveData<TransactionEntity> selectedTransaction = new MutableLiveData<>();
 
+    private final LiveData<Long> transactionInvalidationSource;
+    private final Observer<Long> transactionInvalidationObserver =
+            this::onTransactionsInvalidated;
+    private boolean isFirstInvalidationEmission = true;
+    private final Handler invalidationHandler = new Handler(Looper.getMainLooper());
+    private final Runnable applyInvalidatedTransactionsRunnable = this::applyInvalidatedTransactions;
+    private boolean invalidationRefreshScheduled;
+    private long lastInvalidationRefreshAt;
+
     public TransactionViewModel(@NonNull Application application) {
         super(application);
         MoneyMateApplication app = (MoneyMateApplication) application;
@@ -82,6 +95,9 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
         categoryRepository = app.getAppContainer().categoryRepository;
 
         userId = app.getAppContainer().authRepository.getCurrentUserId();
+
+        transactionInvalidationSource = transactionRepository.getTransactionInvalidationKey(userId);
+        transactionInvalidationSource.observeForever(transactionInvalidationObserver);
 
         resetPagination();
 
@@ -310,5 +326,86 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
     public void deleteTransaction(TransactionEntity transaction,
                                   @Nullable TransactionRepository.WriteCallback callback) {
         transactionRepository.softDeleteTransaction(transaction, callback);
+    }
+
+    private void onTransactionsInvalidated(@Nullable Long ignoredKey) {
+        if (isFirstInvalidationEmission) {
+            isFirstInvalidationEmission = false;
+            return;
+        }
+        scheduleInvalidationRefresh();
+    }
+
+    private void scheduleInvalidationRefresh() {
+        long now = System.currentTimeMillis();
+        long elapsed = now - lastInvalidationRefreshAt;
+        long delay = Math.max(0L, INVALIDATION_REFRESH_DEBOUNCE_MS - elapsed);
+
+        if (invalidationRefreshScheduled) {
+            invalidationHandler.removeCallbacks(applyInvalidatedTransactionsRunnable);
+        }
+        invalidationRefreshScheduled = true;
+        invalidationHandler.postDelayed(applyInvalidatedTransactionsRunnable, delay);
+    }
+
+    private void applyInvalidatedTransactions() {
+        invalidationRefreshScheduled = false;
+        final int loadedCount = Math.max(PAGE_SIZE, getLoadedTransactionCount());
+        final int requestLimit = loadedCount + 1;
+
+        transactionRepository.getFirstTransactionsPage(
+                userId,
+                requestLimit,
+                new TransactionRepository.PageCallback<List<TransactionEntity>>() {
+                    @Override
+                    public void onSuccess(List<TransactionEntity> page) {
+                        applyPageSnapshot(page, loadedCount);
+                        lastInvalidationRefreshAt = System.currentTimeMillis();
+                    }
+
+                    @Override
+                    public void onError(Exception exception) {
+                        lastInvalidationRefreshAt = System.currentTimeMillis();
+                    }
+                }
+        );
+    }
+
+    private int getLoadedTransactionCount() {
+        List<TransactionEntity> current = allTransactions.getValue();
+        return current != null ? current.size() : 0;
+    }
+
+    private void applyPageSnapshot(@Nullable List<TransactionEntity> page, int loadedCount) {
+        List<TransactionEntity> snapshot = page != null ? page : new ArrayList<>();
+        boolean hasExtra = snapshot.size() > loadedCount;
+        if (hasExtra) {
+            snapshot = new ArrayList<>(snapshot.subList(0, loadedCount));
+        }
+
+        allTransactions.setValue(snapshot);
+        updateCursorAndHasMore(snapshot, hasExtra);
+        isLoadingMore.setValue(false);
+    }
+
+    private void updateCursorAndHasMore(@NonNull List<TransactionEntity> displayWindow,
+                                        boolean hasExtraPage) {
+        if (displayWindow.isEmpty()) {
+            lastTimestamp = Long.MAX_VALUE;
+            lastId = "~";
+            hasMore.setValue(false);
+            return;
+        }
+        TransactionEntity lastItem = displayWindow.get(displayWindow.size() - 1);
+        lastTimestamp = lastItem.getTimestamp();
+        lastId = lastItem.getId();
+        hasMore.setValue(hasExtraPage);
+    }
+
+    @Override
+    protected void onCleared() {
+        invalidationHandler.removeCallbacksAndMessages(null);
+        transactionInvalidationSource.removeObserver(transactionInvalidationObserver);
+        super.onCleared();
     }
 }

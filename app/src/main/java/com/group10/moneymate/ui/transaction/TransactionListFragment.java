@@ -43,7 +43,6 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -191,18 +190,20 @@ public class TransactionListFragment extends Fragment {
     }
 
     private void renderWalletSelector() {
-        com.group10.moneymate.data.local.entity.WalletEntity selectedWallet = null;
-        String displayLabel = selectedWalletLabel;
         String walletId = currentFilterState.getWalletId();
-        if (walletId != null) {
-            WalletWithBalance selectedWalletItem = walletMap.get(walletId);
-            selectedWallet = selectedWalletItem != null ? selectedWalletItem.getWallet() : null;
-            if (displayLabel == null || displayLabel.trim().isEmpty()) {
-                displayLabel = selectedWallet != null
-                        ? selectedWallet.getName()
-                        : getString(R.string.statistics_wallet_selector_all);
-            }
+        WalletWithBalance selectedWalletItem = walletId != null ? walletMap.get(walletId) : null;
+
+        if (walletId != null && selectedWalletItem == null) {
+            // Auto-reset stale filter when selected wallet was edited/deleted elsewhere.
+            currentFilterState = currentFilterState.withWalletId(null);
+            selectedWalletLabel = null;
         }
+
+        com.group10.moneymate.data.local.entity.WalletEntity selectedWallet =
+                selectedWalletItem != null ? selectedWalletItem.getWallet() : null;
+        String displayLabel = selectedWallet != null
+                ? selectedWallet.getName()
+                : selectedWalletLabel;
 
         WalletSelectorButtonHelper.bindStatisticsWalletSelector(
                 binding.statisticsHeader.btnWalletSelector,

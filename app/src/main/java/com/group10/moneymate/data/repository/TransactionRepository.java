@@ -62,6 +62,10 @@ public class TransactionRepository {
         return transactionDao.getAllTransactions(userId);
     }
 
+    public LiveData<Long> getTransactionInvalidationKey(String userId) {
+        return transactionDao.getTransactionInvalidationKey(userId);
+    }
+
     public LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit) {
         return transactionDao.getRecentTransactions(userId, limit);
     }

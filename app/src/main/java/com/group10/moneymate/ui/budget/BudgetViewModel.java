@@ -34,6 +34,8 @@ import java.util.UUID;
 
 public class BudgetViewModel extends DebounceableViewModel {
 
+    private static final long UI_REBUILD_DEBOUNCE_MS = 30L;
+
     public enum BudgetTab {
         THIS_MONTH,
         FUTURE,
@@ -310,7 +312,7 @@ public class BudgetViewModel extends DebounceableViewModel {
     }
 
     private void scheduleRebuildUiModels() {
-        debounce(this::rebuildUiModels, 100L);
+        debounce(this::rebuildUiModels, UI_REBUILD_DEBOUNCE_MS);
     }
 
     private void syncChildSources() {
@@ -543,7 +545,11 @@ public class BudgetViewModel extends DebounceableViewModel {
                                               @Nullable BudgetUIModel allCategoriesBudget) {
         if (allCategoriesBudget != null) {
             double specificBudgetsTotal = 0d;
+            BudgetEntity allCategoriesEntity = allCategoriesBudget.getBudgetEntity();
             for (BudgetUIModel item : visibleBudgets) {
+                if (!shouldIncludeInGapComparison(item, allCategoriesEntity)) {
+                    continue;
+                }
                 specificBudgetsTotal += item.getBudgetEntity().getAmount();
             }
             double shortfall = Math.max(0d, specificBudgetsTotal - allCategoriesBudget.getBudgetEntity().getAmount());
@@ -583,6 +589,27 @@ public class BudgetViewModel extends DebounceableViewModel {
                 false,
                 0d
         );
+    }
+
+    private boolean shouldIncludeInGapComparison(@NonNull BudgetUIModel item,
+                                                 @NonNull BudgetEntity allCategoriesEntity) {
+        BudgetEntity entity = item.getBudgetEntity();
+        if (Constants.isOtherCategoryId(entity.getCategoryId())) {
+            return false;
+        }
+        return isDateRangeOverlapping(
+                entity.getStartDate(),
+                entity.getEndDate(),
+                allCategoriesEntity.getStartDate(),
+                allCategoriesEntity.getEndDate()
+        );
+    }
+
+    private boolean isDateRangeOverlapping(long firstStart,
+                                           long firstEnd,
+                                           long secondStart,
+                                           long secondEnd) {
+        return firstStart <= secondEnd && secondStart <= firstEnd;
     }
 
     @NonNull

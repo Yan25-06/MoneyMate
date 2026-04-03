@@ -77,6 +77,10 @@ public interface TransactionDao {
             "ORDER BY t.timestamp DESC")
     LiveData<List<TransactionEntity>> getAllTransactions(String userId);
 
+    @Query("SELECT COALESCE(MAX(t.updated_at), 0) FROM transactions t " +
+            "WHERE t.user_id = :userId")
+    LiveData<Long> getTransactionInvalidationKey(String userId);
+
     @Query("SELECT t.* FROM transactions t " +
             "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
             "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
