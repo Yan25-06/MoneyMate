@@ -1,9 +1,7 @@
 package com.group10.moneymate.ui.auth;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,13 +13,12 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
-import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.FragmentRegisterBinding;
-import com.group10.moneymate.di.MoneyMateApplication;
-import com.group10.moneymate.ui.main.HomeActivity;
 
 /**
- * Fragment for email/password registration.
+ * Fragment for user registration.
+ * Sau khi đăng ký thành công → điều hướng sang PasscodeFragment (CREATE mode).
+ * Không còn hỗ trợ đăng nhập khách.
  */
 public class RegisterFragment extends Fragment {
 
@@ -40,9 +37,12 @@ public class RegisterFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+
         observeAuthState();
         setupListeners();
     }
+
+    // ─── Observers ────────────────────────────────────────────────────────────
 
     private void observeAuthState() {
         viewModel.getAuthState().observe(getViewLifecycleOwner(), state -> {
@@ -55,12 +55,10 @@ public class RegisterFragment extends Fragment {
 
             setLoading(false);
 
-            if (state == AuthViewModel.AuthState.AUTHENTICATED) {
-                // Seed default categories sau khi đăng ký thành công
-                ((MoneyMateApplication) requireActivity().getApplication())
-                        .getAppContainer()
-                        .seedDefaultCategoriesIfNeeded();
-                openHomeActivity();
+            if (state == AuthViewModel.AuthState.REGISTERED_NEEDS_PASSCODE) {
+                // Đăng ký xong → seed category + chuyển sang tạo passcode
+                seedDefaultCategories();
+                navigateToCreatePasscode();
             }
         });
 
@@ -71,19 +69,20 @@ public class RegisterFragment extends Fragment {
         });
     }
 
-    private void openHomeActivity() {
-        Intent intent = new Intent(requireContext(), HomeActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-    }
+    // ─── Listeners ────────────────────────────────────────────────────────────
 
     private void setupListeners() {
-        // Set navigation listener cho MaterialToolbar back button
+        // Nút quay lại
         binding.topAppBar.setNavigationOnClickListener(v ->
-                Navigation.findNavController(v).navigateUp()
-        );
+                Navigation.findNavController(v).navigateUp());
 
-        binding.btnRegister.setOnClickListener(v -> submitRegistration());
+        binding.btnRegister.setOnClickListener(v -> {
+            String displayName      = String.valueOf(binding.etDisplayName.getText()).trim();
+            String email            = String.valueOf(binding.etEmail.getText()).trim();
+            String password         = String.valueOf(binding.etPassword.getText()).trim();
+            String confirmPassword  = String.valueOf(binding.etConfirmPassword.getText()).trim();
+            viewModel.register(email, password, confirmPassword, displayName);
+        });
 
         binding.tvLogin.setOnClickListener(v ->
                 Navigation.findNavController(v).navigate(
@@ -92,53 +91,18 @@ public class RegisterFragment extends Fragment {
         );
     }
 
-    private void submitRegistration() {
-        clearInputErrors();
+    // ─── Helpers ──────────────────────────────────────────────────────────────
 
-        String displayName      = String.valueOf(binding.etDisplayName.getText()).trim();
-        String email            = String.valueOf(binding.etEmail.getText()).trim();
-        String password         = String.valueOf(binding.etPassword.getText()).trim();
-        String confirmPassword  = String.valueOf(binding.etConfirmPassword.getText()).trim();
-
-        if (!validateInputs(displayName, email, password, confirmPassword)) return;
-
-        viewModel.register(email, password, confirmPassword, displayName);
+    private void seedDefaultCategories() {
+        com.group10.moneymate.di.AppContainer container =
+                ((com.group10.moneymate.di.MoneyMateApplication) requireActivity().getApplication())
+                        .getAppContainer();
+        container.seedDefaultCategoriesIfNeeded();
     }
 
-    private boolean validateInputs(String displayName, String email,
-                                   String password, String confirmPassword) {
-        if (TextUtils.isEmpty(displayName)) {
-            binding.tilDisplayName.setError(getString(R.string.error_display_name_required));
-            return false;
-        }
-        if (TextUtils.isEmpty(email)) {
-            binding.tilEmail.setError(getString(R.string.error_email_required));
-            return false;
-        }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.tilEmail.setError(getString(R.string.error_email_invalid));
-            return false;
-        }
-        if (TextUtils.isEmpty(password)) {
-            binding.tilPassword.setError(getString(R.string.error_password_required));
-            return false;
-        }
-        if (TextUtils.isEmpty(confirmPassword)) {
-            binding.tilConfirmPassword.setError(getString(R.string.error_confirm_password_required));
-            return false;
-        }
-        if (!TextUtils.equals(password, confirmPassword)) {
-            binding.tilConfirmPassword.setError(getString(R.string.error_passwords_do_not_match));
-            return false;
-        }
-        return true;
-    }
-
-    private void clearInputErrors() {
-        binding.tilDisplayName.setError(null);
-        binding.tilEmail.setError(null);
-        binding.tilPassword.setError(null);
-        binding.tilConfirmPassword.setError(null);
+    private void navigateToCreatePasscode() {
+        Navigation.findNavController(requireView())
+                .navigate(RegisterFragmentDirections.actionRegisterToPasscode());
     }
 
     private void setLoading(boolean isLoading) {
@@ -148,7 +112,6 @@ public class RegisterFragment extends Fragment {
         binding.etPassword.setEnabled(!isLoading);
         binding.etConfirmPassword.setEnabled(!isLoading);
     }
-
 
     @Override
     public void onDestroyView() {

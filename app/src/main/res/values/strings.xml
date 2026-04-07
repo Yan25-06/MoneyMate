@@ -27,6 +27,27 @@
     <string name="error_passwords_do_not_match">Mật khẩu xác nhận không khớp</string>
     <string name="error_auth_required">Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại</string>
 
+    <!-- Passcode titles -->
+    <string name="title_passcode">Mã PIN</string>
+    <string name="title_create_passcode">Tạo mã PIN</string>
+    <string name="title_confirm_passcode">Xác nhận mã PIN</string>
+    <string name="title_enter_passcode">Nhập mã PIN</string>
+
+    <!-- Passcode subtitles -->
+    <string name="passcode_subtitle_create">Nhập 6 chữ số để bảo vệ tài khoản của bạn</string>
+    <string name="passcode_subtitle_confirm">Nhập lại mã PIN để xác nhận</string>
+    <string name="passcode_subtitle_verify">Nhập mã PIN để đăng nhập</string>
+
+    <!-- Passcode actions -->
+    <string name="btn_passcode_login">Đăng nhập bằng mã PIN</string>
+    <string name="passcode_backspace">Xóa</string>
+
+    <!-- Passcode errors -->
+    <string name="error_passcode_wrong">Mã PIN không đúng, vui lòng thử lại</string>
+    <string name="error_passcode_not_set">Chưa thiết lập mã PIN</string>
+    <string name="error_passcode_locked">Bạn đã nhập sai quá nhiều lần. Vui lòng đăng nhập bằng email.</string>
+    <string name="error_passcode_mismatch">Mã PIN không khớp, vui lòng thử lại</string>
+
     <!-- Navigation -->
     <string name="home">Trang chủ</string>
     <string name="transactions">Giao dịch</string>
@@ -393,11 +414,6 @@
     <string name="hint_ai_message">Nhập tin nhắn…</string>
     <string name="btn_send_message">Gửi</string>
     <string name="btn_capture">Chụp ảnh</string>
-
-    <!-- Security -->
-    <string name="title_passcode">Mã PIN</string>
-    <string name="hint_passcode">Nhập mã PIN</string>
-    <string name="btn_use_biometric">Dùng sinh trắc học</string>
 
     <!-- Cloud Sync -->
     <string name="sync_now">Đồng bộ ngay</string>
