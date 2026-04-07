@@ -20,6 +20,7 @@ import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.ui.main.HomeActivity;
 import com.group10.moneymate.ui.security.SecurityViewModel;
+import com.group10.moneymate.utils.ValidationResult;
 
 /**
  * Fragment for email/password login.
@@ -98,6 +99,13 @@ public class LoginFragment extends Fragment {
             }
         });
 
+        viewModel.getValidationError().observe(getViewLifecycleOwner(), result -> {
+            if (result == null || result.isSuccess()) {
+                return;
+            }
+            showValidationError(result);
+        });
+
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (!TextUtils.isEmpty(message)) {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
@@ -109,7 +117,8 @@ public class LoginFragment extends Fragment {
 
     private void setupListeners() {
         binding.btnLogin.setOnClickListener(v -> {
-            String email    = String.valueOf(binding.etEmail.getText()).trim();
+            clearInputErrors();
+            String email = String.valueOf(binding.etEmail.getText()).trim();
             String password = String.valueOf(binding.etPassword.getText()).trim();
             viewModel.login(email, password);
         });
@@ -127,6 +136,25 @@ public class LoginFragment extends Fragment {
         );
     }
 
+    private void clearInputErrors() {
+        binding.tilEmail.setError(null);
+        binding.tilPassword.setError(null);
+        viewModel.clearValidationError();
+    }
+
+    private void showValidationError(@NonNull ValidationResult result) {
+        String field = result.getErrorField();
+        if (ValidationResult.FIELD_LOGIN.equals(field) || ValidationResult.FIELD_EMAIL.equals(field)) {
+            binding.tilEmail.setError(result.getErrorMessage());
+            binding.etEmail.requestFocus();
+            return;
+        }
+        if (ValidationResult.FIELD_PASSWORD.equals(field)) {
+            binding.tilPassword.setError(result.getErrorMessage());
+            binding.etPassword.requestFocus();
+        }
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private void openHomeActivity() {
@@ -136,6 +164,7 @@ public class LoginFragment extends Fragment {
     }
 
     private void setLoading(boolean isLoading) {
+        binding.pbLoading.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         binding.btnLogin.setEnabled(!isLoading);
         binding.btnPasscodeLogin.setEnabled(!isLoading);
         binding.etEmail.setEnabled(!isLoading);

@@ -1,6 +1,9 @@
 package com.group10.moneymate.ui.security;
 
+import android.annotation.SuppressLint;
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -45,6 +48,9 @@ public class PasscodeFragment extends Fragment {
     private List<View> dots;
     private int currentMode;
     private boolean finishToHome;
+
+    private final Runnable unlockNumpadRunnable = this::unlockNumpadIfNeeded;
+    private final Runnable resetInputRunnable = this::resetInput;
 
     @Nullable
     @Override
@@ -127,13 +133,13 @@ public class PasscodeFragment extends Fragment {
     // ─── Input logic ──────────────────────────────────────────────────────────
 
     private void onDigitPressed(String digit) {
-        if (enteredDigits.length() >= 6) return;
+        if (enteredDigits.length() >= SecurityViewModel.PASSCODE_LENGTH) return;
 
         enteredDigits.append(digit);
         updateDots();
         hideError();
 
-        if (enteredDigits.length() == 6) {
+        if (enteredDigits.length() == SecurityViewModel.PASSCODE_LENGTH) {
             onPasscodeComplete();
         }
     }
@@ -149,13 +155,20 @@ public class PasscodeFragment extends Fragment {
         String passcode = enteredDigits.toString();
 
         if (currentMode == SecurityViewModel.MODE_CREATE) {
-            // Lưu tạm và navigate sang CONFIRM
+            com.group10.moneymate.utils.ValidationResult result = viewModel.validateCreatePasscode(passcode);
+            if (!result.isSuccess()) {
+                if (result.getErrorMessage() != null) {
+                    showError(result.getErrorMessage());
+                }
+                shakeDotsAndReset();
+                return;
+            }
             viewModel.setPendingPasscode(passcode);
             navigateToConfirm();
-        } else {
-            // CONFIRM hoặc VERIFY → submit cho ViewModel xử lý
-            viewModel.submitPasscode(passcode, currentMode);
+            return;
         }
+
+        viewModel.submitPasscode(passcode, currentMode);
     }
 
     // ─── Navigation ───────────────────────────────────────────────────────────
@@ -182,35 +195,39 @@ public class PasscodeFragment extends Fragment {
     // ─── Observe ──────────────────────────────────────────────────────────────
 
     private void observeViewModel() {
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null) {
+                showError(message);
+            }
+        });
+
         viewModel.getPasscodeState().observe(getViewLifecycleOwner(), state -> {
             if (state == null) return;
             switch (state) {
                 case PASSCODE_SAVED:
-                    // CREATE + CONFIRM xong → vào app
                     navigateToHome();
                     break;
 
                 case PASSCODE_VERIFIED:
-                    // VERIFY thành công → vào app
                     navigateToHome();
                     break;
 
                 case PASSCODE_WRONG:
-                    showError(getString(R.string.error_passcode_wrong));
+                    if (viewModel.getErrorMessage().getValue() == null) {
+                        showError(getString(R.string.error_passcode_wrong));
+                    }
                     shakeDotsAndReset();
                     viewModel.resetState();
                     break;
 
                 case LOCKED_OUT:
-                    showError(getString(R.string.error_passcode_locked));
                     setNumpadEnabled(false);
+                    scheduleUnlock();
+                    resetInput();
                     break;
 
                 case ERROR:
-                    viewModel.getErrorMessage().observe(getViewLifecycleOwner(), msg -> {
-                        if (msg != null) showError(msg);
-                    });
-                    resetInput();
+                    shakeDotsAndReset();
                     viewModel.resetState();
                     break;
 
@@ -246,19 +263,36 @@ public class PasscodeFragment extends Fragment {
         binding.tvPasscodeError.setVisibility(View.INVISIBLE);
     }
 
+    @SuppressLint("MissingPermission")
     private void shakeDotsAndReset() {
-        // Shake animation
-        binding.layoutPasscodeDots.startAnimation(
-                AnimationUtils.loadAnimation(requireContext(), R.anim.shake));
-
-        // Vibrate
-        Vibrator vibrator = ContextCompat.getSystemService(requireContext(), Vibrator.class);
-        if (vibrator != null && vibrator.hasVibrator()) {
-            vibrator.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE));
+        if (binding == null || !isAdded() || getContext() == null) {
+            return;
         }
 
-        // Reset input sau animation
-        binding.layoutPasscodeDots.postDelayed(this::resetInput, 400);
+        // Shake animation (safe if animation resource is unavailable)
+        try {
+            binding.layoutPasscodeDots.startAnimation(
+                    AnimationUtils.loadAnimation(requireContext(), R.anim.shake));
+        } catch (RuntimeException ignored) {
+            // Keep flow stable even if animation cannot be loaded.
+        }
+
+        // Vibrate (some devices/ROMs may throw SecurityException)
+        try {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.VIBRATE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                Vibrator vibrator = ContextCompat.getSystemService(requireContext(), Vibrator.class);
+                if (vibrator != null && vibrator.hasVibrator()) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE));
+                }
+            }
+        } catch (RuntimeException ignored) {
+            // Do not crash passcode screen due to haptics issues.
+        }
+
+        // Reset input after animation, only while view is still alive.
+        binding.getRoot().removeCallbacks(resetInputRunnable);
+        binding.getRoot().postDelayed(resetInputRunnable, 400);
     }
 
     private void resetInput() {
@@ -280,9 +314,38 @@ public class PasscodeFragment extends Fragment {
         binding.btnBackspace.setEnabled(enabled);
     }
 
+    private void scheduleUnlock() {
+        if (binding == null) {
+            return;
+        }
+        binding.getRoot().removeCallbacks(unlockNumpadRunnable);
+        long delayMillis = viewModel.getRemainingLockoutMillis();
+        if (delayMillis <= 0L) {
+            setNumpadEnabled(true);
+            return;
+        }
+        binding.getRoot().postDelayed(unlockNumpadRunnable, delayMillis);
+    }
+
+    private void unlockNumpadIfNeeded() {
+        if (binding == null) {
+            return;
+        }
+        if (viewModel.getRemainingLockoutMillis() > 0L) {
+            scheduleUnlock();
+            return;
+        }
+        hideError();
+        setNumpadEnabled(true);
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (binding != null) {
+            binding.getRoot().removeCallbacks(unlockNumpadRunnable);
+            binding.getRoot().removeCallbacks(resetInputRunnable);
+        }
         binding = null;
     }
 }

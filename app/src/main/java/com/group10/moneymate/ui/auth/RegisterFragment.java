@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
 import com.group10.moneymate.databinding.FragmentRegisterBinding;
+import com.group10.moneymate.utils.ValidationResult;
 
 /**
  * Fragment for user registration.
@@ -62,6 +63,13 @@ public class RegisterFragment extends Fragment {
             }
         });
 
+        viewModel.getValidationError().observe(getViewLifecycleOwner(), result -> {
+            if (result == null || result.isSuccess()) {
+                return;
+            }
+            showValidationError(result);
+        });
+
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (!TextUtils.isEmpty(message)) {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
@@ -77,6 +85,7 @@ public class RegisterFragment extends Fragment {
                 Navigation.findNavController(v).navigateUp());
 
         binding.btnRegister.setOnClickListener(v -> {
+            clearInputErrors();
             String displayName      = String.valueOf(binding.etDisplayName.getText()).trim();
             String email            = String.valueOf(binding.etEmail.getText()).trim();
             String password         = String.valueOf(binding.etPassword.getText()).trim();
@@ -111,6 +120,37 @@ public class RegisterFragment extends Fragment {
         binding.etEmail.setEnabled(!isLoading);
         binding.etPassword.setEnabled(!isLoading);
         binding.etConfirmPassword.setEnabled(!isLoading);
+    }
+
+    private void clearInputErrors() {
+        binding.tilDisplayName.setError(null);
+        binding.tilEmail.setError(null);
+        binding.tilPassword.setError(null);
+        binding.tilConfirmPassword.setError(null);
+        viewModel.clearValidationError();
+    }
+
+    private void showValidationError(@NonNull ValidationResult result) {
+        String field = result.getErrorField();
+        if (ValidationResult.FIELD_USERNAME.equals(field)) {
+            binding.tilDisplayName.setError(result.getErrorMessage());
+            binding.etDisplayName.requestFocus();
+            return;
+        }
+        if (ValidationResult.FIELD_EMAIL.equals(field)) {
+            binding.tilEmail.setError(result.getErrorMessage());
+            binding.etEmail.requestFocus();
+            return;
+        }
+        if (ValidationResult.FIELD_PASSWORD.equals(field)) {
+            binding.tilPassword.setError(result.getErrorMessage());
+            binding.etPassword.requestFocus();
+            return;
+        }
+        if (ValidationResult.FIELD_CONFIRM_PASSWORD.equals(field)) {
+            binding.tilConfirmPassword.setError(result.getErrorMessage());
+            binding.etConfirmPassword.requestFocus();
+        }
     }
 
     @Override

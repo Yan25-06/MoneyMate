@@ -4,15 +4,17 @@ import android.app.Application;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.AndroidViewModel;
 
 import com.google.firebase.auth.FirebaseUser;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.repository.AuthRepository;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.utils.AuthInputValidator;
+import com.group10.moneymate.utils.ValidationResult;
 
 /**
  * Shared ViewModel for authentication fragments.
@@ -22,6 +24,7 @@ public class AuthViewModel extends AndroidViewModel {
     private final AuthRepository authRepository;
     private final MutableLiveData<AuthState> authState = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+    private final MutableLiveData<ValidationResult> validationError = new MutableLiveData<>();
 
     public enum AuthState {
         IDLE,
@@ -46,11 +49,11 @@ public class AuthViewModel extends AndroidViewModel {
         authState.setValue(AuthState.IDLE);
     }
 
-    // ─── Expose ───────────────────────────────────────────────────────────────
-
     public LiveData<AuthState> getAuthState() { return authState; }
 
     public LiveData<String> getErrorMessage() { return errorMessage; }
+
+    public LiveData<ValidationResult> getValidationError() { return validationError; }
 
     public boolean isLoggedIn() { return authRepository.isLoggedIn(); }
 
@@ -58,16 +61,24 @@ public class AuthViewModel extends AndroidViewModel {
 
     public void setAuthState(AuthState state) { authState.setValue(state); }
 
+    public void clearValidationError() { validationError.setValue(null); }
+
     public void setError(String message) {
         errorMessage.setValue(message);
         authState.setValue(AuthState.ERROR);
     }
 
-    // ─── Firebase Auth ────────────────────────────────────────────────────────
+    public void login(String loginIdentifier, String password) {
+        ValidationResult result = AuthInputValidator.validateLoginInput(
+                getApplication(), loginIdentifier, password);
+        if (!result.isSuccess()) {
+            validationError.setValue(result);
+            setError(result.getErrorMessage());
+            return;
+        }
 
-    public void login(String email, String password) {
         authState.setValue(AuthState.LOADING);
-        authRepository.login(email, password, new AuthRepository.AuthCallback() {
+        authRepository.login(loginIdentifier, password, new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(FirebaseUser user) {
                 authState.postValue(AuthState.AUTHENTICATED);
@@ -75,10 +86,29 @@ public class AuthViewModel extends AndroidViewModel {
 
             @Override
             public void onError(String message) {
-                errorMessage.postValue(message);
+                errorMessage.postValue(mapLoginErrorMessage(message));
                 authState.postValue(AuthState.ERROR);
             }
         });
+    }
+
+    private String mapLoginErrorMessage(String errorKey) {
+        if ("auth_user_not_found".equals(errorKey)) {
+            return getApplication().getString(R.string.error_auth_user_not_found);
+        }
+        if ("auth_wrong_password".equals(errorKey)) {
+            return getApplication().getString(R.string.error_auth_wrong_password);
+        }
+        if ("auth_network_timeout".equals(errorKey)) {
+            return getApplication().getString(R.string.error_auth_network_timeout);
+        }
+        if ("auth_login_failed".equals(errorKey)) {
+            return getApplication().getString(R.string.error_auth_login_failed);
+        }
+        if (!TextUtils.isEmpty(errorKey)) {
+            return errorKey;
+        }
+        return getApplication().getString(R.string.error_auth_login_failed);
     }
 
     /**
@@ -86,25 +116,19 @@ public class AuthViewModel extends AndroidViewModel {
      * Khi thành công → state REGISTERED_NEEDS_PASSCODE để UI điều hướng sang tạo passcode.
      */
     public void register(String email, String password, String confirmPassword, String displayName) {
-        String trimmedDisplayName = displayName != null ? displayName.trim() : "";
-        if (TextUtils.isEmpty(trimmedDisplayName)) {
-            setError(getApplication().getString(R.string.error_display_name_required));
-            return;
-        }
-        if (TextUtils.isEmpty(confirmPassword)) {
-            setError(getApplication().getString(R.string.error_confirm_password_required));
-            return;
-        }
-        if (!TextUtils.equals(password, confirmPassword)) {
-            setError(getApplication().getString(R.string.error_passwords_do_not_match));
+        ValidationResult result = AuthInputValidator.validateRegisterInput(
+                getApplication(), displayName, email, password, confirmPassword);
+        if (!result.isSuccess()) {
+            validationError.setValue(result);
+            setError(result.getErrorMessage());
             return;
         }
 
+        String trimmedDisplayName = displayName != null ? displayName.trim() : "";
         authState.setValue(AuthState.LOADING);
         authRepository.register(email, password, trimmedDisplayName, new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(FirebaseUser user) {
-                // Sau đăng ký → phải tạo passcode trước khi vào app
                 authState.postValue(AuthState.REGISTERED_NEEDS_PASSCODE);
             }
 
@@ -169,13 +193,13 @@ public class AuthViewModel extends AndroidViewModel {
             @Override
             public void onError(String message) {
                 if ("wrong_passcode".equals(message)) {
-                    errorMessage.postValue(
-                            getApplication().getString(R.string.error_passcode_wrong));
+                    errorMessage.postValue(getApplication().getString(R.string.error_passcode_wrong));
                 } else if ("no_passcode_set".equals(message)) {
-                    errorMessage.postValue(
-                            getApplication().getString(R.string.error_passcode_not_set));
-                } else {
+                    errorMessage.postValue(getApplication().getString(R.string.error_passcode_not_set));
+                } else if (!TextUtils.isEmpty(message)) {
                     errorMessage.postValue(message);
+                } else {
+                    errorMessage.postValue(getApplication().getString(R.string.common_save_failed));
                 }
                 authState.postValue(AuthState.ERROR);
             }

@@ -13,6 +13,13 @@ import com.group10.moneymate.data.remote.FirebaseAuthHelper;
 import com.group10.moneymate.utils.PasscodeHasher;
 import com.group10.moneymate.utils.PrefsManager;
 
+import com.google.firebase.FirebaseNetworkException;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
+
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+
 /**
  * Repository handling authentication (Firebase Auth) and local user persistence.
  */
@@ -138,16 +145,41 @@ public class AuthRepository {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         AuthResult result = task.getResult();
-                        if (result == null) { callback.onError("Login failed: empty result"); return; }
+                        if (result == null) {
+                            callback.onError("auth_login_failed");
+                            return;
+                        }
                         FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) { callback.onError("Login failed: no user"); return; }
+                        if (firebaseUser == null) {
+                            callback.onError("auth_login_failed");
+                            return;
+                        }
                         handleAuthSuccess(firebaseUser);
                         callback.onSuccess(firebaseUser);
-                    } else {
-                        Exception e = task.getException();
-                        callback.onError(e != null ? e.getMessage() : "Login failed");
+                        return;
                     }
+
+                    Exception e = task.getException();
+                    callback.onError(mapLoginErrorKey(e));
                 });
+    }
+
+    private String mapLoginErrorKey(Exception exception) {
+        if (exception == null) {
+            return "auth_login_failed";
+        }
+        if (exception instanceof FirebaseAuthInvalidUserException) {
+            return "auth_user_not_found";
+        }
+        if (exception instanceof FirebaseAuthInvalidCredentialsException) {
+            return "auth_wrong_password";
+        }
+        if (exception instanceof FirebaseNetworkException
+                || exception instanceof SocketTimeoutException
+                || exception instanceof IOException) {
+            return "auth_network_timeout";
+        }
+        return "auth_login_failed";
     }
 
     /**
