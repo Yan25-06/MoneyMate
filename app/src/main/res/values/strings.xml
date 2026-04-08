@@ -108,11 +108,15 @@
     <string name="transaction_scan_source_subtitle">Chọn cách lấy ảnh hóa đơn để tiếp tục luồng OCR.</string>
     <string name="transaction_scan_source_camera">Chụp ảnh</string>
     <string name="transaction_scan_source_gallery">Chọn từ thư viện</string>
-    <string name="transaction_scan_gallery_pending">Kết nối thư viện ảnh sẽ được bổ sung ở bước OCR tiếp theo.</string>
     <string name="transaction_scan_camera_title">Chụp hóa đơn</string>
     <string name="transaction_scan_confirmation_title">Xác nhận giao dịch</string>
     <string name="transaction_scan_confirmation_placeholder_title">Màn hình xác nhận đang chờ OCR-T6</string>
     <string name="transaction_scan_confirmation_placeholder_message">Điểm đến điều hướng đã được tạo sẵn để nối kết quả OCR ở các ticket tiếp theo.</string>
+    <string name="transaction_scan_gallery_loading">Đang chuẩn bị ảnh hóa đơn…</string>
+    <string name="transaction_scan_gallery_result_ready">Ảnh từ thư viện đã được sao chép vào vùng riêng tư của ứng dụng.</string>
+    <string name="transaction_scan_gallery_invalid_image">Không thể đọc ảnh đã chọn. Vui lòng thử ảnh khác.</string>
+    <string name="transaction_scan_gallery_image_too_large">Ảnh quá lớn để xử lý. Vui lòng chọn ảnh nhỏ hơn 20 MB.</string>
+    <string name="transaction_scan_gallery_copy_failed">Không thể sao chép ảnh vào bộ nhớ nội bộ.</string>
     <string name="transaction_scan_permission_title">Cần quyền sử dụng camera</string>
     <string name="transaction_scan_permission_message">MoneyMate chỉ dùng camera để chụp hóa đơn và lưu ảnh trong vùng riêng tư của ứng dụng.</string>
     <string name="transaction_scan_permission_action">Cấp quyền camera</string>

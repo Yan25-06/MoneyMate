@@ -1,5 +1,6 @@
 package com.group10.moneymate.ui.transaction;
 
+import android.net.Uri;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -13,6 +14,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -36,6 +39,7 @@ import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.DateUtils;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.FileUtils;
 import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 import com.group10.moneymate.utils.Constants;
@@ -47,6 +51,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class AddEditTransactionFragment extends Fragment {
 
@@ -72,18 +79,30 @@ public class AddEditTransactionFragment extends Fragment {
     private boolean isFormattingAmount;
     private boolean isLoadingEdit;
     private boolean isManualIcon;
+    private boolean isPreparingReceiptImage;
     private boolean isSaving;
     private final LoadingHelper loadingHelper = new LoadingHelper();
     @Nullable
     private BottomSheetDialog scanSourceDialog;
     @Nullable
-    private String capturedReceiptImagePath;
+    private String selectedReceiptImagePath;
     @Nullable
-    private String capturedReceiptImageUri;
+    private String selectedReceiptImageUri;
+    private ActivityResultLauncher<String> galleryPickerLauncher;
+    private final ExecutorService receiptImageExecutor = Executors.newSingleThreadExecutor();
 
     // Edit mode
     private String transactionId = null;
     private TransactionEntity originalTransaction = null;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        galleryPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                this::handleGalleryImageSelected
+        );
+    }
 
     @Nullable
     @Override
@@ -260,7 +279,7 @@ public class AddEditTransactionFragment extends Fragment {
         });
         dialogBinding.btnScanFromGallery.setOnClickListener(v -> {
             dialog.dismiss();
-            Toast.makeText(requireContext(), R.string.transaction_scan_gallery_pending, Toast.LENGTH_SHORT).show();
+            launchGalleryPicker();
         });
         dialog.setOnDismissListener(dialogInterface -> {
             if (scanSourceDialog == dialog) {
@@ -279,19 +298,93 @@ public class AddEditTransactionFragment extends Fragment {
         }
     }
 
+    private void launchGalleryPicker() {
+        if (isPreparingReceiptImage || isSaving) {
+            return;
+        }
+        galleryPickerLauncher.launch("image/*");
+    }
+
+    private void handleGalleryImageSelected(@Nullable Uri sourceUri) {
+        if (sourceUri == null || !isAdded()) {
+            return;
+        }
+        startGalleryImport(sourceUri);
+    }
+
+    private void startGalleryImport(@NonNull Uri sourceUri) {
+        Executor mainExecutor = ContextCompat.getMainExecutor(requireContext());
+        android.content.Context appContext = requireContext().getApplicationContext();
+
+        startReceiptPreparationUi();
+        receiptImageExecutor.execute(() -> {
+            try {
+                FileUtils.ReceiptImageCopyResult copyResult =
+                        FileUtils.copyReceiptImageToInternalStorage(appContext, sourceUri);
+                mainExecutor.execute(() -> finishGalleryImportSuccess(copyResult));
+            } catch (FileUtils.InvalidReceiptImageException exception) {
+                mainExecutor.execute(() -> finishGalleryImportError(R.string.transaction_scan_gallery_invalid_image));
+            } catch (FileUtils.ReceiptImageTooLargeException exception) {
+                mainExecutor.execute(() -> finishGalleryImportError(R.string.transaction_scan_gallery_image_too_large));
+            } catch (FileUtils.ReceiptImageStorageException exception) {
+                mainExecutor.execute(() -> finishGalleryImportError(R.string.transaction_scan_gallery_copy_failed));
+            }
+        });
+    }
+
+    private void startReceiptPreparationUi() {
+        isPreparingReceiptImage = true;
+        updateActionState();
+        loadingHelper.show(this, R.string.transaction_scan_gallery_loading);
+    }
+
+    private void stopReceiptPreparationUi() {
+        isPreparingReceiptImage = false;
+        updateActionState();
+        loadingHelper.dismiss();
+    }
+
+    private void finishGalleryImportSuccess(@NonNull FileUtils.ReceiptImageCopyResult copyResult) {
+        stopReceiptPreparationUi();
+        if (!isAdded()) {
+            return;
+        }
+        applySelectedReceiptImage(
+                copyResult.getInternalPath(),
+                copyResult.getInternalUri(),
+                R.string.transaction_scan_gallery_result_ready
+        );
+    }
+
+    private void finishGalleryImportError(int messageResId) {
+        stopReceiptPreparationUi();
+        if (!isAdded()) {
+            return;
+        }
+        Toast.makeText(requireContext(), messageResId, Toast.LENGTH_SHORT).show();
+    }
+
+    private void applySelectedReceiptImage(@NonNull String imagePath,
+                                           @NonNull String imageUri,
+                                           int toastMessageResId) {
+        selectedReceiptImagePath = imagePath;
+        selectedReceiptImageUri = imageUri;
+        Toast.makeText(requireContext(), toastMessageResId, Toast.LENGTH_SHORT).show();
+    }
+
     private void observeCameraCaptureResults() {
         getParentFragmentManager().setFragmentResultListener(
                 CameraFragment.REQUEST_KEY_CAPTURED_IMAGE,
                 getViewLifecycleOwner(),
                 (requestKey, bundle) -> {
-                    capturedReceiptImagePath = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_PATH);
-                    capturedReceiptImageUri = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_URI);
-                    if (!TextUtils.isEmpty(capturedReceiptImagePath)) {
-                        Toast.makeText(
-                                requireContext(),
-                                R.string.transaction_scan_camera_result_ready,
-                                Toast.LENGTH_SHORT
-                        ).show();
+                    String imagePath = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_PATH);
+                    String imageUri = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_URI);
+                    if (!TextUtils.isEmpty(imagePath) && !TextUtils.isEmpty(imageUri)) {
+                        applySelectedReceiptImage(
+                                imagePath,
+                                imageUri,
+                                R.string.transaction_scan_camera_result_ready
+                        );
                     }
                     getParentFragmentManager().clearFragmentResult(CameraFragment.REQUEST_KEY_CAPTURED_IMAGE);
                 }
@@ -714,20 +807,24 @@ public class AddEditTransactionFragment extends Fragment {
 
     private void startSavingUi() {
         isSaving = true;
-        binding.btnSave.setEnabled(false);
-        binding.btnCloseScreen.setEnabled(false);
-        binding.fabScanTransaction.setEnabled(false);
+        updateActionState();
         loadingHelper.show(this, R.string.common_saving);
     }
 
     private void stopSavingUi() {
         isSaving = false;
-        if (binding != null) {
-            binding.btnSave.setEnabled(true);
-            binding.btnCloseScreen.setEnabled(true);
-            binding.fabScanTransaction.setEnabled(true);
-        }
+        updateActionState();
         loadingHelper.dismiss();
+    }
+
+    private void updateActionState() {
+        if (binding == null) {
+            return;
+        }
+        boolean enabled = !isSaving && !isPreparingReceiptImage;
+        binding.btnSave.setEnabled(enabled);
+        binding.btnCloseScreen.setEnabled(enabled);
+        binding.fabScanTransaction.setEnabled(enabled);
     }
 
     private void finishSavingAndNavigateUp() {
@@ -787,5 +884,11 @@ public class AddEditTransactionFragment extends Fragment {
         loadingHelper.dismiss();
         super.onDestroyView();
         binding = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        receiptImageExecutor.shutdownNow();
+        super.onDestroy();
     }
 }
