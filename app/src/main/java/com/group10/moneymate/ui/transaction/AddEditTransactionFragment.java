@@ -57,6 +57,10 @@ import java.util.concurrent.Executors;
 
 public class AddEditTransactionFragment extends Fragment {
 
+    public static final String REQUEST_KEY_OCR_DRAFT_SAVED = "ocr_draft_saved";
+    public static final String RESULT_KEY_OCR_DRAFT_ID = "ocr_draft_id";
+    public static final String RESULT_KEY_SAVED_TRANSACTION_ID = "saved_transaction_id";
+
     private FragmentAddEditTransactionBinding binding;
     private TransactionViewModel viewModel;
 
@@ -88,6 +92,8 @@ public class AddEditTransactionFragment extends Fragment {
     private String selectedReceiptImagePath;
     @Nullable
     private String selectedReceiptImageUri;
+    @Nullable
+    private String ocrDraftId;
     private ActivityResultLauncher<String> galleryPickerLauncher;
     private final ExecutorService receiptImageExecutor = Executors.newSingleThreadExecutor();
 
@@ -122,6 +128,7 @@ public class AddEditTransactionFragment extends Fragment {
                 getArguments() != null ? getArguments() : new Bundle()
         );
         transactionId = args.getTransactionId();
+        ocrDraftId = args.getOcrDraftId();
 
         setupToolbar();
         setupTypeToggle();
@@ -147,6 +154,7 @@ public class AddEditTransactionFragment extends Fragment {
             updateAmountAccent();
             updateTypeToggleAppearance();
             updateCategorySelectionUi();
+            applyOcrDraftPrefill(args);
         }
     }
 
@@ -389,6 +397,35 @@ public class AddEditTransactionFragment extends Fragment {
                     getParentFragmentManager().clearFragmentResult(CameraFragment.REQUEST_KEY_CAPTURED_IMAGE);
                 }
         );
+    }
+
+    private void applyOcrDraftPrefill(@NonNull AddEditTransactionFragmentArgs args) {
+        String draftAmount = args.getOcrDraftAmount();
+        if (!TextUtils.isEmpty(draftAmount)) {
+            try {
+                long parsedAmount = Long.parseLong(draftAmount);
+                binding.etAmount.setText(CurrencyFormatter.formatInputAmount(parsedAmount));
+            } catch (NumberFormatException exception) {
+                binding.etAmount.setText(draftAmount);
+            }
+        }
+
+        String draftNote = args.getOcrDraftNote();
+        if (!TextUtils.isEmpty(draftNote)) {
+            binding.etNote.setText(draftNote);
+        }
+
+        long draftTimestamp = args.getOcrDraftTimestamp();
+        if (draftTimestamp > 0L) {
+            selectedTimestamp = draftTimestamp;
+            binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
+        }
+
+        String draftImagePath = args.getOcrDraftImagePath();
+        if (!TextUtils.isEmpty(draftImagePath)) {
+            selectedReceiptImagePath = draftImagePath;
+            selectedReceiptImageUri = Uri.fromFile(new java.io.File(draftImagePath)).toString();
+        }
     }
 
     private void updateAmountAccent() {
@@ -832,8 +869,21 @@ public class AddEditTransactionFragment extends Fragment {
             loadingHelper.dismiss();
             return;
         }
+        dispatchOcrDraftSavedResultIfNeeded();
         stopSavingUi();
         Navigation.findNavController(binding.getRoot()).navigateUp();
+    }
+
+    private void dispatchOcrDraftSavedResultIfNeeded() {
+        if (TextUtils.isEmpty(ocrDraftId)) {
+            return;
+        }
+        Bundle result = new Bundle();
+        result.putString(RESULT_KEY_OCR_DRAFT_ID, ocrDraftId);
+        if (originalTransaction != null) {
+            result.putString(RESULT_KEY_SAVED_TRANSACTION_ID, originalTransaction.getId());
+        }
+        getParentFragmentManager().setFragmentResult(REQUEST_KEY_OCR_DRAFT_SAVED, result);
     }
 
     // ─── Validation ───────────────────────────────────────────────────────────
