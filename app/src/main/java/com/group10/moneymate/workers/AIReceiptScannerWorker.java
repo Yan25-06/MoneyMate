@@ -24,9 +24,9 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.group10.moneymate.ai.receipt.MlKitReceiptParserBridge;
 import com.group10.moneymate.ai.receipt.ReceiptParserBridge;
 import com.group10.moneymate.ai.receipt.ReceiptScanContract;
-import com.group10.moneymate.ai.receipt.StubReceiptParserBridge;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -52,7 +52,7 @@ public class AIReceiptScannerWorker extends Worker {
 
     public AIReceiptScannerWorker(@NonNull Context context,
                                   @NonNull WorkerParameters workerParameters) {
-        this(context, workerParameters, new StubReceiptParserBridge());
+        this(context, workerParameters, new MlKitReceiptParserBridge());
     }
 
     public AIReceiptScannerWorker(@NonNull Context context,

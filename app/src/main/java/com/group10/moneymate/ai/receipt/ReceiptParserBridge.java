@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.work.Data;
 
 import com.google.mlkit.vision.text.Text;
+import com.group10.moneymate.ai.receipt.model.ReceiptData;
 
 public interface ReceiptParserBridge {
 
@@ -69,6 +70,19 @@ public interface ReceiptParserBridge {
                     "",
                     ReceiptScanContract.EMPTY_ITEMS_JSON,
                     ReceiptScanContract.CONFIDENCE_LOW
+            );
+        }
+
+        @NonNull
+        public static ParseResult fromReceiptData(@NonNull ReceiptData receiptData,
+                                                  @NonNull String itemsJson) {
+            return new ParseResult(
+                    receiptData.getAmount(),
+                    receiptData.getTimestamp(),
+                    receiptData.getMerchant(),
+                    receiptData.getCategoryHint(),
+                    itemsJson,
+                    receiptData.getConfidence()
             );
         }
     }

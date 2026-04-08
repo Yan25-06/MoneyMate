@@ -2,8 +2,8 @@ package com.group10.moneymate.di;
 
 import android.content.Context;
 
+import com.group10.moneymate.ai.receipt.MlKitReceiptParserBridge;
 import com.group10.moneymate.ai.receipt.ReceiptParserBridge;
-import com.group10.moneymate.ai.receipt.StubReceiptParserBridge;
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.remote.FirebaseAuthHelper;
 import com.group10.moneymate.data.repository.AuthRepository;
@@ -40,7 +40,7 @@ public class AppContainer {
         firebaseAuthHelper = new FirebaseAuthHelper();
         prefsManager       = new PrefsManager(context);
         syncScheduler      = new SyncScheduler(context.getApplicationContext());
-        receiptParserBridge = new StubReceiptParserBridge();
+        receiptParserBridge = new MlKitReceiptParserBridge();
         authRepository        = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());
