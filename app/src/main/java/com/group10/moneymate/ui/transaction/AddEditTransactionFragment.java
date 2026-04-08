@@ -22,12 +22,15 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavBackStackEntry;
+import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.databinding.DialogTransactionScanSourceBinding;
 import com.group10.moneymate.databinding.FragmentAddEditTransactionBinding;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.DateUtils;
@@ -71,6 +74,8 @@ public class AddEditTransactionFragment extends Fragment {
     private boolean isManualIcon;
     private boolean isSaving;
     private final LoadingHelper loadingHelper = new LoadingHelper();
+    @Nullable
+    private BottomSheetDialog scanSourceDialog;
 
     // Edit mode
     private String transactionId = null;
@@ -100,6 +105,7 @@ public class AddEditTransactionFragment extends Fragment {
         setupCategoryPickerRow();
         setupDatePicker();
         setupTextInputs();
+        setupScanEntry();
         setupSaveButton();
         observePickerResults();
         observeWallets();
@@ -222,6 +228,50 @@ public class AddEditTransactionFragment extends Fragment {
                 isFormattingAmount = false;
             }
         });
+    }
+
+    private void setupScanEntry() {
+        binding.fabScanTransaction.setOnClickListener(v -> {
+            if (isSaving) {
+                return;
+            }
+            showScanSourceChooser();
+        });
+    }
+
+    private void showScanSourceChooser() {
+        dismissScanSourceDialog();
+
+        DialogTransactionScanSourceBinding dialogBinding =
+                DialogTransactionScanSourceBinding.inflate(getLayoutInflater());
+        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
+        dialog.setContentView(dialogBinding.getRoot());
+
+        dialogBinding.btnScanFromCamera.setOnClickListener(v -> {
+            dialog.dismiss();
+            NavDirections action =
+                    AddEditTransactionFragmentDirections.actionAddEditTransactionFragmentToCameraFragment();
+            Navigation.findNavController(binding.getRoot()).navigate(action);
+        });
+        dialogBinding.btnScanFromGallery.setOnClickListener(v -> {
+            dialog.dismiss();
+            Toast.makeText(requireContext(), R.string.transaction_scan_gallery_pending, Toast.LENGTH_SHORT).show();
+        });
+        dialog.setOnDismissListener(dialogInterface -> {
+            if (scanSourceDialog == dialog) {
+                scanSourceDialog = null;
+            }
+        });
+
+        scanSourceDialog = dialog;
+        dialog.show();
+    }
+
+    private void dismissScanSourceDialog() {
+        if (scanSourceDialog != null) {
+            scanSourceDialog.dismiss();
+            scanSourceDialog = null;
+        }
     }
 
     private void updateAmountAccent() {
@@ -642,6 +692,7 @@ public class AddEditTransactionFragment extends Fragment {
         isSaving = true;
         binding.btnSave.setEnabled(false);
         binding.btnCloseScreen.setEnabled(false);
+        binding.fabScanTransaction.setEnabled(false);
         loadingHelper.show(this, R.string.common_saving);
     }
 
@@ -650,6 +701,7 @@ public class AddEditTransactionFragment extends Fragment {
         if (binding != null) {
             binding.btnSave.setEnabled(true);
             binding.btnCloseScreen.setEnabled(true);
+            binding.fabScanTransaction.setEnabled(true);
         }
         loadingHelper.dismiss();
     }
@@ -707,6 +759,7 @@ public class AddEditTransactionFragment extends Fragment {
         if (selectedCategorySource != null && selectedCategoryObserver != null) {
             selectedCategorySource.removeObserver(selectedCategoryObserver);
         }
+        dismissScanSourceDialog();
         loadingHelper.dismiss();
         super.onDestroyView();
         binding = null;

@@ -103,6 +103,18 @@
     <string name="transaction_detail_duplicate_coming_soon">Tính năng nhân bản sẽ được bổ sung sau.</string>
     <string name="report_transaction_list_title">Danh sách giao dịch</string>
     <string name="report_transaction_list_empty">Không có giao dịch phù hợp trong bộ lọc này.</string>
+    <string name="transaction_scan_receipt">Quét hóa đơn</string>
+    <string name="transaction_scan_source_title">Thêm giao dịch từ ảnh</string>
+    <string name="transaction_scan_source_subtitle">Chọn cách lấy ảnh hóa đơn để tiếp tục luồng OCR.</string>
+    <string name="transaction_scan_source_camera">Chụp ảnh</string>
+    <string name="transaction_scan_source_gallery">Chọn từ thư viện</string>
+    <string name="transaction_scan_gallery_pending">Kết nối thư viện ảnh sẽ được bổ sung ở bước OCR tiếp theo.</string>
+    <string name="transaction_scan_camera_title">Chụp hóa đơn</string>
+    <string name="transaction_scan_confirmation_title">Xác nhận giao dịch</string>
+    <string name="transaction_scan_camera_placeholder_title">Màn hình camera đang chờ OCR-T2</string>
+    <string name="transaction_scan_camera_placeholder_message">Điểm vào điều hướng đã sẵn sàng. Ticket này chỉ mở đường cho camera, chưa triển khai chụp ảnh.</string>
+    <string name="transaction_scan_confirmation_placeholder_title">Màn hình xác nhận đang chờ OCR-T6</string>
+    <string name="transaction_scan_confirmation_placeholder_message">Điểm đến điều hướng đã được tạo sẵn để nối kết quả OCR ở các ticket tiếp theo.</string>
 
     <!-- Validation errors -->
     <string name="error_amount_required">Vui lòng nhập số tiền</string>

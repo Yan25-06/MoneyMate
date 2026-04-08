@@ -171,7 +171,41 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_addEditTransactionFragment_to_cameraFragment"
+            app:destination="@id/cameraFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_addEditTransactionFragment_to_transactionConfirmationFragment"
+            app:destination="@id/transactionConfirmationFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
+
+    <fragment
+        android:id="@+id/cameraFragment"
+        android:name="com.group10.moneymate.ui.transaction.CameraFragment"
+        android:label="@string/transaction_scan_camera_title"
+        tools:layout="@layout/fragment_camera">
+        <action
+            android:id="@+id/action_cameraFragment_to_transactionConfirmationFragment"
+            app:destination="@id/transactionConfirmationFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/transactionConfirmationFragment"
+        android:name="com.group10.moneymate.ui.transaction.TransactionConfirmationFragment"
+        android:label="@string/transaction_scan_confirmation_title"
+        tools:layout="@layout/fragment_transaction_confirmation" />
 
     <fragment
         android:id="@+id/transactionCategoryPickerFragment"

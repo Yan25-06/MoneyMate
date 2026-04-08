@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="20dp">
+
+    <TextView
+        android:id="@+id/tv_scan_source_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/transaction_scan_source_title"
+        android:textColor="@color/statistics_text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_scan_source_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/transaction_scan_source_subtitle"
+        android:textColor="@color/transaction_muted_text"
+        android:textSize="14sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_scan_from_camera"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center_vertical|start"
+        android:insetTop="14dp"
+        android:insetBottom="14dp"
+        android:text="@string/transaction_scan_source_camera"
+        android:textAllCaps="false"
+        app:icon="@drawable/ic_category_camera"
+        app:iconPadding="12dp"
+        app:iconTint="@color/transaction_income_accent"
+        app:strokeColor="@color/transaction_border" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_scan_from_gallery"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical|start"
+        android:insetTop="14dp"
+        android:insetBottom="14dp"
+        android:text="@string/transaction_scan_source_gallery"
+        android:textAllCaps="false"
+        app:icon="@drawable/outline_receipt_24"
+        app:iconPadding="12dp"
+        app:iconTint="@color/transaction_income_accent"
+        app:strokeColor="@color/transaction_border" />
+
+</LinearLayout>
