@@ -111,10 +111,23 @@
     <string name="transaction_scan_gallery_pending">Kết nối thư viện ảnh sẽ được bổ sung ở bước OCR tiếp theo.</string>
     <string name="transaction_scan_camera_title">Chụp hóa đơn</string>
     <string name="transaction_scan_confirmation_title">Xác nhận giao dịch</string>
-    <string name="transaction_scan_camera_placeholder_title">Màn hình camera đang chờ OCR-T2</string>
-    <string name="transaction_scan_camera_placeholder_message">Điểm vào điều hướng đã sẵn sàng. Ticket này chỉ mở đường cho camera, chưa triển khai chụp ảnh.</string>
     <string name="transaction_scan_confirmation_placeholder_title">Màn hình xác nhận đang chờ OCR-T6</string>
     <string name="transaction_scan_confirmation_placeholder_message">Điểm đến điều hướng đã được tạo sẵn để nối kết quả OCR ở các ticket tiếp theo.</string>
+    <string name="transaction_scan_permission_title">Cần quyền sử dụng camera</string>
+    <string name="transaction_scan_permission_message">MoneyMate chỉ dùng camera để chụp hóa đơn và lưu ảnh trong vùng riêng tư của ứng dụng.</string>
+    <string name="transaction_scan_permission_action">Cấp quyền camera</string>
+    <string name="transaction_scan_permission_denied_message">Chưa có quyền camera. Hãy cấp quyền để chụp hóa đơn.</string>
+    <string name="transaction_scan_camera_loading">Đang mở camera…</string>
+    <string name="transaction_scan_camera_ready">Canh hóa đơn vào khung hình rồi nhấn chụp.</string>
+    <string name="transaction_scan_camera_unavailable">Không thể mở camera lúc này.</string>
+    <string name="transaction_scan_camera_unavailable_title">Camera chưa sẵn sàng</string>
+    <string name="transaction_scan_camera_unavailable_message">Thiết bị không hỗ trợ camera phù hợp hoặc camera đang bận. Bạn có thể thử lại sau.</string>
+    <string name="transaction_scan_camera_retry">Thử lại</string>
+    <string name="transaction_scan_capture">Chụp ảnh hóa đơn</string>
+    <string name="transaction_scan_capture_in_progress">Đang chụp ảnh…</string>
+    <string name="transaction_scan_capture_failed">Chụp ảnh thất bại. Vui lòng thử lại.</string>
+    <string name="transaction_scan_capture_storage_failed">Không thể chuẩn bị nơi lưu ảnh hóa đơn.</string>
+    <string name="transaction_scan_camera_result_ready">Ảnh hóa đơn đã được lưu và trả về màn hình giao dịch.</string>
 
     <!-- Validation errors -->
     <string name="error_amount_required">Vui lòng nhập số tiền</string>

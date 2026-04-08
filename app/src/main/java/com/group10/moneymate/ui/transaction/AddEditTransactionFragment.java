@@ -76,6 +76,10 @@ public class AddEditTransactionFragment extends Fragment {
     private final LoadingHelper loadingHelper = new LoadingHelper();
     @Nullable
     private BottomSheetDialog scanSourceDialog;
+    @Nullable
+    private String capturedReceiptImagePath;
+    @Nullable
+    private String capturedReceiptImageUri;
 
     // Edit mode
     private String transactionId = null;
@@ -108,6 +112,7 @@ public class AddEditTransactionFragment extends Fragment {
         setupScanEntry();
         setupSaveButton();
         observePickerResults();
+        observeCameraCaptureResults();
         observeWallets();
 
         if (transactionId != null) {
@@ -272,6 +277,25 @@ public class AddEditTransactionFragment extends Fragment {
             scanSourceDialog.dismiss();
             scanSourceDialog = null;
         }
+    }
+
+    private void observeCameraCaptureResults() {
+        getParentFragmentManager().setFragmentResultListener(
+                CameraFragment.REQUEST_KEY_CAPTURED_IMAGE,
+                getViewLifecycleOwner(),
+                (requestKey, bundle) -> {
+                    capturedReceiptImagePath = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_PATH);
+                    capturedReceiptImageUri = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_URI);
+                    if (!TextUtils.isEmpty(capturedReceiptImagePath)) {
+                        Toast.makeText(
+                                requireContext(),
+                                R.string.transaction_scan_camera_result_ready,
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                    getParentFragmentManager().clearFragmentResult(CameraFragment.REQUEST_KEY_CAPTURED_IMAGE);
+                }
+        );
     }
 
     private void updateAmountAccent() {
