@@ -76,4 +76,34 @@ public class ReceiptParserTest {
         assertEquals(ReceiptData.CONFIDENCE_LOW, receiptData.getConfidence());
         assertFalse(receiptData.hasAmount());
     }
+
+    @Test
+    public void parse_shouldStayLowConfidenceWhenOnlyAmountIsDetected() {
+        String rawText = ""
+                + "Tap hoa Minh Anh\n"
+                + "Snack 15000\n";
+
+        ReceiptData receiptData = parser.parse(rawText);
+
+        assertEquals("15000", receiptData.getAmount());
+        assertEquals(ReceiptData.UNKNOWN_TIMESTAMP, receiptData.getTimestamp());
+        assertEquals(ReceiptData.CONFIDENCE_LOW, receiptData.getConfidence());
+        assertEquals(1, receiptData.getItems().size());
+    }
+
+    @Test
+    public void parse_shouldIgnorePhoneAndTaxNumbersWhenChoosingTotalAmount() {
+        String rawText = ""
+                + "NHA THUOC ABC\n"
+                + "SDT 0909123456\n"
+                + "MST 0312345678\n"
+                + "Thuoc cam 45.000\n"
+                + "Tong thanh toan 45.000\n";
+
+        ReceiptData receiptData = parser.parse(rawText);
+
+        assertEquals("45000", receiptData.getAmount());
+        assertEquals("Sức khỏe", receiptData.getCategoryHint());
+        assertEquals(ReceiptData.CONFIDENCE_LOW, receiptData.getConfidence());
+    }
 }
