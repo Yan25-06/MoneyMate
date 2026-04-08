@@ -20,6 +20,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
@@ -469,20 +470,35 @@ public class TransactionConfirmationFragment extends Fragment {
         }
 
         startSavingAllUi();
-        viewModel.insertTransactions(transactionsToSave, new TransactionRepository.WriteCallback() {
-            @Override
-            public void onSuccess() {
-                finishSaveAllSuccess(transactionsToSave.size());
-            }
+        viewModel.checkOcrDuplicateCandidates(
+                buildDuplicateCandidates(transactionsToSave),
+                new TransactionRepository.DuplicateCheckCallback() {
+                    @Override
+                    public void onCompleted(@NonNull TransactionRepository.DuplicateCheckResult result) {
+                        if (!isAdded()) {
+                            stopSavingAllUi();
+                            return;
+                        }
+                        if (!result.hasSuspectedDuplicates()) {
+                            performConfirmedSaveAll(transactionsToSave);
+                            return;
+                        }
+                        stopSavingAllUi();
+                        showDuplicateConfirmationDialog(result.getSuspectedDuplicates().size(), () -> {
+                            startSavingAllUi();
+                            performConfirmedSaveAll(transactionsToSave);
+                        });
+                    }
 
-            @Override
-            public void onError(@NonNull Throwable throwable) {
-                stopSavingAllUi();
-                if (isAdded()) {
-                    Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_save_all_failed, Toast.LENGTH_SHORT).show();
+                    @Override
+                    public void onError(@NonNull Throwable throwable) {
+                        stopSavingAllUi();
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), R.string.transaction_scan_duplicate_check_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    }
                 }
-            }
-        });
+        );
     }
 
     @Nullable
@@ -517,6 +533,27 @@ public class TransactionConfirmationFragment extends Fragment {
         transaction.setDeleted(false);
         transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
         return transaction;
+    }
+
+    @NonNull
+    private List<TransactionRepository.OcrDuplicateCandidate> buildDuplicateCandidates(
+            @NonNull List<TransactionEntity> transactionsToSave
+    ) {
+        List<TransactionRepository.OcrDuplicateCandidate> candidates = new ArrayList<>();
+        String imagePath = confirmationArgs != null ? confirmationArgs.getImagePath() : null;
+        int limit = Math.min(pendingItems.size(), transactionsToSave.size());
+        for (int index = 0; index < limit; index++) {
+            ReceiptTransactionAdapter.PendingReceiptItem pendingItem = pendingItems.get(index);
+            TransactionEntity transaction = transactionsToSave.get(index);
+            candidates.add(new TransactionRepository.OcrDuplicateCandidate(
+                    pendingItem.getDraftId(),
+                    imagePath,
+                    transaction.getAmount(),
+                    transaction.getTimestamp(),
+                    transaction.getNote()
+            ));
+        }
+        return candidates;
     }
 
     private double parsePendingAmount(@Nullable String amountRaw) {
@@ -600,6 +637,37 @@ public class TransactionConfirmationFragment extends Fragment {
         if (!popped) {
             navController.navigateUp();
         }
+    }
+
+    private void performConfirmedSaveAll(@NonNull List<TransactionEntity> transactionsToSave) {
+        viewModel.insertTransactions(transactionsToSave, new TransactionRepository.WriteCallback() {
+            @Override
+            public void onSuccess() {
+                finishSaveAllSuccess(transactionsToSave.size());
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                stopSavingAllUi();
+                if (isAdded()) {
+                    Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_save_all_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private void showDuplicateConfirmationDialog(int suspectedCount,
+                                                 @NonNull Runnable onConfirm) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.transaction_scan_duplicate_title)
+                .setMessage(getString(
+                        R.string.transaction_scan_duplicate_message_multiple,
+                        suspectedCount
+                ))
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.transaction_scan_duplicate_confirm_save,
+                        (dialog, which) -> onConfirm.run())
+                .show();
     }
 
     private void removePendingItem(@NonNull String draftId) {

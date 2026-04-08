@@ -135,6 +135,11 @@
     <string name="transaction_scan_confirmation_save_all_unresolved_items">%1$d mục vẫn thiếu số tiền hoặc chưa khớp được danh mục. Hãy chỉnh từng mục trước khi lưu tất cả.</string>
     <string name="transaction_scan_confirmation_save_all_failed">Không thể lưu các giao dịch từ hóa đơn. Vui lòng thử lại.</string>
     <string name="transaction_scan_confirmation_save_all_success">Đã lưu %1$d giao dịch từ hóa đơn.</string>
+    <string name="transaction_scan_duplicate_title">Nghi ngờ giao dịch trùng</string>
+    <string name="transaction_scan_duplicate_message_single">MoneyMate phát hiện giao dịch OCR này có cùng ảnh hóa đơn, cùng số tiền và thời điểm trong khoảng 2 phút với một giao dịch đã lưu. Bạn vẫn muốn lưu mục này?</string>
+    <string name="transaction_scan_duplicate_message_multiple">MoneyMate phát hiện %1$d giao dịch OCR có cùng ảnh hóa đơn, cùng số tiền và thời điểm trong khoảng 2 phút với các giao dịch đã lưu. Bạn vẫn muốn lưu các mục này?</string>
+    <string name="transaction_scan_duplicate_confirm_save">Vẫn lưu</string>
+    <string name="transaction_scan_duplicate_check_failed">Không thể kiểm tra giao dịch trùng lúc này. Vui lòng thử lại.</string>
     <string name="transaction_scan_gallery_loading">Đang chuẩn bị ảnh hóa đơn…</string>
     <string name="transaction_scan_gallery_result_ready">Ảnh từ thư viện đã được sao chép vào vùng riêng tư của ứng dụng.</string>
     <string name="transaction_scan_gallery_invalid_image">Không thể đọc ảnh đã chọn. Vui lòng thử ảnh khác.</string>

@@ -323,6 +323,13 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
         transactionRepository.insertTransactions(transactions, callback);
     }
 
+    public void checkOcrDuplicateCandidates(
+            @NonNull List<TransactionRepository.OcrDuplicateCandidate> candidates,
+            @NonNull TransactionRepository.DuplicateCheckCallback callback
+    ) {
+        transactionRepository.checkOcrDuplicateCandidates(userId, candidates, callback);
+    }
+
     public void updateTransaction(TransactionEntity newTransaction) {
         transactionRepository.updateTransaction(newTransaction);
     }

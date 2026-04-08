@@ -29,9 +29,11 @@ import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
+import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.DialogTransactionScanSourceBinding;
 import com.group10.moneymate.databinding.FragmentAddEditTransactionBinding;
@@ -48,6 +50,7 @@ import com.group10.moneymate.utils.TimeWindowUtils;
 import com.group10.moneymate.utils.LoadingHelper;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -822,24 +825,96 @@ public class AddEditTransactionFragment extends Fragment {
                 transaction.setType(effectiveType);
                 transaction.setNote(note);
                 transaction.setTimestamp(selectedTimestamp);
+                transaction.setImagePath(selectedReceiptImagePath);
+                transaction.setDeleted(false);
                 transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
                 transaction.setUpdatedAt(System.currentTimeMillis());
-                viewModel.insertTransaction(transaction, new com.group10.moneymate.data.repository.TransactionRepository.WriteCallback() {
+                maybeInsertOcrTransaction(transaction);
+            }
+        });
+    }
+
+    private void maybeInsertOcrTransaction(@NonNull TransactionEntity transaction) {
+        if (TextUtils.isEmpty(ocrDraftId)) {
+            performInsertTransaction(transaction);
+            return;
+        }
+        viewModel.checkOcrDuplicateCandidates(
+                Collections.singletonList(buildDuplicateCandidate(transaction)),
+                new TransactionRepository.DuplicateCheckCallback() {
                     @Override
-                    public void onSuccess() {
-                        finishSavingAndNavigateUp();
+                    public void onCompleted(@NonNull TransactionRepository.DuplicateCheckResult result) {
+                        if (!isAdded()) {
+                            stopSavingUi();
+                            return;
+                        }
+                        if (!result.hasSuspectedDuplicates()) {
+                            performInsertTransaction(transaction);
+                            return;
+                        }
+                        stopSavingUi();
+                        showDuplicateConfirmationDialog(
+                                getString(R.string.transaction_scan_duplicate_message_single),
+                                () -> {
+                                    startSavingUi();
+                                    performInsertTransaction(transaction);
+                                }
+                        );
                     }
 
                     @Override
                     public void onError(@NonNull Throwable throwable) {
                         stopSavingUi();
                         if (isAdded()) {
-                            Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireContext(), R.string.transaction_scan_duplicate_check_failed, Toast.LENGTH_SHORT).show();
                         }
                     }
-                });
+                }
+        );
+    }
+
+    private void performInsertTransaction(@NonNull TransactionEntity transaction) {
+        viewModel.insertTransaction(transaction, new TransactionRepository.WriteCallback() {
+            @Override
+            public void onSuccess() {
+                finishSavingAndNavigateUp();
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                stopSavingUi();
+                if (isAdded()) {
+                    Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                }
             }
         });
+    }
+
+    @NonNull
+    private TransactionRepository.OcrDuplicateCandidate buildDuplicateCandidate(
+            @NonNull TransactionEntity transaction
+    ) {
+        String candidateId = !TextUtils.isEmpty(ocrDraftId)
+                ? ocrDraftId
+                : transaction.getId();
+        return new TransactionRepository.OcrDuplicateCandidate(
+                candidateId,
+                selectedReceiptImagePath,
+                transaction.getAmount(),
+                transaction.getTimestamp(),
+                transaction.getNote()
+        );
+    }
+
+    private void showDuplicateConfirmationDialog(@NonNull String message,
+                                                 @NonNull Runnable onConfirm) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.transaction_scan_duplicate_title)
+                .setMessage(message)
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.transaction_scan_duplicate_confirm_save,
+                        (dialog, which) -> onConfirm.run())
+                .show();
     }
 
     private void startSavingUi() {

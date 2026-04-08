@@ -17,9 +17,14 @@ import com.group10.moneymate.data.local.dto.NetIncomeDTO;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.utils.ReceiptImageHashUtils;
 import com.group10.moneymate.workers.SyncScheduler;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -39,11 +44,135 @@ public class TransactionRepository {
         void onError(@NonNull Throwable throwable);
     }
 
+    public interface DuplicateCheckCallback {
+        void onCompleted(@NonNull DuplicateCheckResult result);
+        void onError(@NonNull Throwable throwable);
+    }
+
+    public static final class OcrDuplicateCandidate {
+        @NonNull
+        private final String candidateId;
+        @Nullable
+        private final String imagePath;
+        private final double amount;
+        private final long timestamp;
+        @NonNull
+        private final String note;
+
+        public OcrDuplicateCandidate(@NonNull String candidateId,
+                                     @Nullable String imagePath,
+                                     double amount,
+                                     long timestamp,
+                                     @Nullable String note) {
+            this.candidateId = candidateId;
+            this.imagePath = imagePath;
+            this.amount = amount;
+            this.timestamp = timestamp;
+            this.note = note == null ? "" : note.trim();
+        }
+
+        @NonNull
+        public String getCandidateId() {
+            return candidateId;
+        }
+
+        @Nullable
+        public String getImagePath() {
+            return imagePath;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        @NonNull
+        public String getNote() {
+            return note;
+        }
+    }
+
+    public static final class SuspectedDuplicate {
+        @NonNull
+        private final String candidateId;
+        @NonNull
+        private final String existingTransactionId;
+        private final double amount;
+        private final long existingTimestamp;
+        @NonNull
+        private final String existingNote;
+
+        public SuspectedDuplicate(@NonNull String candidateId,
+                                  @NonNull String existingTransactionId,
+                                  double amount,
+                                  long existingTimestamp,
+                                  @Nullable String existingNote) {
+            this.candidateId = candidateId;
+            this.existingTransactionId = existingTransactionId;
+            this.amount = amount;
+            this.existingTimestamp = existingTimestamp;
+            this.existingNote = existingNote == null ? "" : existingNote.trim();
+        }
+
+        @NonNull
+        public String getCandidateId() {
+            return candidateId;
+        }
+
+        @NonNull
+        public String getExistingTransactionId() {
+            return existingTransactionId;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public long getExistingTimestamp() {
+            return existingTimestamp;
+        }
+
+        @NonNull
+        public String getExistingNote() {
+            return existingNote;
+        }
+    }
+
+    public static final class DuplicateCheckResult {
+        @NonNull
+        private final List<SuspectedDuplicate> suspectedDuplicates;
+
+        public DuplicateCheckResult(@NonNull List<SuspectedDuplicate> suspectedDuplicates) {
+            this.suspectedDuplicates = suspectedDuplicates;
+        }
+
+        @NonNull
+        public List<SuspectedDuplicate> getSuspectedDuplicates() {
+            return suspectedDuplicates;
+        }
+
+        public boolean hasSuspectedDuplicates() {
+            return !suspectedDuplicates.isEmpty();
+        }
+    }
+
     public static class TransactionValidationException extends IllegalArgumentException {
         public TransactionValidationException(@NonNull String message) {
             super(message);
         }
     }
+
+    public static class DuplicateCheckException extends RuntimeException {
+        public DuplicateCheckException(@NonNull String message, @NonNull Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    private static final long OCR_DUPLICATE_TIME_BUCKET_MS = 2L * 60L * 1000L;
+    private static final double OCR_DUPLICATE_AMOUNT_TOLERANCE = 0.005d;
 
     private final TransactionDao transactionDao;
     private final WalletDao walletDao;
@@ -393,6 +522,27 @@ public class TransactionRepository {
         transactionDao.hardDeleteById(id);
     }
 
+    /**
+     * OCR duplicate gate before insert.
+     * A transaction is considered a suspected duplicate only when all three signals match:
+     * 1) same internal receipt image hash (SHA-256), 2) same amount, 3) timestamp within +/- 2 minutes.
+     * The result is advisory and must always be confirmed by the user in UI.
+     */
+    public void checkOcrDuplicateCandidates(@NonNull String userId,
+                                            @NonNull List<OcrDuplicateCandidate> candidates,
+                                            @NonNull DuplicateCheckCallback callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                DuplicateCheckResult result = new DuplicateCheckResult(
+                        detectSuspectedDuplicates(userId, candidates)
+                );
+                mainHandler.post(() -> callback.onCompleted(result));
+            } catch (Exception exception) {
+                mainHandler.post(() -> callback.onError(exception));
+            }
+        });
+    }
+
     // ─── Write ────────────────────────────────────────────────────────────────
 
     public void insertTransaction(TransactionEntity transaction) {
@@ -528,6 +678,60 @@ public class TransactionRepository {
 
     private boolean isBlank(@Nullable String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    @NonNull
+    private List<SuspectedDuplicate> detectSuspectedDuplicates(@NonNull String userId,
+                                                               @NonNull List<OcrDuplicateCandidate> candidates) {
+        List<SuspectedDuplicate> suspectedDuplicates = new ArrayList<>();
+        Map<String, String> hashCache = new HashMap<>();
+        for (OcrDuplicateCandidate candidate : candidates) {
+            String candidateHash = computeImageHash(candidate.getImagePath(), hashCache);
+            if (isBlank(candidateHash)) {
+                continue;
+            }
+            long candidateTimestamp = candidate.getTimestamp();
+            List<TransactionEntity> matchingTransactions = transactionDao.getTransactionsForDuplicateCheckSync(
+                    userId,
+                    candidate.getAmount() - OCR_DUPLICATE_AMOUNT_TOLERANCE,
+                    candidate.getAmount() + OCR_DUPLICATE_AMOUNT_TOLERANCE,
+                    candidateTimestamp - OCR_DUPLICATE_TIME_BUCKET_MS,
+                    candidateTimestamp + OCR_DUPLICATE_TIME_BUCKET_MS
+            );
+            for (TransactionEntity existingTransaction : matchingTransactions) {
+                String existingHash = computeImageHash(existingTransaction.getImagePath(), hashCache);
+                if (isBlank(existingHash) || !existingHash.equals(candidateHash)) {
+                    continue;
+                }
+                suspectedDuplicates.add(new SuspectedDuplicate(
+                        candidate.getCandidateId(),
+                        existingTransaction.getId(),
+                        existingTransaction.getAmount(),
+                        existingTransaction.getTimestamp(),
+                        existingTransaction.getNote()
+                ));
+                break;
+            }
+        }
+        return suspectedDuplicates;
+    }
+
+    @Nullable
+    private String computeImageHash(@Nullable String imagePath,
+                                    @NonNull Map<String, String> hashCache) {
+        if (isBlank(imagePath)) {
+            return null;
+        }
+        if (hashCache.containsKey(imagePath)) {
+            return hashCache.get(imagePath);
+        }
+        try {
+            String hash = ReceiptImageHashUtils.computeSha256(imagePath);
+            hashCache.put(imagePath, hash);
+            return hash;
+        } catch (IOException exception) {
+            throw new DuplicateCheckException("transaction.duplicate_check.image_hash_failed", exception);
+        }
     }
 
     private void notifyWriteSuccess(@Nullable WriteCallback callback) {

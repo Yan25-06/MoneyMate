@@ -124,6 +124,18 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id AND is_deleted = 0")
     LiveData<TransactionEntity> getTransactionById(String id);
 
+    @Query("SELECT * FROM transactions " +
+            "WHERE user_id = :userId " +
+            "AND is_deleted = 0 " +
+            "AND amount BETWEEN :minAmount AND :maxAmount " +
+            "AND timestamp BETWEEN :startTimestamp AND :endTimestamp " +
+            "ORDER BY timestamp DESC, id DESC")
+    List<TransactionEntity> getTransactionsForDuplicateCheckSync(String userId,
+                                                                 double minAmount,
+                                                                 double maxAmount,
+                                                                 long startTimestamp,
+                                                                 long endTimestamp);
+
     @Query("SELECT t.* FROM transactions t " +
             "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
             "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
