@@ -27,11 +27,13 @@ public class AuthRepository {
 
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
+
         void onError(String message);
     }
 
     public interface SimpleCallback {
         void onSuccess();
+
         void onError(String message);
     }
 
@@ -40,6 +42,7 @@ public class AuthRepository {
      */
     public interface PasscodeCallback {
         void onSuccess(String uid);
+
         void onError(String message);
     }
 
@@ -115,9 +118,15 @@ public class AuthRepository {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         AuthResult result = task.getResult();
-                        if (result == null) { callback.onError("Registration failed: empty result"); return; }
+                        if (result == null) {
+                            callback.onError("Registration failed: empty result");
+                            return;
+                        }
                         FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) { callback.onError("Registration failed: no user"); return; }
+                        if (firebaseUser == null) {
+                            callback.onError("Registration failed: no user");
+                            return;
+                        }
 
                         if (TextUtils.isEmpty(trimmedDisplayName)) {
                             handleAuthSuccess(firebaseUser, trimmedDisplayName);
@@ -164,6 +173,33 @@ public class AuthRepository {
                 });
     }
 
+    /**
+     * Đăng nhập bằng Google ID Token.
+     * Tự động tạo UserEntity trong Room nếu user mới.
+     */
+    public void loginWithGoogle(String idToken, @NonNull final AuthCallback callback) {
+        firebaseAuthHelper.signInWithGoogle(idToken)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        AuthResult result = task.getResult();
+                        if (result == null) {
+                            callback.onError("auth_login_failed");
+                            return;
+                        }
+                        FirebaseUser firebaseUser = result.getUser();
+                        if (firebaseUser == null) {
+                            callback.onError("auth_login_failed");
+                            return;
+                        }
+                        handleAuthSuccess(firebaseUser);
+                        callback.onSuccess(firebaseUser);
+                    } else {
+                        Exception e = task.getException();
+                        callback.onError(mapLoginErrorKey(e));
+                    }
+                });
+    }
+
     private String mapLoginErrorKey(Exception exception) {
         if (exception == null) {
             return "auth_login_failed";
@@ -200,19 +236,10 @@ public class AuthRepository {
 
     // ─── Passcode ─────────────────────────────────────────────────────────────
 
-    /**
-     * Lưu passcode cho user hiện tại (online).
-     * Hash trước khi lưu vào PrefsManager.
-     * Cũng lưu passcode_hash vào UserEntity trong Room để dự phòng.
-     *
-     * @param uid      Firebase UID của user
-     * @param passcode 6 chữ số (plain text — sẽ được hash)
-     */
     public void savePasscode(String uid, String passcode) {
         String hash = PasscodeHasher.hash(passcode);
         prefsManager.savePasscodeHash(uid, hash);
 
-        // Đồng thời lưu vào Room để nhận diện user offline
         AppDatabase.databaseWriteExecutor.execute(() -> {
             UserEntity user = userDao.getUserByIdSync(uid);
             if (user != null) {
@@ -223,21 +250,12 @@ public class AuthRepository {
         });
     }
 
-    /**
-     * Xác thực passcode — hoạt động OFFLINE.
-     * Ưu tiên kiểm tra PrefsManager (nhanh hơn), fallback Room nếu Prefs bị xóa.
-     *
-     * @param passcode 6 chữ số người dùng nhập
-     * @param callback trả về uid nếu thành công
-     */
     public void verifyPasscode(String passcode, @NonNull final PasscodeCallback callback) {
-        // Bước 1: kiểm tra Prefs (offline-first)
         String storedHash = prefsManager.getPasscodeHash();
-        String storedUid  = prefsManager.getPasscodeUid();
+        String storedUid = prefsManager.getPasscodeUid();
 
         if (!TextUtils.isEmpty(storedHash) && !TextUtils.isEmpty(storedUid)) {
             if (PasscodeHasher.verify(passcode, storedHash)) {
-                // Cập nhật trạng thái đăng nhập
                 prefsManager.saveUid(storedUid);
                 prefsManager.setLoggedIn(true);
                 callback.onSuccess(storedUid);
@@ -247,7 +265,6 @@ public class AuthRepository {
             return;
         }
 
-        // Bước 2: fallback Room (trường hợp Prefs bị xóa nhưng Room còn)
         String currentUid = getCurrentUserId();
         if (TextUtils.isEmpty(currentUid)) {
             callback.onError("no_passcode_set");
@@ -261,7 +278,6 @@ public class AuthRepository {
                 return;
             }
             if (PasscodeHasher.verify(passcode, user.getHashedPasscode())) {
-                // Khôi phục lại Prefs từ Room
                 prefsManager.savePasscodeHash(currentUid, user.getHashedPasscode());
                 prefsManager.saveUid(currentUid);
                 prefsManager.setLoggedIn(true);
@@ -272,16 +288,10 @@ public class AuthRepository {
         });
     }
 
-    /**
-     * Kiểm tra xem passcode đã được thiết lập chưa.
-     */
     public boolean isPasscodeEnabled() {
         return prefsManager.isPasscodeEnabled();
     }
 
-    /**
-     * Xóa passcode (dùng khi user muốn tắt passcode).
-     */
     public void clearPasscode(String uid) {
         prefsManager.clearPasscode();
         AppDatabase.databaseWriteExecutor.execute(() -> {
@@ -308,6 +318,10 @@ public class AuthRepository {
         final String resolvedName = !TextUtils.isEmpty(displayName) ? displayName
                 : (firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
 
+        // Lấy avatar URL từ Google nếu có
+        final String photoUrl = firebaseUser.getPhotoUrl() != null
+                ? firebaseUser.getPhotoUrl().toString() : null;
+
         AppDatabase.databaseWriteExecutor.execute(() -> {
             UserEntity existing = userDao.getUserByIdSync(localUserId);
             if (existing == null) {
@@ -315,7 +329,7 @@ public class AuthRepository {
                 entity.setId(localUserId);
                 entity.setEmail(firebaseUser.getEmail());
                 entity.setDisplayName(resolvedName);
-                entity.setAvatarUrl(null);
+                entity.setAvatarUrl(photoUrl);
                 entity.setCurrency("VND");
                 entity.setLanguage("vi");
                 entity.setThemeMode("system");
@@ -326,8 +340,9 @@ public class AuthRepository {
             } else {
                 existing.setEmail(firebaseUser.getEmail());
                 existing.setDisplayName(resolvedName);
-                if (TextUtils.isEmpty(existing.getAvatarUrl())) {
-                    existing.setAvatarUrl(null);
+                // Cập nhật avatar từ Google nếu chưa có avatar custom
+                if (TextUtils.isEmpty(existing.getAvatarUrl()) && !TextUtils.isEmpty(photoUrl)) {
+                    existing.setAvatarUrl(photoUrl);
                 }
                 userDao.updateUser(existing);
             }

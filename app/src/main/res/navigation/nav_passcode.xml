@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_passcode"
+    app:startDestination="@id/passcodeFragment">
+
+    <fragment
+        android:id="@+id/passcodeFragment"
+        android:name="com.group10.moneymate.ui.security.PasscodeFragment"
+        android:label="@string/title_passcode"
+        app:enterAnim="@anim/slide_in_right"
+        app:exitAnim="@anim/slide_out_left"
+        app:popEnterAnim="@anim/slide_in_left"
+        app:popExitAnim="@anim/slide_out_right">
+
+        <argument
+            android:name="passcode_mode"
+            app:argType="integer"
+            android:defaultValue="0" />
+        <argument
+            android:name="passcode_finish_to_home"
+            app:argType="boolean"
+            android:defaultValue="false" />
+
+    </fragment>
+
+</navigation>

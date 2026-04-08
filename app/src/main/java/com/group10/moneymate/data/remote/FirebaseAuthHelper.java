@@ -1,9 +1,11 @@
 package com.group10.moneymate.data.remote;
 
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.UserProfileChangeRequest;
 
 /**
@@ -40,9 +42,19 @@ public class FirebaseAuthHelper {
     public Task<Void> sendPasswordResetEmail(String email) {
         return firebaseAuth.sendPasswordResetEmail(email);
     }
+
     public Task<AuthResult> signInAnonymously() {
         return firebaseAuth.signInAnonymously();
     }
+
+    /**
+     * Đăng nhập bằng Google ID Token lấy từ Google Sign-In.
+     */
+    public Task<AuthResult> signInWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        return firebaseAuth.signInWithCredential(credential);
+    }
+
     public void signOut() {
         firebaseAuth.signOut();
     }

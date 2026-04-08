@@ -103,6 +103,9 @@ dependencies {
     // Gemini AI
     implementation(libs.generativeai)
 
+    // Google Sign-In
+    implementation(libs.playservices.auth)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

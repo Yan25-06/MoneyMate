@@ -19,6 +19,9 @@
     <string name="forgot_password_check_email">Kiểm tra email của bạn để nhận liên kết đặt lại mật khẩu</string>
     <string name="btn_back_to_login">Quay lại đăng nhập</string>
     <string name="btn_back">Quay lại</string>
+    <string name="btn_google_login">Đăng nhập bằng Google</string>
+    <string name="label_or">hoặc</string>
+
     <string name="error_email_required">Vui lòng nhập email</string>
     <string name="error_email_invalid">Email không hợp lệ</string>
     <string name="error_display_name_required">Vui lòng nhập tên hiển thị</string>

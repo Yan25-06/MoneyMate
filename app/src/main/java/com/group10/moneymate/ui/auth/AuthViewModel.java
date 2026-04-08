@@ -86,6 +86,26 @@ public class AuthViewModel extends AndroidViewModel {
 
             @Override
             public void onError(String message) {
+                android.util.Log.e("FirebaseDebug", "Lỗi gốc từ Firebase (trước khi map): " + message);
+                errorMessage.postValue(mapLoginErrorMessage(message));
+                authState.postValue(AuthState.ERROR);
+            }
+        });
+    }
+
+    /**
+     * Đăng nhập bằng Google ID Token (lấy từ Google Sign-In flow ở Fragment).
+     */
+    public void loginWithGoogle(String idToken) {
+        authState.setValue(AuthState.LOADING);
+        authRepository.loginWithGoogle(idToken, new AuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(FirebaseUser user) {
+                authState.postValue(AuthState.AUTHENTICATED);
+            }
+
+            @Override
+            public void onError(String message) {
                 errorMessage.postValue(mapLoginErrorMessage(message));
                 authState.postValue(AuthState.ERROR);
             }
@@ -111,10 +131,6 @@ public class AuthViewModel extends AndroidViewModel {
         return getApplication().getString(R.string.error_auth_login_failed);
     }
 
-    /**
-     * Đăng ký tài khoản.
-     * Khi thành công → state REGISTERED_NEEDS_PASSCODE để UI điều hướng sang tạo passcode.
-     */
     public void register(String email, String password, String confirmPassword, String displayName) {
         ValidationResult result = AuthInputValidator.validateRegisterInput(
                 getApplication(), displayName, email, password, confirmPassword);
@@ -157,10 +173,6 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
 
-    /**
-     * Đăng xuất: xóa Firebase session.
-     * UI phải navigate về LoginActivity với FLAG_CLEAR_TASK sau khi observe LOGGED_OUT.
-     */
     public void logout() {
         authRepository.signOut();
         authState.setValue(AuthState.LOGGED_OUT);
@@ -168,20 +180,12 @@ public class AuthViewModel extends AndroidViewModel {
 
     // ─── Passcode ─────────────────────────────────────────────────────────────
 
-    /**
-     * Lưu passcode cho user hiện tại.
-     * Gọi sau khi user xác nhận passcode (CONFIRM mode).
-     */
     public void savePasscode(String uid, String passcode) {
         authState.setValue(AuthState.LOADING);
         authRepository.savePasscode(uid, passcode);
         authState.setValue(AuthState.PASSCODE_SAVED);
     }
 
-    /**
-     * Xác thực passcode — hoạt động OFFLINE.
-     * Kết quả: PASSCODE_VERIFIED hoặc ERROR.
-     */
     public void verifyPasscode(String passcode) {
         authState.setValue(AuthState.LOADING);
         authRepository.verifyPasscode(passcode, new AuthRepository.PasscodeCallback() {
