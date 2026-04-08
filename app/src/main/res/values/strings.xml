@@ -130,6 +130,11 @@
     <string name="transaction_scan_confirmation_edit_item">Chỉnh sửa</string>
     <string name="transaction_scan_confirmation_note_fallback">Giao dịch OCR cần kiểm tra</string>
     <string name="transaction_scan_confirmation_item_saved_removed">Mục đã lưu đã được gỡ khỏi danh sách chờ.</string>
+    <string name="transaction_scan_confirmation_wallet_warning">Lưu tất cả chỉ khả dụng khi ứng dụng xác định được chính xác một ví đang hoạt động. Nếu bạn có nhiều ví, hãy chỉnh từng mục để chọn ví phù hợp.</string>
+    <string name="transaction_scan_confirmation_save_all_wallet_unresolved">Chưa thể lưu tất cả vì chưa xác định được một ví duy nhất cho các giao dịch OCR.</string>
+    <string name="transaction_scan_confirmation_save_all_unresolved_items">%1$d mục vẫn thiếu số tiền hoặc chưa khớp được danh mục. Hãy chỉnh từng mục trước khi lưu tất cả.</string>
+    <string name="transaction_scan_confirmation_save_all_failed">Không thể lưu các giao dịch từ hóa đơn. Vui lòng thử lại.</string>
+    <string name="transaction_scan_confirmation_save_all_success">Đã lưu %1$d giao dịch từ hóa đơn.</string>
     <string name="transaction_scan_gallery_loading">Đang chuẩn bị ảnh hóa đơn…</string>
     <string name="transaction_scan_gallery_result_ready">Ảnh từ thư viện đã được sao chép vào vùng riêng tư của ứng dụng.</string>
     <string name="transaction_scan_gallery_invalid_image">Không thể đọc ảnh đã chọn. Vui lòng thử ảnh khác.</string>

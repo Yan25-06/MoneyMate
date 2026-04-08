@@ -39,8 +39,15 @@ public class TransactionRepository {
         void onError(@NonNull Throwable throwable);
     }
 
+    public static class TransactionValidationException extends IllegalArgumentException {
+        public TransactionValidationException(@NonNull String message) {
+            super(message);
+        }
+    }
+
     private final TransactionDao transactionDao;
     private final WalletDao walletDao;
+    private final AppDatabase appDatabase;
     @Nullable
     private final SyncScheduler syncScheduler;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -48,13 +55,17 @@ public class TransactionRepository {
     // cannot miss rapid consecutive writes that land in the same millisecond.
     private static final AtomicLong LAST_WRITE_TIMESTAMP = new AtomicLong(0L);
 
-    public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
-        this(transactionDao, walletDao, null);
+    public TransactionRepository(@NonNull AppDatabase appDatabase,
+                                 @NonNull TransactionDao transactionDao,
+                                 @NonNull WalletDao walletDao) {
+        this(appDatabase, transactionDao, walletDao, null);
     }
 
-    public TransactionRepository(TransactionDao transactionDao,
-                                 WalletDao walletDao,
+    public TransactionRepository(@NonNull AppDatabase appDatabase,
+                                 @NonNull TransactionDao transactionDao,
+                                 @NonNull WalletDao walletDao,
                                  @Nullable SyncScheduler syncScheduler) {
+        this.appDatabase = appDatabase;
         this.transactionDao = transactionDao;
         this.walletDao = walletDao;
         this.syncScheduler = syncScheduler;
@@ -400,18 +411,29 @@ public class TransactionRepository {
         upsertTransactionInternal(newTransaction, callback);
     }
 
+    public void insertTransactions(@NonNull List<TransactionEntity> transactions,
+                                   @Nullable WriteCallback callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                appDatabase.runInTransaction(() -> {
+                    for (TransactionEntity transaction : transactions) {
+                        TransactionEntity writeTransaction = copyTransaction(transaction);
+                        prepareTransactionForWrite(writeTransaction);
+                        transactionDao.upsertLocal(writeTransaction);
+                    }
+                });
+                scheduleSyncIfEnabled();
+                notifyWriteSuccess(callback);
+            } catch (Exception exception) {
+                notifyWriteError(callback, exception);
+            }
+        });
+    }
+
     private void upsertTransactionInternal(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                long now = nextWriteTimestamp();
-                if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
-                    transaction.setId(UUID.randomUUID().toString());
-                }
-                if (transaction.getCreatedAt() <= 0L) {
-                    transaction.setCreatedAt(now);
-                }
-                transaction.setUpdatedAt(now);
-                transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+                prepareTransactionForWrite(transaction);
                 transactionDao.upsertLocal(transaction);
                 scheduleSyncIfEnabled();
                 notifyWriteSuccess(callback);
@@ -445,6 +467,67 @@ public class TransactionRepository {
                 return candidate;
             }
         }
+    }
+
+    private void prepareTransactionForWrite(@NonNull TransactionEntity transaction) {
+        validateTransaction(transaction);
+        long now = nextWriteTimestamp();
+        if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
+            transaction.setId(UUID.randomUUID().toString());
+        }
+        if (transaction.getCreatedAt() <= 0L) {
+            transaction.setCreatedAt(now);
+        }
+        transaction.setUpdatedAt(now);
+        transaction.setDeleted(false);
+        transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+    }
+
+    private void validateTransaction(@NonNull TransactionEntity transaction) {
+        if (isBlank(transaction.getUserId())) {
+            throw new TransactionValidationException("transaction.validation.user_required");
+        }
+        if (isBlank(transaction.getWalletId())) {
+            throw new TransactionValidationException("transaction.validation.wallet_required");
+        }
+        if (isBlank(transaction.getCategoryId())) {
+            throw new TransactionValidationException("transaction.validation.category_required");
+        }
+        if (isBlank(transaction.getType())) {
+            throw new TransactionValidationException("transaction.validation.type_required");
+        }
+        if (transaction.getAmount() <= 0d) {
+            throw new TransactionValidationException("transaction.validation.amount_positive");
+        }
+        if (transaction.getTimestamp() <= 0L) {
+            throw new TransactionValidationException("transaction.validation.timestamp_required");
+        }
+    }
+
+    @NonNull
+    private TransactionEntity copyTransaction(@NonNull TransactionEntity source) {
+        TransactionEntity copy = new TransactionEntity();
+        copy.setId(source.getId());
+        copy.setWalletId(source.getWalletId());
+        copy.setCategoryId(source.getCategoryId());
+        copy.setDebtId(source.getDebtId());
+        copy.setEventId(source.getEventId());
+        copy.setAmount(source.getAmount());
+        copy.setType(source.getType());
+        copy.setToWalletId(source.getToWalletId());
+        copy.setNote(source.getNote());
+        copy.setTimestamp(source.getTimestamp());
+        copy.setImagePath(source.getImagePath());
+        copy.setCreatedAt(source.getCreatedAt());
+        copy.setUpdatedAt(source.getUpdatedAt());
+        copy.setSyncStatus(source.getSyncStatus());
+        copy.setDeleted(source.isDeleted());
+        copy.setUserId(source.getUserId());
+        return copy;
+    }
+
+    private boolean isBlank(@Nullable String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     private void notifyWriteSuccess(@Nullable WriteCallback callback) {

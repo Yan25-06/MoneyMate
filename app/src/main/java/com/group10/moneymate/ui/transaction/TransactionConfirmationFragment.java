@@ -1,5 +1,6 @@
 package com.group10.moneymate.ui.transaction;
 
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -12,34 +13,60 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.group10.moneymate.R;
+import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.TransactionEntity;
+import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.databinding.FragmentTransactionConfirmationBinding;
+import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.ui.transaction.adapter.ReceiptTransactionAdapter;
+import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.DateUtils;
+import com.group10.moneymate.utils.LoadingHelper;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 public class TransactionConfirmationFragment extends Fragment {
 
-    private static final long UNKNOWN_TIMESTAMP = -1L;
-    private static final int LOW_CONFIDENCE = 0;
     private static final int HIGH_CONFIDENCE = 2;
     private static final int MAX_THUMBNAIL_SIZE_PX = 320;
 
     private FragmentTransactionConfirmationBinding binding;
+    private TransactionViewModel viewModel;
     private ReceiptTransactionAdapter adapter;
     private final List<ReceiptTransactionAdapter.PendingReceiptItem> pendingItems = new ArrayList<>();
+    private final List<WalletEntity> activeWallets = new ArrayList<>();
+    private final List<CategoryEntity> availableExpenseCategories = new ArrayList<>();
+    private final LoadingHelper loadingHelper = new LoadingHelper();
+
+    @Nullable
+    private LiveData<List<CategoryEntity>> expenseCategoriesSource;
+    @Nullable
+    private Observer<List<CategoryEntity>> expenseCategoriesObserver;
+    @Nullable
+    private TransactionConfirmationFragmentArgs confirmationArgs;
+    @Nullable
+    private String saveAllWalletId;
+    private boolean isSavingAll;
 
     @Nullable
     @Override
@@ -53,7 +80,8 @@ public class TransactionConfirmationFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        TransactionConfirmationFragmentArgs args = TransactionConfirmationFragmentArgs.fromBundle(
+        viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
+        confirmationArgs = TransactionConfirmationFragmentArgs.fromBundle(
                 getArguments() != null ? getArguments() : new Bundle()
         );
 
@@ -61,11 +89,17 @@ public class TransactionConfirmationFragment extends Fragment {
         setupRecyclerView();
         setupActions();
         observeDraftSaveResults();
-        renderConfirmationState(args);
+        observeSaveDependencies();
+        renderConfirmationState(confirmationArgs);
     }
 
     private void setupToolbar() {
-        binding.btnConfirmationBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+        binding.btnConfirmationBack.setOnClickListener(v -> {
+            if (isSavingAll) {
+                return;
+            }
+            Navigation.findNavController(v).navigateUp();
+        });
     }
 
     private void setupRecyclerView() {
@@ -76,9 +110,7 @@ public class TransactionConfirmationFragment extends Fragment {
     }
 
     private void setupActions() {
-        binding.btnSaveAllReceiptTransactions.setOnClickListener(v ->
-                Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_save_all_placeholder, Toast.LENGTH_SHORT).show()
-        );
+        binding.btnSaveAllReceiptTransactions.setOnClickListener(v -> attemptSaveAll());
     }
 
     private void observeDraftSaveResults() {
@@ -93,6 +125,55 @@ public class TransactionConfirmationFragment extends Fragment {
                     getParentFragmentManager().clearFragmentResult(AddEditTransactionFragment.REQUEST_KEY_OCR_DRAFT_SAVED);
                 }
         );
+    }
+
+    private void observeSaveDependencies() {
+        viewModel.getActiveWallets().observe(getViewLifecycleOwner(), wallets -> {
+            activeWallets.clear();
+            if (wallets != null) {
+                activeWallets.addAll(wallets);
+            }
+            refreshSaveAllWalletResolution();
+        });
+    }
+
+    private void refreshSaveAllWalletResolution() {
+        if (activeWallets.size() == 1) {
+            saveAllWalletId = activeWallets.get(0).getId();
+            observeExpenseCategories(saveAllWalletId);
+        } else {
+            saveAllWalletId = null;
+            clearExpenseCategoryObserver();
+            availableExpenseCategories.clear();
+        }
+
+        if (confirmationArgs != null) {
+            updateSummary(confirmationArgs);
+        }
+        updateActionState();
+    }
+
+    private void observeExpenseCategories(@Nullable String walletId) {
+        clearExpenseCategoryObserver();
+        expenseCategoriesSource = viewModel.getExpenseCategoriesForWallet(walletId);
+        expenseCategoriesObserver = categories -> {
+            availableExpenseCategories.clear();
+            if (categories != null) {
+                availableExpenseCategories.addAll(categories);
+            }
+            if (confirmationArgs != null) {
+                updateSummary(confirmationArgs);
+            }
+        };
+        expenseCategoriesSource.observe(getViewLifecycleOwner(), expenseCategoriesObserver);
+    }
+
+    private void clearExpenseCategoryObserver() {
+        if (expenseCategoriesSource != null && expenseCategoriesObserver != null) {
+            expenseCategoriesSource.removeObserver(expenseCategoriesObserver);
+        }
+        expenseCategoriesSource = null;
+        expenseCategoriesObserver = null;
     }
 
     private void renderConfirmationState(@NonNull TransactionConfirmationFragmentArgs args) {
@@ -264,7 +345,7 @@ public class TransactionConfirmationFragment extends Fragment {
     private void updateThumbnail(@Nullable String imagePath) {
         if (TextUtils.isEmpty(imagePath)) {
             binding.ivReceiptThumbnail.setImageResource(R.drawable.outline_receipt_24);
-            binding.ivReceiptThumbnail.setImageTintList(android.content.res.ColorStateList.valueOf(
+            binding.ivReceiptThumbnail.setImageTintList(ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)
             ));
             return;
@@ -273,7 +354,7 @@ public class TransactionConfirmationFragment extends Fragment {
         Bitmap thumbnailBitmap = decodeSampledBitmap(imagePath, MAX_THUMBNAIL_SIZE_PX, MAX_THUMBNAIL_SIZE_PX);
         if (thumbnailBitmap == null) {
             binding.ivReceiptThumbnail.setImageResource(R.drawable.outline_receipt_24);
-            binding.ivReceiptThumbnail.setImageTintList(android.content.res.ColorStateList.valueOf(
+            binding.ivReceiptThumbnail.setImageTintList(ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)
             ));
             return;
@@ -294,13 +375,21 @@ public class TransactionConfirmationFragment extends Fragment {
                 getString(R.string.transaction_scan_confirmation_summary_count, itemCount)
         );
 
-        boolean hasSummaryWarning = args.getConfidence() < HIGH_CONFIDENCE || hasAnyPendingWarning();
+        boolean hasPendingWarnings = args.getConfidence() < HIGH_CONFIDENCE || hasAnyPendingWarning();
+        boolean hasSummaryWarning = hasPendingWarnings || saveAllWalletId == null;
         binding.layoutConfirmationSummaryWarning.setVisibility(hasSummaryWarning ? View.VISIBLE : View.GONE);
-        binding.tvConfirmationSummaryWarning.setText(
-                hasSummaryWarning
-                        ? getString(R.string.transaction_scan_confirmation_summary_warning)
-                        : ""
-        );
+        binding.tvConfirmationSummaryWarning.setText(resolveSummaryWarningMessage(hasPendingWarnings));
+    }
+
+    @NonNull
+    private String resolveSummaryWarningMessage(boolean hasPendingWarnings) {
+        if (saveAllWalletId == null) {
+            return getString(R.string.transaction_scan_confirmation_wallet_warning);
+        }
+        if (hasPendingWarnings) {
+            return getString(R.string.transaction_scan_confirmation_summary_warning);
+        }
+        return "";
     }
 
     private boolean hasAnyPendingWarning() {
@@ -316,10 +405,22 @@ public class TransactionConfirmationFragment extends Fragment {
         boolean isEmpty = pendingItems.isEmpty();
         binding.layoutConfirmationEmpty.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         binding.rvReceiptTransactions.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-        binding.btnSaveAllReceiptTransactions.setEnabled(!isEmpty);
+        updateActionState();
+    }
+
+    private void updateActionState() {
+        if (binding == null) {
+            return;
+        }
+        boolean hasPendingItems = !pendingItems.isEmpty();
+        binding.btnConfirmationBack.setEnabled(!isSavingAll);
+        binding.btnSaveAllReceiptTransactions.setEnabled(!isSavingAll && hasPendingItems);
     }
 
     private void openDraftInAddEditScreen(@NonNull ReceiptTransactionAdapter.PendingReceiptItem item) {
+        if (isSavingAll) {
+            return;
+        }
         TransactionConfirmationFragmentDirections.ActionTransactionConfirmationFragmentToAddEditTransactionFragment action =
                 TransactionConfirmationFragmentDirections.actionTransactionConfirmationFragmentToAddEditTransactionFragment();
         action.setTransactionId(null);
@@ -328,10 +429,177 @@ public class TransactionConfirmationFragment extends Fragment {
         action.setOcrDraftNote(item.getNote());
         action.setOcrDraftTimestamp(item.getTimestamp());
         action.setOcrDraftCategoryHint(item.getCategoryHint());
-        action.setOcrDraftImagePath(TransactionConfirmationFragmentArgs.fromBundle(
-                getArguments() != null ? getArguments() : new Bundle()
-        ).getImagePath());
+        action.setOcrDraftImagePath(confirmationArgs != null ? confirmationArgs.getImagePath() : null);
         Navigation.findNavController(binding.getRoot()).navigate(action);
+    }
+
+    private void attemptSaveAll() {
+        if (isSavingAll || pendingItems.isEmpty()) {
+            return;
+        }
+
+        String userId = viewModel.getCurrentUserId();
+        if (TextUtils.isEmpty(userId)) {
+            Toast.makeText(requireContext(), R.string.error_auth_required, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (TextUtils.isEmpty(saveAllWalletId)) {
+            Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_save_all_wallet_unresolved, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<TransactionEntity> transactionsToSave = new ArrayList<>();
+        int unresolvedCount = 0;
+        for (ReceiptTransactionAdapter.PendingReceiptItem pendingItem : pendingItems) {
+            TransactionEntity transaction = buildTransactionForSave(pendingItem, userId, saveAllWalletId);
+            if (transaction == null) {
+                unresolvedCount++;
+                continue;
+            }
+            transactionsToSave.add(transaction);
+        }
+
+        if (transactionsToSave.size() != pendingItems.size()) {
+            Toast.makeText(
+                    requireContext(),
+                    getString(R.string.transaction_scan_confirmation_save_all_unresolved_items, unresolvedCount),
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        startSavingAllUi();
+        viewModel.insertTransactions(transactionsToSave, new TransactionRepository.WriteCallback() {
+            @Override
+            public void onSuccess() {
+                finishSaveAllSuccess(transactionsToSave.size());
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                stopSavingAllUi();
+                if (isAdded()) {
+                    Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_save_all_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    @Nullable
+    private TransactionEntity buildTransactionForSave(
+            @NonNull ReceiptTransactionAdapter.PendingReceiptItem pendingItem,
+            @NonNull String userId,
+            @NonNull String walletId
+    ) {
+        double amount = parsePendingAmount(pendingItem.getAmountRaw());
+        if (amount <= 0d) {
+            return null;
+        }
+
+        String categoryId = resolveCategoryId(pendingItem.getCategoryHint());
+        if (TextUtils.isEmpty(categoryId)) {
+            return null;
+        }
+
+        long now = System.currentTimeMillis();
+        TransactionEntity transaction = new TransactionEntity();
+        transaction.setId(UUID.randomUUID().toString());
+        transaction.setUserId(userId);
+        transaction.setWalletId(walletId);
+        transaction.setCategoryId(categoryId);
+        transaction.setAmount(amount);
+        transaction.setType(Constants.TYPE_EXPENSE);
+        transaction.setNote(pendingItem.getNote());
+        transaction.setTimestamp(pendingItem.getTimestamp() > 0L ? pendingItem.getTimestamp() : now);
+        transaction.setImagePath(confirmationArgs != null ? confirmationArgs.getImagePath() : null);
+        transaction.setCreatedAt(now);
+        transaction.setUpdatedAt(now);
+        transaction.setDeleted(false);
+        transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+        return transaction;
+    }
+
+    private double parsePendingAmount(@Nullable String amountRaw) {
+        if (TextUtils.isEmpty(amountRaw)) {
+            return 0d;
+        }
+        try {
+            return Double.parseDouble(amountRaw.trim());
+        } catch (NumberFormatException exception) {
+            return 0d;
+        }
+    }
+
+    @Nullable
+    private String resolveCategoryId(@Nullable String categoryHint) {
+        if (TextUtils.isEmpty(categoryHint)) {
+            return null;
+        }
+        String normalizedHint = normalizeLookupValue(categoryHint);
+        if (normalizedHint.isEmpty()) {
+            return null;
+        }
+
+        CategoryEntity partialCandidate = null;
+        for (CategoryEntity category : availableExpenseCategories) {
+            String normalizedName = normalizeLookupValue(category.getName());
+            if (normalizedName.equals(normalizedHint)) {
+                return category.getId();
+            }
+            boolean overlaps = normalizedName.contains(normalizedHint)
+                    || normalizedHint.contains(normalizedName);
+            if (!overlaps) {
+                continue;
+            }
+            if (partialCandidate != null && !partialCandidate.getId().equals(category.getId())) {
+                return null;
+            }
+            partialCandidate = category;
+        }
+        return partialCandidate != null ? partialCandidate.getId() : null;
+    }
+
+    @NonNull
+    private String normalizeLookupValue(@Nullable String value) {
+        if (value == null) {
+            return "";
+        }
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .replace('đ', 'd')
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private void startSavingAllUi() {
+        isSavingAll = true;
+        updateActionState();
+        loadingHelper.show(this, R.string.common_saving);
+    }
+
+    private void stopSavingAllUi() {
+        isSavingAll = false;
+        updateActionState();
+        loadingHelper.dismiss();
+    }
+
+    private void finishSaveAllSuccess(int savedCount) {
+        stopSavingAllUi();
+        if (!isAdded() || binding == null) {
+            return;
+        }
+        Toast.makeText(
+                requireContext(),
+                getString(R.string.transaction_scan_confirmation_save_all_success, savedCount),
+                Toast.LENGTH_SHORT
+        ).show();
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        boolean popped = navController.popBackStack(R.id.addEditTransactionFragment, true);
+        if (!popped) {
+            navController.navigateUp();
+        }
     }
 
     private void removePendingItem(@NonNull String draftId) {
@@ -348,9 +616,9 @@ public class TransactionConfirmationFragment extends Fragment {
             return;
         }
         adapter.submitList(new ArrayList<>(pendingItems));
-        updateSummary(TransactionConfirmationFragmentArgs.fromBundle(
-                getArguments() != null ? getArguments() : new Bundle()
-        ));
+        if (confirmationArgs != null) {
+            updateSummary(confirmationArgs);
+        }
         updateEmptyState();
         Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_item_saved_removed, Toast.LENGTH_SHORT).show();
     }
@@ -385,6 +653,8 @@ public class TransactionConfirmationFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        clearExpenseCategoryObserver();
+        loadingHelper.dismiss();
         super.onDestroyView();
         binding.rvReceiptTransactions.setAdapter(null);
         binding = null;
