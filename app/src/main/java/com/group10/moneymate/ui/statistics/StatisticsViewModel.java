@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
@@ -16,23 +17,29 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.models.TransactionType;
+import com.group10.moneymate.ui.common.DebounceableViewModel;
+import com.group10.moneymate.utils.DistinctLiveData;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
-public class StatisticsViewModel extends ViewModel {
+public class StatisticsViewModel extends DebounceableViewModel {
+
+    private static final long FILTER_DEBOUNCE_MS = 80L;
+    private static final String DEFAULT_WALLET_LABEL = "Tổng cộng";
 
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
     private final String userId;
     private final MutableLiveData<FilterState> filterState = new MutableLiveData<>();
     private final MutableLiveData<String> walletLabel =
-            new MutableLiveData<>("Tổng cộng");
+            new MutableLiveData<>(DEFAULT_WALLET_LABEL);
     private final MutableLiveData<TransactionType> selectedReportType =
             new MutableLiveData<>(TransactionType.INCOME);
 
@@ -43,6 +50,8 @@ public class StatisticsViewModel extends ViewModel {
     private final LiveData<List<CategorySliceUiModel>> expenseCategorySums;
     private final LiveData<Double> totalIncomeAmount;
     private final LiveData<Double> totalExpenseAmount;
+    private final LiveData<List<WalletEntity>> walletSource;
+    private final Observer<List<WalletEntity>> walletSourceObserver = this::onWalletsChanged;
 
     public StatisticsViewModel(@NonNull TransactionRepository transactionRepository,
                                @NonNull WalletRepository walletRepository,
@@ -56,8 +65,10 @@ public class StatisticsViewModel extends ViewModel {
         netIncomeSummary = createNetIncomeSummarySource();
         totalIncomeAmount = createTotalAmountSource(TransactionType.INCOME);
         totalExpenseAmount = createTotalAmountSource(TransactionType.EXPENSE);
-        incomeCategorySums = createCategorySumSource(TransactionType.INCOME);
-        expenseCategorySums = createCategorySumSource(TransactionType.EXPENSE);
+        incomeCategorySums = DistinctLiveData.distinctUntilChanged(createCategorySumSource(TransactionType.INCOME));
+        expenseCategorySums = DistinctLiveData.distinctUntilChanged(createCategorySumSource(TransactionType.EXPENSE));
+        walletSource = DistinctLiveData.distinctUntilChanged(walletRepository.getAllByUser(userId));
+        walletSource.observeForever(walletSourceObserver);
     }
 
     public LiveData<Double> getHeaderBalance() {
@@ -122,22 +133,25 @@ public class StatisticsViewModel extends ViewModel {
 
     public void shiftCurrentPeriod(int direction) {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(current.shift(direction));
+        scheduleFilterUpdate(current.shift(direction));
     }
 
     public void resetToCurrentMonth() {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(FilterState.createForPeriodType(current.getPeriodType(), current.getWalletId()));
+        scheduleFilterUpdate(FilterState.createForPeriodType(current.getPeriodType(), current.getWalletId()));
     }
 
     public void updateWalletFilter(@Nullable String walletId, @Nullable String label) {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(current.withWalletId(walletId));
-        if (label == null || label.trim().isEmpty()) {
-            walletLabel.setValue("Tổng cộng");
+        scheduleFilterUpdate(current.withWalletId(walletId));
+        if (walletId == null) {
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
             return;
         }
-        walletLabel.setValue(label);
+        if (label == null || label.trim().isEmpty()) {
+            return;
+        }
+        setWalletLabelIfChanged(label);
     }
 
     public void updateCustomDateRange(long startDate, long endDate) {
@@ -145,7 +159,7 @@ public class StatisticsViewModel extends ViewModel {
             return;
         }
         FilterState current = getCurrentFilterState();
-        filterState.setValue(FilterState.createRange(
+        scheduleFilterUpdate(FilterState.createRange(
                 current.getWalletId(),
                 startDate,
                 endDate
@@ -154,7 +168,7 @@ public class StatisticsViewModel extends ViewModel {
 
     public void updatePresetPeriod(@NonNull PeriodType periodType) {
         FilterState current = getCurrentFilterState();
-        filterState.setValue(FilterState.createForPeriodType(periodType, current.getWalletId()));
+        scheduleFilterUpdate(FilterState.createForPeriodType(periodType, current.getWalletId()));
     }
 
     public void applyExternalFilter(@Nullable String walletId,
@@ -177,10 +191,61 @@ public class StatisticsViewModel extends ViewModel {
         } else {
             nextState = FilterState.createCurrentMonth(walletId);
         }
-        filterState.setValue(nextState);
-        walletLabel.setValue(walletLabelValue == null || walletLabelValue.trim().isEmpty()
-                ? "Tổng cộng"
-                : walletLabelValue);
+        scheduleFilterUpdate(nextState);
+        if (walletId == null) {
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
+        } else if (walletLabelValue != null && !walletLabelValue.trim().isEmpty()) {
+            setWalletLabelIfChanged(walletLabelValue);
+        }
+    }
+
+    private void onWalletsChanged(@Nullable List<WalletEntity> wallets) {
+        FilterState current = getCurrentFilterState();
+        String walletId = current.getWalletId();
+        if (walletId == null) {
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
+            return;
+        }
+
+        WalletEntity selected = findWalletById(wallets, walletId);
+        if (selected == null) {
+            scheduleFilterUpdate(current.withWalletId(null));
+            setWalletLabelIfChanged(DEFAULT_WALLET_LABEL);
+            return;
+        }
+        setWalletLabelIfChanged(selected.getName());
+    }
+
+    @Nullable
+    private WalletEntity findWalletById(@Nullable List<WalletEntity> wallets,
+                                        @NonNull String walletId) {
+        if (wallets == null) {
+            return null;
+        }
+        for (WalletEntity wallet : wallets) {
+            if (walletId.equals(wallet.getId())) {
+                return wallet;
+            }
+        }
+        return null;
+    }
+
+    private void setWalletLabelIfChanged(@NonNull String newLabel) {
+        String currentLabel = walletLabel.getValue();
+        if (Objects.equals(currentLabel, newLabel)) {
+            return;
+        }
+        walletLabel.setValue(newLabel);
+    }
+
+    @Override
+    protected void onCleared() {
+        walletSource.removeObserver(walletSourceObserver);
+        super.onCleared();
+    }
+
+    private void scheduleFilterUpdate(@NonNull FilterState nextState) {
+        debounce(() -> filterState.setValue(nextState), FILTER_DEBOUNCE_MS);
     }
 
     @NonNull
@@ -414,7 +479,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         public static FilterState createCurrentMonth(@Nullable String walletId) {
-            return createMonth(walletId, LocalDate.now());
+            return createMonth(walletId, LocalDate.now(ZoneOffset.UTC));
         }
 
         @Nullable
@@ -442,9 +507,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         public String getStartDatePreview() {
-            LocalDate date = Instant.ofEpochMilli(startDate)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate();
+            LocalDate date = toLocalDate(startDate);
             int month = date.getMonthValue();
             int year = date.getYear();
             return String.format("%02d/%d", month, year);
@@ -508,7 +571,7 @@ public class StatisticsViewModel extends ViewModel {
         @NonNull
         public static FilterState createForPeriodType(@NonNull PeriodType periodType,
                                                       @Nullable String walletId) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             switch (periodType) {
                 case DAY:
                     return createDay(walletId, today);
@@ -556,9 +619,8 @@ public class StatisticsViewModel extends ViewModel {
         public static FilterState createMonth(@Nullable String walletId, @NonNull LocalDate monthDate) {
             LocalDate start = monthDate.withDayOfMonth(1);
             LocalDate end = monthDate.withDayOfMonth(monthDate.lengthOfMonth());
-            ZoneId zoneId = ZoneId.systemDefault();
-            long startMillis = start.atStartOfDay(zoneId).toInstant().toEpochMilli();
-            long endMillis = end.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1L;
+            long startMillis = toStartMillis(start);
+            long endMillis = toEndMillis(end);
             String label = formatMonthLabel(start);
             return new FilterState(walletId, startMillis, endMillis, label, PeriodType.MONTH);
         }
@@ -628,27 +690,22 @@ public class StatisticsViewModel extends ViewModel {
         @NonNull
         private static LocalDate toLocalDate(long epochMillis) {
             if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
-                return LocalDate.now();
+                return LocalDate.now(ZoneOffset.UTC);
             }
-            return Instant.ofEpochMilli(epochMillis)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate();
+            return TimeWindowUtils.toUtcLocalDate(epochMillis);
         }
 
         private static long toStartMillis(@NonNull LocalDate date) {
-            return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            return TimeWindowUtils.startOfDayUtc(date);
         }
 
         private static long toEndMillis(@NonNull LocalDate date) {
-            return date.plusDays(1)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli() - 1L;
+            return TimeWindowUtils.startOfDayUtc(date.plusDays(1)) - 1L;
         }
 
         @NonNull
         private static String formatDayLabel(@NonNull LocalDate date) {
-            if (date.equals(LocalDate.now())) {
+            if (date.equals(LocalDate.now(ZoneOffset.UTC))) {
                 return "HÔM NAY";
             }
             return String.format(Locale.getDefault(), "%02d/%02d/%d",
@@ -659,7 +716,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatWeekLabel(@NonNull LocalDate start, @NonNull LocalDate end) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             LocalDate currentWeekStart = today.minusDays(today.getDayOfWeek().getValue() - 1L);
             if (start.equals(currentWeekStart)) {
                 return "TUẦN NÀY";
@@ -673,7 +730,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatMonthLabel(@NonNull LocalDate start) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             if (start.getMonthValue() == today.getMonthValue() && start.getYear() == today.getYear()) {
                 return "THÁNG NÀY";
             }
@@ -682,7 +739,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatQuarterLabel(@NonNull LocalDate start) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             int quarter = ((start.getMonthValue() - 1) / 3) + 1;
             int currentQuarter = ((today.getMonthValue() - 1) / 3) + 1;
             if (quarter == currentQuarter && start.getYear() == today.getYear()) {
@@ -693,7 +750,7 @@ public class StatisticsViewModel extends ViewModel {
 
         @NonNull
         private static String formatYearLabel(@NonNull LocalDate start) {
-            if (start.getYear() == LocalDate.now().getYear()) {
+            if (start.getYear() == LocalDate.now(ZoneOffset.UTC).getYear()) {
                 return "NĂM NÀY";
             }
             return String.valueOf(start.getYear());

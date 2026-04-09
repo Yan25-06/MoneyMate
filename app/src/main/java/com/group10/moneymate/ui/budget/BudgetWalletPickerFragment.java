@@ -95,6 +95,7 @@ public class BudgetWalletPickerFragment extends Fragment {
     private void observeData() {
         viewModel.getWallets().observe(getViewLifecycleOwner(), walletEntities -> {
             wallets = walletEntities != null ? walletEntities : new ArrayList<>();
+            reconcileSelectedWallet();
             adapter.submitList(new ArrayList<>(wallets));
             renderSelectedWallet();
         });
@@ -118,6 +119,21 @@ public class BudgetWalletPickerFragment extends Fragment {
         if (adapter != null) {
             adapter.setSelectedWalletId(selectedWalletId);
         }
+    }
+
+    private void reconcileSelectedWallet() {
+        if (selectedWalletId == null) {
+            return;
+        }
+        for (WalletWithBalance item : wallets) {
+            WalletEntity wallet = item.getWallet();
+            if (selectedWalletId.equals(wallet.getId())
+                    && !wallet.isArchived()
+                    && !wallet.isDeleted()) {
+                return;
+            }
+        }
+        selectedWalletId = null;
     }
 
     private void deliverSelection(@Nullable String walletId, @NonNull String walletLabel) {

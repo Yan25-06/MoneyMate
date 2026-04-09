@@ -19,6 +19,7 @@ import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -34,15 +35,14 @@ import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.TimeWindowUtils;
 import com.group10.moneymate.utils.WalletSelectorButtonHelper;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -98,6 +98,8 @@ public class TransactionListFragment extends Fragment {
         observeWalletPickerResult();
         observeReferenceData();
         observeTransactions();
+        observePaginationState();
+        setupPagination();
     }
 
     private void configureHeader() {
@@ -142,6 +144,34 @@ public class TransactionListFragment extends Fragment {
         });
     }
 
+    private void observePaginationState() {
+        viewModel.getIsLoadingMore().observe(getViewLifecycleOwner(), isLoading ->
+                binding.pbLoadingMore.setVisibility(Boolean.TRUE.equals(isLoading) ? View.VISIBLE : View.GONE)
+        );
+    }
+
+    private void setupPagination() {
+        binding.rvTransactions.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                if (dy <= 0) {
+                    return;
+                }
+                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                if (layoutManager == null) {
+                    return;
+                }
+                int totalItemCount = layoutManager.getItemCount();
+                int lastVisible = layoutManager.findLastVisibleItemPosition();
+                boolean hasMore = Boolean.TRUE.equals(viewModel.getHasMore().getValue());
+                boolean isLoading = Boolean.TRUE.equals(viewModel.getIsLoadingMore().getValue());
+                if (hasMore && !isLoading && lastVisible >= totalItemCount - 3) {
+                    viewModel.loadNextPage();
+                }
+            }
+        });
+    }
+
     private void mergeCategories(@Nullable List<CategoryEntity> categories) {
         if (categories != null) {
             for (CategoryEntity category : categories) {
@@ -160,18 +190,20 @@ public class TransactionListFragment extends Fragment {
     }
 
     private void renderWalletSelector() {
-        com.group10.moneymate.data.local.entity.WalletEntity selectedWallet = null;
-        String displayLabel = selectedWalletLabel;
         String walletId = currentFilterState.getWalletId();
-        if (walletId != null) {
-            WalletWithBalance selectedWalletItem = walletMap.get(walletId);
-            selectedWallet = selectedWalletItem != null ? selectedWalletItem.getWallet() : null;
-            if (displayLabel == null || displayLabel.trim().isEmpty()) {
-                displayLabel = selectedWallet != null
-                        ? selectedWallet.getName()
-                        : getString(R.string.statistics_wallet_selector_all);
-            }
+        WalletWithBalance selectedWalletItem = walletId != null ? walletMap.get(walletId) : null;
+
+        if (walletId != null && selectedWalletItem == null) {
+            // Auto-reset stale filter when selected wallet was edited/deleted elsewhere.
+            currentFilterState = currentFilterState.withWalletId(null);
+            selectedWalletLabel = null;
         }
+
+        com.group10.moneymate.data.local.entity.WalletEntity selectedWallet =
+                selectedWalletItem != null ? selectedWalletItem.getWallet() : null;
+        String displayLabel = selectedWallet != null
+                ? selectedWallet.getName()
+                : selectedWalletLabel;
 
         WalletSelectorButtonHelper.bindStatisticsWalletSelector(
                 binding.statisticsHeader.btnWalletSelector,
@@ -282,9 +314,7 @@ public class TransactionListFragment extends Fragment {
     @NonNull
     private TransactionTimeBucket resolveBucket(@NonNull Map<String, TransactionTimeBucket> grouped,
                                                 @NonNull TransactionEntity transaction) {
-        LocalDate date = Instant.ofEpochMilli(transaction.getTimestamp())
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
+        LocalDate date = TimeWindowUtils.toUtcLocalDate(transaction.getTimestamp());
         boolean groupByMonth = shouldGroupByMonth();
         String key = groupByMonth
                 ? String.format(Locale.US, "%04d-%02d", date.getYear(), date.getMonthValue())
@@ -416,8 +446,8 @@ public class TransactionListFragment extends Fragment {
             }
             currentFilterState = StatisticsViewModel.FilterState.createRange(
                     currentFilterState.getWalletId(),
-                    startDate[0].atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                    endDate[0].plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1L
+                    TimeWindowUtils.startOfDayUtc(startDate[0]),
+                    TimeWindowUtils.startOfDayUtc(endDate[0].plusDays(1)) - 1L
             );
             dialog.dismiss();
             renderHeaderTabs(currentFilterState);
@@ -436,7 +466,7 @@ public class TransactionListFragment extends Fragment {
     }
 
     private void renderDateButton(@NonNull TextView textView, @NonNull LocalDate date) {
-        if (date.equals(LocalDate.now())) {
+        if (date.equals(LocalDate.now(ZoneOffset.UTC))) {
             textView.setText(R.string.statistics_today);
             return;
         }
@@ -593,12 +623,12 @@ public class TransactionListFragment extends Fragment {
 
     @NonNull
     private LocalDate toLocalDate(long epochMillis) {
-        if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) return LocalDate.now();
-        return Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+        if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) return LocalDate.now(ZoneOffset.UTC);
+        return TimeWindowUtils.toUtcLocalDate(epochMillis);
     }
 
     private long endOfToday() {
-        return LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1L;
+        return TimeWindowUtils.startOfDayUtc(LocalDate.now(ZoneOffset.UTC).plusDays(1)) - 1L;
     }
 
     private void applyWindowInsets() {
@@ -685,7 +715,7 @@ public class TransactionListFragment extends Fragment {
         }
 
         private long getSortMillis() {
-            return anchorDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            return TimeWindowUtils.startOfDayUtc(anchorDate);
         }
 
         private void sortTransactions() {
@@ -734,7 +764,7 @@ public class TransactionListFragment extends Fragment {
                 );
             }
 
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
             String title;
             if (anchorDate.equals(today)) {
                 title = getString(R.string.statistics_today);

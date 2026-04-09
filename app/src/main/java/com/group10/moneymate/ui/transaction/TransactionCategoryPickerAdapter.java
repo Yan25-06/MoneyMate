@@ -17,6 +17,8 @@ import com.group10.moneymate.databinding.ItemTransactionCategoryPickerBinding;
 import com.group10.moneymate.models.DebtType;
 import com.group10.moneymate.utils.IconProvider;
 
+import java.util.ArrayList;
+
 public class TransactionCategoryPickerAdapter
         extends ListAdapter<TransactionCategoryPickerItem, RecyclerView.ViewHolder> {
 
@@ -41,12 +43,12 @@ public class TransactionCategoryPickerAdapter
 
     public void setSelectedCategoryId(@Nullable String selectedCategoryId) {
         this.selectedCategoryId = selectedCategoryId;
-        notifyDataSetChanged();
+        submitList(new ArrayList<>(getCurrentList()));
     }
 
     public void setSelectedDebtType(@Nullable DebtType selectedDebtType) {
         this.selectedDebtType = selectedDebtType;
-        notifyDataSetChanged();
+        submitList(new ArrayList<>(getCurrentList()));
     }
 
     @NonNull

@@ -5,6 +5,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +15,35 @@ public abstract class BaseListAdapter<T> extends RecyclerView.Adapter<BaseListAd
     protected List<T> items = new ArrayList<>();
 
     public void setItems(List<T> newItems) {
-        this.items = newItems;
-        notifyDataSetChanged();
+        final List<T> oldItems = new ArrayList<>(this.items);
+        final List<T> updatedItems = newItems == null ? new ArrayList<>() : new ArrayList<>(newItems);
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() {
+                return oldItems.size();
+            }
+
+            @Override
+            public int getNewListSize() {
+                return updatedItems.size();
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                T oldItem = oldItems.get(oldItemPosition);
+                T newItem = updatedItems.get(newItemPosition);
+                return oldItem == null ? newItem == null : oldItem.equals(newItem);
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                T oldItem = oldItems.get(oldItemPosition);
+                T newItem = updatedItems.get(newItemPosition);
+                return oldItem == null ? newItem == null : oldItem.equals(newItem);
+            }
+        });
+        this.items = updatedItems;
+        diffResult.dispatchUpdatesTo(this);
     }
 
     @LayoutRes

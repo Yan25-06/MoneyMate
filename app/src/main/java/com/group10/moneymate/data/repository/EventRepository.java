@@ -1,12 +1,16 @@
 package com.group10.moneymate.data.repository;
 
 import androidx.lifecycle.LiveData;
+import androidx.annotation.NonNull;
+import androidx.annotation.RestrictTo;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.EventDao;
 import com.group10.moneymate.data.local.entity.EventEntity;
+import com.group10.moneymate.models.SyncStatus;
 
 import java.util.List;
+import java.util.UUID;
 
 public class EventRepository {
     private final EventDao eventDao;
@@ -28,15 +32,47 @@ public class EventRepository {
     }
 
     public void insert(EventEntity event) {
-        AppDatabase.databaseWriteExecutor.execute(() -> eventDao.insertEvent(event));
+        upsertEventInternal(event);
     }
 
     public void update(EventEntity event) {
-        AppDatabase.databaseWriteExecutor.execute(() -> eventDao.updateEvent(event));
+        upsertEventInternal(event);
+    }
+
+    private void upsertEventInternal(EventEntity event) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            long now = System.currentTimeMillis();
+            if (event.getId() == null || event.getId().trim().isEmpty()) {
+                event.setId(UUID.randomUUID().toString());
+            }
+            if (event.getCreatedAt() <= 0L) {
+                event.setCreatedAt(now);
+            }
+            event.setUpdatedAt(now);
+            event.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+            eventDao.upsertLocal(event);
+        });
     }
 
     public void softDelete(String id) {
         AppDatabase.databaseWriteExecutor.execute(() ->
                 eventDao.softDelete(id, System.currentTimeMillis()));
+    }
+
+    public List<EventEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                      long lastSyncedAt,
+                                                      @NonNull String lastSyncedId,
+                                                      int limit,
+                                                      int offset) {
+        return eventDao.getPendingSyncEventsPagedSince(userId, lastSyncedAt, lastSyncedId, limit, offset);
+    }
+
+    public void markSynced(@NonNull String id) {
+        eventDao.markSynced(id);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void hardDeleteById(@NonNull String id) {
+        eventDao.hardDeleteById(id);
     }
 }

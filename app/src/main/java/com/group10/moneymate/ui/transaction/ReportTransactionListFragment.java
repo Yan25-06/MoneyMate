@@ -35,10 +35,9 @@ import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -217,9 +216,7 @@ public class ReportTransactionListFragment extends Fragment {
 
         Map<LocalDate, DaySection> grouped = new LinkedHashMap<>();
         for (TransactionEntity transaction : filtered) {
-            LocalDate date = Instant.ofEpochMilli(transaction.getTimestamp())
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate();
+            LocalDate date = TimeWindowUtils.toDeviceLocalDate(transaction.getTimestamp());
             DaySection section = grouped.get(date);
             if (section == null) {
                 section = new DaySection(date);
@@ -411,8 +408,8 @@ public class ReportTransactionListFragment extends Fragment {
                         Snackbar.LENGTH_SHORT).show();
                 return;
             }
-            currentStartDate = startDate[0].atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-            currentEndDate = endDate[0].plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1L;
+            currentStartDate = TimeWindowUtils.startOfDayLocalDateUtc(startDate[0]);
+            currentEndDate = TimeWindowUtils.endOfDayLocalDateUtc(endDate[0]);
             renderScreen();
             dialog.dismiss();
         });
@@ -454,9 +451,7 @@ public class ReportTransactionListFragment extends Fragment {
         if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
             return LocalDate.now();
         }
-        return Instant.ofEpochMilli(epochMillis)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
+        return TimeWindowUtils.toDeviceLocalDate(epochMillis);
     }
 
     @NonNull

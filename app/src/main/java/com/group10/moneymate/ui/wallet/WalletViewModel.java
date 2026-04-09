@@ -3,7 +3,6 @@ package com.group10.moneymate.ui.wallet;
 import android.app.Application;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.dto.WalletWithBalance;
@@ -12,11 +11,12 @@ import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.models.WalletType;
+import com.group10.moneymate.ui.common.DebounceableAndroidViewModel;
 
 import java.util.List;
 import java.util.UUID;
 
-public class WalletViewModel extends AndroidViewModel {
+public class WalletViewModel extends DebounceableAndroidViewModel {
 
     private final AppContainer container;
     private final String userId;
@@ -51,6 +51,14 @@ public class WalletViewModel extends AndroidViewModel {
     }
 
     public void addWallet(String name, WalletType type, double balance, @NonNull String iconName) {
+        addWallet(name, type, balance, iconName, null);
+    }
+
+    public void addWallet(String name,
+                          WalletType type,
+                          double balance,
+                          @NonNull String iconName,
+                          com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
         long now = System.currentTimeMillis();
         WalletEntity wallet = new WalletEntity();
         wallet.setId(UUID.randomUUID().toString());
@@ -64,7 +72,7 @@ public class WalletViewModel extends AndroidViewModel {
         wallet.setUpdatedAt(now);
         wallet.setDeleted(false);
         wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        container.walletRepository.insert(wallet);
+        container.walletRepository.insert(wallet, callback);
     }
 
     public void updateWallet(WalletEntity wallet,
@@ -72,13 +80,41 @@ public class WalletViewModel extends AndroidViewModel {
                              WalletType type,
                              double balance,
                              @NonNull String iconName) {
-        wallet.setName(name);
-        wallet.setType(type.name());
-        wallet.setBalance(balance);
-        wallet.setIconName(iconName);
-        wallet.setUpdatedAt(System.currentTimeMillis());
-        wallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-        container.walletRepository.update(wallet);
+        updateWallet(wallet, name, type, balance, iconName, null);
+    }
+
+    public void updateWallet(WalletEntity wallet,
+                             String name,
+                             WalletType type,
+                             double balance,
+                             @NonNull String iconName,
+                             com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
+        WalletEntity updatedWallet = copyWallet(wallet);
+        updatedWallet.setName(name);
+        updatedWallet.setType(type.name());
+        updatedWallet.setBalance(balance);
+        updatedWallet.setIconName(iconName);
+        updatedWallet.setUpdatedAt(System.currentTimeMillis());
+        updatedWallet.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+        container.walletRepository.update(updatedWallet, callback);
+    }
+
+    @NonNull
+    private WalletEntity copyWallet(@NonNull WalletEntity source) {
+        WalletEntity wallet = new WalletEntity();
+        wallet.setId(source.getId());
+        wallet.setUserId(source.getUserId());
+        wallet.setName(source.getName());
+        wallet.setBalance(source.getBalance());
+        wallet.setType(source.getType());
+        wallet.setIconName(source.getIconName());
+        wallet.setArchived(source.isArchived());
+        wallet.setExcluded(source.isExcluded());
+        wallet.setUpdatedAt(source.getUpdatedAt());
+        wallet.setSyncStatus(source.getSyncStatus());
+        wallet.setDeleted(source.isDeleted());
+        wallet.setCreatedAt(source.getCreatedAt());
+        return wallet;
     }
 
     public void deleteWallet(WalletEntity wallet) {

@@ -16,8 +16,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.ItemBudgetBinding;
+import com.google.android.material.color.MaterialColors;
 
-public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.BudgetViewHolder> {
+import java.util.Objects;
+
+public class BudgetAdapter extends ListAdapter<BudgetUIModel, RecyclerView.ViewHolder> {
 
     public interface OnBudgetClickListener {
         void onBudgetClick(BudgetUIModel item);
@@ -34,7 +37,7 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
     }
 
     private static final DiffUtil.ItemCallback<BudgetUIModel> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<BudgetUIModel>() {
+            new DiffUtil.ItemCallback<>() {
                 @Override
                 public boolean areItemsTheSame(@NonNull BudgetUIModel oldItem,
                                                @NonNull BudgetUIModel newItem) {
@@ -44,21 +47,23 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
                 @Override
                 public boolean areContentsTheSame(@NonNull BudgetUIModel oldItem,
                                                   @NonNull BudgetUIModel newItem) {
-                    return oldItem.getBudgetEntity().getAmount() == newItem.getBudgetEntity().getAmount()
+                    return oldItem.getBudgetEntity().getUpdatedAt() == newItem.getBudgetEntity().getUpdatedAt()
+                            && Double.compare(oldItem.getBudgetEntity().getAmount(),
+                            newItem.getBudgetEntity().getAmount()) == 0
                             && oldItem.getBudgetEntity().getStartDate() == newItem.getBudgetEntity().getStartDate()
                             && oldItem.getBudgetEntity().getEndDate() == newItem.getBudgetEntity().getEndDate()
-                            && oldItem.getSpentAmount() == newItem.getSpentAmount()
+                            && Double.compare(oldItem.getSpentAmount(), newItem.getSpentAmount()) == 0
                             && oldItem.isWalletArchived() == newItem.isWalletArchived()
                             && oldItem.isActive() == newItem.isActive()
-                            && oldItem.getCategoryName().equals(newItem.getCategoryName())
-                            && oldItem.getWalletName().equals(newItem.getWalletName())
-                            && oldItem.getCategoryIcon().equals(newItem.getCategoryIcon());
+                            && Objects.equals(oldItem.getCategoryName(), newItem.getCategoryName())
+                            && Objects.equals(oldItem.getWalletName(), newItem.getWalletName())
+                            && Objects.equals(oldItem.getCategoryIcon(), newItem.getCategoryIcon());
                 }
             };
 
     @NonNull
     @Override
-    public BudgetViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         ItemBudgetBinding binding = ItemBudgetBinding.inflate(
                 LayoutInflater.from(parent.getContext()),
                 parent,
@@ -68,11 +73,13 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BudgetViewHolder holder, int position) {
-        holder.bind(getItem(position), onBudgetClickListener);
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if (holder instanceof BudgetViewHolder) {
+            ((BudgetViewHolder) holder).bind(getItem(position), onBudgetClickListener);
+        }
     }
 
-    static class BudgetViewHolder extends RecyclerView.ViewHolder {
+    private static final class BudgetViewHolder extends RecyclerView.ViewHolder {
 
         private final ItemBudgetBinding binding;
 
@@ -109,7 +116,8 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
             ));
             binding.ivIcon.setImageTintList(null);
             binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
-                    ContextCompat.getColor(context, android.R.color.white)
+                    MaterialColors.getColor(binding.iconContainer,
+                            com.google.android.material.R.attr.colorSurface)
             ));
             binding.tvWalletScope.setTextColor(ContextCompat.getColor(
                     context,
@@ -202,12 +210,6 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, BudgetAdapter.Budg
                 return ContextCompat.getColor(context, R.color.budget_warning_orange);
             }
             return ContextCompat.getColor(context, R.color.budget_safe_green);
-        }
-
-        @ColorInt
-        private static int adjustAlpha(@ColorInt int color, float factor) {
-            int alpha = Math.round(android.graphics.Color.alpha(color) * factor);
-            return androidx.core.graphics.ColorUtils.setAlphaComponent(color, alpha);
         }
     }
 }

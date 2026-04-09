@@ -58,7 +58,7 @@
                     android:layout_height="18dp"
                     android:contentDescription="@string/budget_wallet_picker_title"
                     android:src="@drawable/outline_account_balance_wallet_24"
-                    android:tint="@color/budget_safe_green" />
+                    app:tint="@color/budget_safe_green" />
 
                 <TextView
                     android:id="@+id/tvWalletFilterLabel"
@@ -82,7 +82,7 @@
                     android:contentDescription="@string/budget_wallet_picker_title"
                     android:rotation="-90"
                     android:src="@drawable/outline_arrow_back_24"
-                    android:tint="@color/budget_text_secondary" />
+                    app:tint="@color/budget_text_secondary" />
             </LinearLayout>
         </FrameLayout>
 
@@ -169,7 +169,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="@string/budget_all_categories"
                             android:src="@drawable/outline_account_balance_wallet_24"
-                            android:tint="@color/budget_safe_green" />
+                            app:tint="@color/budget_safe_green" />
                     </FrameLayout>
 
                     <TextView
@@ -188,7 +188,7 @@
                         android:contentDescription="@string/budget_all_categories"
                         android:rotation="180"
                         android:src="@drawable/outline_arrow_back_24"
-                        android:tint="@color/budget_text_secondary" />
+                        app:tint="@color/budget_text_secondary" />
                 </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
@@ -428,7 +428,7 @@
                 android:layout_height="match_parent"
                 android:contentDescription="@string/budget_empty_title"
                 android:src="@drawable/outline_account_balance_wallet_24"
-                android:tint="@color/budget_safe_green" />
+                app:tint="@color/budget_safe_green" />
         </FrameLayout>
 
         <TextView
@@ -473,3 +473,4 @@
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

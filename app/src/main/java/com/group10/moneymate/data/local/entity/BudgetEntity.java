@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey;
 
 import com.group10.moneymate.models.SyncStatus;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity(
@@ -28,7 +29,12 @@ import java.util.UUID;
             onDelete = ForeignKey.NO_ACTION
         )
     },
-    indices = {@Index("user_id"), @Index("category_id")}
+    indices = {
+        @Index("user_id"),
+        @Index("category_id"),
+        @Index(value = {"user_id", "wallet_id", "start_date", "end_date", "category_id"}, unique = true),
+        @Index(name = "idx_budget_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
+    }
 )
 public class BudgetEntity {
 
@@ -168,5 +174,22 @@ public class BudgetEntity {
 
     public void setSyncStatus(int syncStatus) {
         this.syncStatus = syncStatus;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof BudgetEntity)) {
+            return false;
+        }
+        BudgetEntity that = (BudgetEntity) o;
+        return updatedAt == that.updatedAt && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, updatedAt);
     }
 }

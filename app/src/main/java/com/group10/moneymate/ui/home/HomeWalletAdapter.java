@@ -39,7 +39,7 @@ public class HomeWalletAdapter extends ListAdapter<WalletWithBalance, HomeWallet
 
     public void setBalancesVisible(boolean balancesVisible) {
         this.balancesVisible = balancesVisible;
-        notifyDataSetChanged();
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     @NonNull

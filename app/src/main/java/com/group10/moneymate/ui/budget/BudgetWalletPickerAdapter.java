@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
@@ -38,8 +39,34 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
     }
 
     public void setSelectedWalletId(String selectedWalletId) {
+        if (Objects.equals(this.selectedWalletId, selectedWalletId)) {
+            return;
+        }
+        String previousSelectedWalletId = this.selectedWalletId;
         this.selectedWalletId = selectedWalletId;
-        notifyDataSetChanged();
+
+        int previousIndex = findWalletIndex(previousSelectedWalletId);
+        int newIndex = findWalletIndex(selectedWalletId);
+
+        if (previousIndex >= 0) {
+            notifyItemChanged(previousIndex);
+        }
+        if (newIndex >= 0 && newIndex != previousIndex) {
+            notifyItemChanged(newIndex);
+        }
+    }
+
+    private int findWalletIndex(String walletId) {
+        if (walletId == null) {
+            return -1;
+        }
+        for (int i = 0; i < getCurrentList().size(); i++) {
+            WalletWithBalance item = getCurrentList().get(i);
+            if (item != null && walletId.equals(item.getWallet().getId())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @NonNull
@@ -51,10 +78,10 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        holder.bind(getItem(position), selectedWalletId, listener);
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         private final ItemBudgetWalletPickerBinding binding;
 
         ViewHolder(@NonNull ItemBudgetWalletPickerBinding binding) {
@@ -62,7 +89,9 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
             this.binding = binding;
         }
 
-        void bind(@NonNull WalletWithBalance item) {
+        void bind(@NonNull WalletWithBalance item,
+                  @Nullable String selectedWalletId,
+                  @Nullable Listener listener) {
             WalletEntity wallet = item.getWallet();
             boolean archived = wallet.isArchived();
             android.content.Context context = binding.getRoot().getContext();
@@ -119,7 +148,7 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
         }
     }
 
-    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK = new DiffUtil.ItemCallback<WalletWithBalance>() {
+    private static final DiffUtil.ItemCallback<WalletWithBalance> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull WalletWithBalance oldItem,
                 @NonNull WalletWithBalance newItem) {
@@ -129,9 +158,17 @@ public class BudgetWalletPickerAdapter extends ListAdapter<WalletWithBalance, Bu
         @Override
         public boolean areContentsTheSame(@NonNull WalletWithBalance oldItem,
                 @NonNull WalletWithBalance newItem) {
-            return Objects.equals(oldItem.getWallet().getName(), newItem.getWallet().getName())
-                    && Objects.equals(oldItem.getWallet().getType(), newItem.getWallet().getType())
-                    && oldItem.getCurrentBalance() == newItem.getCurrentBalance();
+            WalletEntity oldWallet = oldItem.getWallet();
+            WalletEntity newWallet = newItem.getWallet();
+            return Double.compare(oldItem.getCurrentBalance(), newItem.getCurrentBalance()) == 0
+                    && oldWallet.isArchived() == newWallet.isArchived()
+                    && oldWallet.isDeleted() == newWallet.isDeleted()
+                    && oldWallet.isExcluded() == newWallet.isExcluded()
+                    && oldWallet.getSyncStatus() == newWallet.getSyncStatus()
+                    && Objects.equals(oldWallet.getName(), newWallet.getName())
+                    && Objects.equals(oldWallet.getType(), newWallet.getType())
+                    && Objects.equals(oldWallet.getIconName(), newWallet.getIconName())
+                    && oldWallet.getUpdatedAt() == newWallet.getUpdatedAt();
         }
     };
 }

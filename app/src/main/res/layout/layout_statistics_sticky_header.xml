@@ -24,7 +24,7 @@
             android:contentDescription="@string/common_back"
             android:padding="8dp"
             android:src="@drawable/outline_arrow_back_24"
-            android:tint="@color/statistics_text_primary"
+            app:tint="@color/statistics_text_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -86,7 +86,7 @@
             android:contentDescription="@string/date"
             android:padding="8dp"
             android:src="@drawable/outline_calendar_today_24"
-            android:tint="@color/statistics_text_primary"
+            app:tint="@color/statistics_text_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -167,7 +167,7 @@
             android:contentDescription="@string/statistics_previous_period"
             android:padding="8dp"
             android:src="@drawable/outline_arrow_back_24"
-            android:tint="@color/statistics_text_primary" />
+            app:tint="@color/statistics_text_primary" />
 
         <HorizontalScrollView
             android:layout_width="0dp"
@@ -242,7 +242,8 @@
             android:padding="8dp"
             android:rotation="180"
             android:src="@drawable/outline_arrow_back_24"
-            android:tint="@color/statistics_text_primary" />
+            app:tint="@color/statistics_text_primary" />
     </LinearLayout>
 
 </LinearLayout>
+

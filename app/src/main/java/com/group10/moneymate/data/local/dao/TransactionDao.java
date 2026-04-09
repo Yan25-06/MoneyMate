@@ -1,12 +1,9 @@
 package com.group10.moneymate.data.local.dao;
 
 import androidx.lifecycle.LiveData;
+import androidx.annotation.RestrictTo;
 import androidx.room.Dao;
-import androidx.room.Delete;
-import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
-import androidx.room.Update;
 
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
@@ -17,14 +14,72 @@ import java.util.List;
 
 @Dao
 public interface TransactionDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertTransaction(TransactionEntity transaction);
+    @Query("INSERT INTO transactions ("
+            + "id, wallet_id, category_id, debt_id, event_id, amount, type, to_wallet_id, note, "
+            + "timestamp, image_path, created_at, updated_at, sync_status, is_deleted, user_id"
+            + ") VALUES (:id, :walletId, :categoryId, :debtId, :eventId, :amount, :type, :toWalletId, :note, "
+            + ":timestamp, :imagePath, :createdAt, :updatedAt, :syncStatus, :isDeleted, :userId) "
+            + "ON CONFLICT(id) DO UPDATE SET "
+            + "wallet_id = excluded.wallet_id, "
+            + "category_id = excluded.category_id, "
+            + "debt_id = excluded.debt_id, "
+            + "event_id = excluded.event_id, "
+            + "amount = excluded.amount, "
+            + "type = excluded.type, "
+            + "to_wallet_id = excluded.to_wallet_id, "
+            + "note = excluded.note, "
+            + "timestamp = excluded.timestamp, "
+            + "image_path = excluded.image_path, "
+            + "updated_at = excluded.updated_at, "
+            + "sync_status = CASE WHEN transactions.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
+            + "is_deleted = CASE WHEN transactions.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
+            + "created_at = CASE WHEN transactions.created_at IS NULL OR transactions.created_at <= 0 THEN excluded.created_at ELSE transactions.created_at END, "
+            + "user_id = excluded.user_id")
+    void upsertLocalInternal(String id,
+                             String walletId,
+                             String categoryId,
+                             String debtId,
+                             String eventId,
+                             double amount,
+                             String type,
+                             String toWalletId,
+                             String note,
+                             long timestamp,
+                             String imagePath,
+                             long createdAt,
+                             long updatedAt,
+                             int syncStatus,
+                             boolean isDeleted,
+                             String userId);
 
-    @Update
-    void updateTransaction(TransactionEntity transaction);
+    default void upsertLocal(TransactionEntity transaction) {
+        upsertLocalInternal(
+                transaction.getId(),
+                transaction.getWalletId(),
+                transaction.getCategoryId(),
+                transaction.getDebtId(),
+                transaction.getEventId(),
+                transaction.getAmount(),
+                transaction.getType(),
+                transaction.getToWalletId(),
+                transaction.getNote(),
+                transaction.getTimestamp(),
+                transaction.getImagePath(),
+                transaction.getCreatedAt(),
+                transaction.getUpdatedAt(),
+                transaction.getSyncStatus(),
+                transaction.isDeleted(),
+                transaction.getUserId()
+        );
+    }
 
-    @Delete
-    void deleteTransaction(TransactionEntity transaction);
+    default void insertTransaction(TransactionEntity transaction) {
+        upsertLocal(transaction);
+    }
+
+    default void updateTransaction(TransactionEntity transaction) {
+        upsertLocal(transaction);
+    }
 
     @Query("SELECT t.* FROM transactions t " +
             "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
@@ -34,6 +89,10 @@ public interface TransactionDao {
             "ORDER BY t.timestamp DESC")
     LiveData<List<TransactionEntity>> getAllTransactions(String userId);
 
+    @Query("SELECT COALESCE(MAX(t.updated_at), 0) FROM transactions t " +
+            "WHERE t.user_id = :userId")
+    LiveData<Long> getTransactionInvalidationKey(String userId);
+
     @Query("SELECT t.* FROM transactions t " +
             "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
             "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
@@ -41,6 +100,26 @@ public interface TransactionDao {
             "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
             "ORDER BY t.timestamp DESC LIMIT :limit")
     LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit);
+
+    @Query("SELECT t.* FROM transactions t " +
+            "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
+            "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
+            "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
+            "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
+            "ORDER BY t.timestamp DESC, t.id DESC LIMIT :limit")
+    List<TransactionEntity> getFirstTransactionsPageSync(String userId, int limit);
+
+    @Query("SELECT t.* FROM transactions t " +
+            "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
+            "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
+            "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
+            "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
+            "AND (t.timestamp < :lastTimestamp OR (t.timestamp = :lastTimestamp AND t.id < :lastId)) " +
+            "ORDER BY t.timestamp DESC, t.id DESC LIMIT :limit")
+    List<TransactionEntity> getTransactionsPagedByCursorSync(String userId,
+                                                             long lastTimestamp,
+                                                             String lastId,
+                                                             int limit);
 
     @Query("SELECT * FROM transactions WHERE id = :id AND is_deleted = 0")
     LiveData<TransactionEntity> getTransactionById(String id);
@@ -176,7 +255,7 @@ public interface TransactionDao {
                                                String periodLabel);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END), 0.0) AS totalIncome, " +
             "COALESCE(SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END), 0.0) AS totalExpense, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount WHEN t.type = 'EXPENSE' THEN -t.amount ELSE 0 END), 0.0) AS netAmount, " +
@@ -189,7 +268,7 @@ public interface TransactionDao {
             "AND t.sync_status != 2 " +
             "AND t.type != 'TRANSFER' " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<NetIncomeDTO>> getNetIncomeTrend(String userId,
                                                    long startDate,
@@ -336,7 +415,7 @@ public interface TransactionDao {
                                                                             String categoryId);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -347,7 +426,7 @@ public interface TransactionDao {
             "AND t.sync_status != 2 " +
             "AND t.type = :type " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
                                                  String type,
@@ -357,7 +436,7 @@ public interface TransactionDao {
                                                  String periodFormat);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -369,7 +448,7 @@ public interface TransactionDao {
             "AND t.type = :type " +
             "AND t.category_id = :categoryId " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getCategoryAmountTrend(String userId,
                                                          String type,
@@ -380,7 +459,7 @@ public interface TransactionDao {
                                                          String periodFormat);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
+            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -393,7 +472,7 @@ public interface TransactionDao {
             "AND t.type = :type " +
             "AND (c.id = :parentCategoryId OR c.parent_id = :parentCategoryId) " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY STRFTIME(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
+            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getParentCategoryBranchAmountTrend(String userId,
                                                                      String type,
@@ -473,12 +552,38 @@ public interface TransactionDao {
             "WHERE t.user_id = :userId AND t.type = 'EXPENSE' AND t.category_id = :categoryId AND t.timestamp BETWEEN :startDate AND :endDate AND t.is_deleted = 0")
     double getTotalExpenseByCategorySync(String userId, String categoryId, long startDate, long endDate);
 
-    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 
-    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status != 0")
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status IN (1, 2) " +
+            "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
+            "ORDER BY updated_at ASC, id ASC LIMIT :limit")
+    List<TransactionEntity> getPendingSyncSince(String userId,
+                                                long lastSyncedAt,
+                                                String lastSyncedId,
+                                                int limit);
+
+    @Query("UPDATE transactions SET sync_status = 0 WHERE id = :id")
+    void markSynced(String id);
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @Query("DELETE FROM transactions WHERE id = :id")
+    void hardDeleteById(String id);
+
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status IN (1, 2)")
+    @Deprecated
     List<TransactionEntity> getPendingSyncTransactions(String userId);
 
-    @Query("DELETE FROM transactions WHERE user_id = :userId")
-    void deleteAllByUser(String userId);
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND sync_status IN (1, 2) " +
+            "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
+            "ORDER BY updated_at ASC, id ASC LIMIT :limit OFFSET :offset")
+    List<TransactionEntity> getPendingSyncTransactionsPagedSince(String userId,
+                                                                long lastSyncedAt,
+                                                                String lastSyncedId,
+                                                                int limit,
+                                                                int offset);
+
+    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
+            "WHERE user_id = :userId AND is_deleted = 0")
+    void softDeleteAllByUser(String userId, long updatedAt);
 }

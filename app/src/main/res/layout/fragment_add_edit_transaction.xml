@@ -27,7 +27,7 @@
                 android:contentDescription="@string/common_back"
                 android:padding="8dp"
                 android:src="@drawable/outline_close_24"
-                android:tint="@color/statistics_text_primary"
+                app:tint="@color/statistics_text_primary"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -236,7 +236,7 @@
                         android:layout_height="20dp"
                         android:src="@drawable/outline_arrow_back_24"
                         android:rotation="180"
-                        android:tint="@color/transaction_muted_icon"
+                        app:tint="@color/transaction_muted_icon"
                         android:contentDescription="@null" />
 
                 </LinearLayout>
@@ -292,7 +292,7 @@
                         android:contentDescription="@string/statistics_previous_period"
                         android:padding="9dp"
                         android:src="@drawable/outline_arrow_back_24"
-                        android:tint="@color/transaction_income_accent" />
+                        app:tint="@color/transaction_income_accent" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
@@ -327,7 +327,7 @@
                         android:padding="9dp"
                         android:rotation="180"
                         android:src="@drawable/outline_arrow_back_24"
-                        android:tint="@color/transaction_income_accent" />
+                        app:tint="@color/transaction_income_accent" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -349,3 +349,4 @@
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>
+

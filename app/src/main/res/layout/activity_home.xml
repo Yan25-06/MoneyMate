@@ -60,7 +60,7 @@
                     android:layout_gravity="center"
                     android:contentDescription="@string/add_transaction"
                     android:src="@drawable/outline_add_24"
-                    android:tint="@color/white" />
+                    app:tint="@color/white" />
             </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
@@ -225,3 +225,4 @@
         app:menu="@menu/bottom_nav_menu" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+

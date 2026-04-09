@@ -37,9 +37,10 @@ import com.group10.moneymate.utils.IconProvider;
 import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.models.DebtType;
+import com.group10.moneymate.utils.TimeWindowUtils;
+import com.group10.moneymate.utils.LoadingHelper;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -68,6 +69,8 @@ public class AddEditTransactionFragment extends Fragment {
     private boolean isFormattingAmount;
     private boolean isLoadingEdit;
     private boolean isManualIcon;
+    private boolean isSaving;
+    private final LoadingHelper loadingHelper = new LoadingHelper();
 
     // Edit mode
     private String transactionId = null;
@@ -118,8 +121,12 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void setupToolbar() {
-        binding.btnCloseScreen.setOnClickListener(v ->
-                Navigation.findNavController(v).navigateUp());
+        binding.btnCloseScreen.setOnClickListener(v -> {
+            if (isSaving) {
+                return;
+            }
+            Navigation.findNavController(v).navigateUp();
+        });
     }
 
     // ─── Type Toggle ──────────────────────────────────────────────────────────
@@ -162,17 +169,12 @@ public class AddEditTransactionFragment extends Fragment {
 
     private void setupDatePicker() {
         binding.etDate.setOnClickListener(v -> {
-            Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(selectedTimestamp);
             MoneyMateDatePickerHelper.showSingleDatePicker(
                     this,
-                    java.time.Instant.ofEpochMilli(selectedTimestamp)
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toLocalDate(),
+                    TimeWindowUtils.toDeviceLocalDate(selectedTimestamp),
                     "transaction_single_date",
                     date -> {
-                        cal.set(date.getYear(), date.getMonthValue() - 1, date.getDayOfMonth());
-                        selectedTimestamp = cal.getTimeInMillis();
+                        selectedTimestamp = TimeWindowUtils.startOfDayLocalDateUtc(date);
                         binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
                     }
             );
@@ -182,10 +184,9 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void shiftSelectedDate(int dayOffset) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis(selectedTimestamp);
-        cal.add(Calendar.DAY_OF_MONTH, dayOffset);
-        selectedTimestamp = cal.getTimeInMillis();
+        java.time.LocalDate shiftedDate = TimeWindowUtils.toDeviceLocalDate(selectedTimestamp)
+                .plusDays(dayOffset);
+        selectedTimestamp = TimeWindowUtils.startOfDayLocalDateUtc(shiftedDate);
         binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
     }
 
@@ -547,6 +548,9 @@ public class AddEditTransactionFragment extends Fragment {
 
     private void setupSaveButton() {
         binding.btnSave.setOnClickListener(v -> {
+            if (isSaving) {
+                return;
+            }
             if (!validateForm()) return;
 
             String amountStr = Objects.requireNonNull(binding.etAmount.getText()).toString().trim();
@@ -574,6 +578,7 @@ public class AddEditTransactionFragment extends Fragment {
             }
 
             String effectiveType = getEffectiveTypeForUi();
+            startSavingUi();
 
             if (originalTransaction != null) {
                 // Edit mode
@@ -588,7 +593,20 @@ public class AddEditTransactionFragment extends Fragment {
                 updated.setTimestamp(selectedTimestamp);
                 updated.setSyncStatus(SyncStatus.PENDING_UPLOAD);
                 updated.setUpdatedAt(System.currentTimeMillis());
-                viewModel.updateTransaction(originalTransaction, updated);
+                viewModel.updateTransaction(updated, new com.group10.moneymate.data.repository.TransactionRepository.WriteCallback() {
+                    @Override
+                    public void onSuccess() {
+                        finishSavingAndNavigateUp();
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable throwable) {
+                        stopSavingUi();
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
             } else {
                 // Add mode
                 TransactionEntity transaction = new TransactionEntity();
@@ -602,11 +620,47 @@ public class AddEditTransactionFragment extends Fragment {
                 transaction.setTimestamp(selectedTimestamp);
                 transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
                 transaction.setUpdatedAt(System.currentTimeMillis());
-                viewModel.insertTransaction(transaction);
-            }
+                viewModel.insertTransaction(transaction, new com.group10.moneymate.data.repository.TransactionRepository.WriteCallback() {
+                    @Override
+                    public void onSuccess() {
+                        finishSavingAndNavigateUp();
+                    }
 
-            Navigation.findNavController(requireView()).popBackStack();
+                    @Override
+                    public void onError(@NonNull Throwable throwable) {
+                        stopSavingUi();
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
         });
+    }
+
+    private void startSavingUi() {
+        isSaving = true;
+        binding.btnSave.setEnabled(false);
+        binding.btnCloseScreen.setEnabled(false);
+        loadingHelper.show(this, R.string.common_saving);
+    }
+
+    private void stopSavingUi() {
+        isSaving = false;
+        if (binding != null) {
+            binding.btnSave.setEnabled(true);
+            binding.btnCloseScreen.setEnabled(true);
+        }
+        loadingHelper.dismiss();
+    }
+
+    private void finishSavingAndNavigateUp() {
+        if (binding == null || !isAdded()) {
+            loadingHelper.dismiss();
+            return;
+        }
+        stopSavingUi();
+        Navigation.findNavController(binding.getRoot()).navigateUp();
     }
 
     // ─── Validation ───────────────────────────────────────────────────────────
@@ -653,6 +707,7 @@ public class AddEditTransactionFragment extends Fragment {
         if (selectedCategorySource != null && selectedCategoryObserver != null) {
             selectedCategorySource.removeObserver(selectedCategoryObserver);
         }
+        loadingHelper.dismiss();
         super.onDestroyView();
         binding = null;
     }

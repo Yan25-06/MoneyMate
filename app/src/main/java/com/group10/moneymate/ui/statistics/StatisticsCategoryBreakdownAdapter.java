@@ -18,6 +18,7 @@ import com.group10.moneymate.databinding.ItemStatisticsCategoryRowBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel, StatisticsCategoryBreakdownAdapter.ViewHolder> {
@@ -66,7 +67,7 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
 
     public void setAmountAccentColor(@ColorInt int amountAccentColor) {
         this.amountAccentColor = amountAccentColor;
-        notifyDataSetChanged();
+        submitList(new ArrayList<>(getCurrentList()));
     }
 
     @NonNull

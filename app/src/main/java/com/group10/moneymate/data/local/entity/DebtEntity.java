@@ -8,6 +8,8 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import java.util.Objects;
+
 @Entity(
     tableName = "debts",
     foreignKeys = {
@@ -19,7 +21,8 @@ import androidx.room.PrimaryKey;
         )
     },
     indices = {
-        @Index("user_id")
+        @Index("user_id"),
+        @Index(name = "idx_debt_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
     }
 )
 public class DebtEntity {
@@ -54,6 +57,9 @@ public class DebtEntity {
     @ColumnInfo(name = "note")
     private String note;
 
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
+
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
 
@@ -83,10 +89,29 @@ public class DebtEntity {
     public void setStatus(String status) { this.status = status; }
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
     public int getSyncStatus() { return syncStatus; }
     public void setSyncStatus(int syncStatus) { this.syncStatus = syncStatus; }
     public boolean isDeleted() { return isDeleted; }
     public void setDeleted(boolean deleted) { isDeleted = deleted; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof DebtEntity)) {
+            return false;
+        }
+        DebtEntity that = (DebtEntity) o;
+        return updatedAt == that.updatedAt && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, updatedAt);
+    }
 }

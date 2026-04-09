@@ -23,6 +23,8 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentWalletListBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
 
+import java.util.ArrayList;
+
 public class WalletListFragment extends Fragment {
 
     private FragmentWalletListBinding binding;
@@ -72,7 +74,9 @@ public class WalletListFragment extends Fragment {
         binding.rvWallets.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvWallets.setAdapter(adapter);
 
-        viewModel.getWallets().observe(getViewLifecycleOwner(), adapter::submitList);
+        viewModel.getWallets().observe(getViewLifecycleOwner(), wallets ->
+                adapter.submitList(wallets != null ? new ArrayList<>(wallets) : new ArrayList<>())
+        );
         viewModel.getTotalBalance().observe(getViewLifecycleOwner(), total -> {
             double value = total == null ? 0d : total;
             binding.tvTotalWalletBalance.setText(CurrencyFormatter.format(value, "VND"));
@@ -111,7 +115,6 @@ public class WalletListFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.delete_wallet, (dialogInterface, which) -> {
                     viewModel.deleteWallet(wallet);
-                    refreshWalletList();
                     Toast.makeText(requireContext(), R.string.wallet_deleted, Toast.LENGTH_SHORT).show();
                 })
                 .show();
@@ -131,7 +134,6 @@ public class WalletListFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.archive_wallet, (dialogInterface, which) -> {
                     viewModel.archiveWallet(wallet);
-                    refreshWalletList();
                     Toast.makeText(requireContext(), R.string.wallet_archived, Toast.LENGTH_SHORT).show();
                 })
                 .show();
@@ -151,7 +153,6 @@ public class WalletListFragment extends Fragment {
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.restore_wallet, (dialogInterface, which) -> {
                     viewModel.restoreWallet(wallet);
-                    refreshWalletList();
                     Toast.makeText(requireContext(), R.string.wallet_restored, Toast.LENGTH_SHORT).show();
                 })
                 .show();
@@ -161,11 +162,6 @@ public class WalletListFragment extends Fragment {
                 .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
     }
 
-    private void refreshWalletList() {
-        if (binding != null && binding.rvWallets.getAdapter() != null) {
-            binding.rvWallets.getAdapter().notifyDataSetChanged();
-        }
-    }
 
     @Override
     public void onDestroyView() {

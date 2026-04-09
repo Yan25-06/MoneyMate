@@ -106,7 +106,7 @@
             android:layout_marginStart="10dp"
             android:rotation="180"
             android:src="@drawable/outline_arrow_back_24"
-            android:tint="@color/statistics_text_muted"
+            app:tint="@color/statistics_text_muted"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -114,3 +114,4 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>
+

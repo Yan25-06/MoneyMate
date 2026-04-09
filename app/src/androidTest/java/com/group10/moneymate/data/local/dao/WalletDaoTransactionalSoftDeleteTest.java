@@ -66,7 +66,7 @@ public class WalletDaoTransactionalSoftDeleteTest {
     public void softDeleteWalletWithRelatedTransactions_updatesWalletAndBothWalletRelations() {
         long updatedAt = System.currentTimeMillis();
 
-        walletDao.softDeleteWalletWithRelatedTransactions(USER_ID, WALLET_TARGET, updatedAt);
+        walletDao.softDelete(WALLET_TARGET, updatedAt);
 
         WalletEntity wallet = walletDao.getByIdSync(WALLET_TARGET);
         assertNotNull(wallet);

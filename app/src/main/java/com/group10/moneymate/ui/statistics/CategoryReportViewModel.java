@@ -15,11 +15,10 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.models.TransactionType;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -470,9 +469,6 @@ public class CategoryReportViewModel extends ViewModel {
                 }
                 LocalDate targetDate = month.withDayOfMonth(dayOfMonth);
                 Map<LocalDate, Double> monthMap = previousMaps.get(index);
-                if (!monthMap.containsKey(targetDate)) {
-                    continue;
-                }
                 averageTotal += sumRange(monthMap, month.withDayOfMonth(1), targetDate);
                 divisor++;
             }
@@ -641,11 +637,7 @@ public class CategoryReportViewModel extends ViewModel {
     }
 
     private long endOfToday() {
-        return LocalDate.now()
-                .plusDays(1)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli() - 1L;
+        return TimeWindowUtils.endOfTodayUtc();
     }
 
     @NonNull
@@ -653,20 +645,15 @@ public class CategoryReportViewModel extends ViewModel {
         if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
             return LocalDate.now();
         }
-        return Instant.ofEpochMilli(epochMillis)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
+        return TimeWindowUtils.toDeviceLocalDate(epochMillis);
     }
 
     private long toStartMillis(@NonNull LocalDate date) {
-        return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        return TimeWindowUtils.startOfDayLocalDateUtc(date);
     }
 
     private long toEndMillis(@NonNull LocalDate date) {
-        return date.plusDays(1)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli() - 1L;
+        return TimeWindowUtils.endOfDayLocalDateUtc(date);
     }
 
     @NonNull

@@ -114,7 +114,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="@string/category"
                             android:src="@drawable/outline_account_balance_wallet_24"
-                            android:tint="@color/budget_text_secondary" />
+                            app:tint="@color/budget_text_secondary" />
                     </FrameLayout>
 
                     <TextView
@@ -134,7 +134,7 @@
                         android:contentDescription="@string/category"
                         android:rotation="180"
                         android:src="@drawable/outline_arrow_back_24"
-                        android:tint="@color/budget_muted_gray" />
+                        app:tint="@color/budget_muted_gray" />
                 </LinearLayout>
 
                 <View
@@ -271,7 +271,7 @@
                         android:layout_height="24dp"
                         android:contentDescription="@string/date"
                         android:src="@drawable/outline_calendar_today_24"
-                        android:tint="@color/budget_text_secondary" />
+                        app:tint="@color/budget_text_secondary" />
 
                     <TextView
                         android:id="@+id/tvPeriod"
@@ -290,7 +290,7 @@
                         android:contentDescription="@string/date"
                         android:rotation="180"
                         android:src="@drawable/outline_arrow_back_24"
-                        android:tint="@color/budget_muted_gray" />
+                        app:tint="@color/budget_muted_gray" />
                 </LinearLayout>
 
                 <View
@@ -331,3 +331,4 @@
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

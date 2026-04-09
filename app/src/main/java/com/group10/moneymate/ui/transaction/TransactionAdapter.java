@@ -18,6 +18,7 @@ import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.DateUtils;
 
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -65,6 +66,15 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
             return;
         }
         this.walletPresentationMap = new HashMap<>(walletPresentationMap);
+    }
+
+    public void addItems(@Nullable java.util.List<TransactionEntity> newItems) {
+        if (newItems == null || newItems.isEmpty()) {
+            return;
+        }
+        java.util.List<TransactionEntity> merged = new ArrayList<>(getCurrentList());
+        merged.addAll(newItems);
+        submitList(merged);
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
@@ -223,9 +233,11 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
                 @Override
                 public boolean areContentsTheSame(@NonNull TransactionEntity oldItem,
                                                   @NonNull TransactionEntity newItem) {
-                    return oldItem.getAmount() == newItem.getAmount()
+                    return oldItem.getUpdatedAt() == newItem.getUpdatedAt()
+                            && oldItem.getAmount() == newItem.getAmount()
                             && oldItem.getType().equals(newItem.getType())
                             && oldItem.getTimestamp() == newItem.getTimestamp()
+                            && oldItem.isDeleted() == newItem.isDeleted()
                             && Objects.equals(oldItem.getNote(), newItem.getNote())
                             && Objects.equals(oldItem.getCategoryId(), newItem.getCategoryId())
                             && Objects.equals(oldItem.getWalletId(), newItem.getWalletId());

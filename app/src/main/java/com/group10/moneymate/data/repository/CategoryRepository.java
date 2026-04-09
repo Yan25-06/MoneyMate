@@ -5,6 +5,7 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
@@ -145,6 +146,23 @@ public class CategoryRepository {
         return categoryDao.getCategoryByIdIncludingDeleted(id);
     }
 
+    public List<CategoryEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                         long lastSyncedAt,
+                                                         @NonNull String lastSyncedId,
+                                                         int limit,
+                                                         int offset) {
+        return categoryDao.getPendingSyncCategoriesPagedSince(userId, lastSyncedAt, lastSyncedId, limit, offset);
+    }
+
+    public void markSynced(@NonNull String id) {
+        categoryDao.markSynced(id);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void hardDeleteById(@NonNull String id) {
+        categoryDao.hardDeleteById(id);
+    }
+
     // ─── Write (AppDatabase.databaseWriteExecutor) ────────────────────────────
 
     public void addCategory(CategoryEntity category) {
@@ -171,7 +189,7 @@ public class CategoryRepository {
                 postValidationResult(callback, validationResult);
                 return;
             }
-            categoryDao.insertCategory(category);
+            categoryDao.upsertLocal(category);
             postValidationResult(callback, CategoryValidationResult.success());
         });
     }
@@ -184,7 +202,7 @@ public class CategoryRepository {
                 postValidationResult(callback, validationResult);
                 return;
             }
-            categoryDao.updateCategory(category);
+            categoryDao.upsertLocal(category);
             postValidationResult(callback, CategoryValidationResult.success());
         });
     }
@@ -218,6 +236,9 @@ public class CategoryRepository {
             return validationResult;
         }
         category.setUpdatedAt(System.currentTimeMillis());
+        if (category.getCreatedAt() <= 0L) {
+            category.setCreatedAt(category.getUpdatedAt());
+        }
         category.setSyncStatus(SyncStatus.PENDING_UPLOAD);
         category.setDeleted(false);
         return CategoryValidationResult.success();
@@ -400,12 +421,8 @@ public class CategoryRepository {
     }
 
     private void ensureVirtualOtherCategoriesExistInternal() {
-        if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER) == null) {
-            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER));
-        }
-        if (categoryDao.getCategoryByIdSync(Constants.CATEGORY_ID_OTHER_LEGACY) == null) {
-            categoryDao.insertCategory(buildOtherCategory(Constants.CATEGORY_ID_OTHER_LEGACY));
-        }
+        categoryDao.upsertLocal(buildOtherCategory(Constants.CATEGORY_ID_OTHER));
+        categoryDao.upsertLocal(buildOtherCategory(Constants.CATEGORY_ID_OTHER_LEGACY));
     }
 
     private void syncDefaultCategories() {
@@ -438,7 +455,7 @@ public class CategoryRepository {
                 existing.setDeleted(false);
                 existing.setSyncStatus(SyncStatus.SYNCED);
                 existing.setUpdatedAt(now);
-                categoryDao.updateCategory(existing);
+                categoryDao.upsertLocal(existing);
             }
         }
 
@@ -502,7 +519,9 @@ public class CategoryRepository {
         otherCategory.setWalletId(null);
         otherCategory.setType(Constants.CATEGORY_TYPE_VIRTUAL_BUDGET);
         otherCategory.setDefault(true);
-        otherCategory.setUpdatedAt(System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        otherCategory.setCreatedAt(now);
+        otherCategory.setUpdatedAt(now);
         otherCategory.setSyncStatus(SyncStatus.SYNCED);
         otherCategory.setDeleted(false);
         return otherCategory;

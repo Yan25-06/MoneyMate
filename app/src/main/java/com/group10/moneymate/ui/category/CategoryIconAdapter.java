@@ -38,12 +38,12 @@ public class CategoryIconAdapter extends ListAdapter<CategoryIconAdapter.Categor
 
     public void setSelectedIconResId(String selectedIconResId) {
         this.selectedIconResId = selectedIconResId;
-        notifyDataSetChanged();
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     public void setTintColor(@ColorInt int tintColor) {
         this.tintColor = tintColor;
-        notifyDataSetChanged();
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     @NonNull

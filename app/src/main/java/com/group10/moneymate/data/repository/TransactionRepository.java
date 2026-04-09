@@ -1,19 +1,27 @@
 package com.group10.moneymate.data.repository;
 
+import android.os.Handler;
+import android.os.Looper;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.TransactionDao;
+import com.group10.moneymate.data.local.dao.WalletDao;
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
 import com.group10.moneymate.data.local.dto.NetIncomeDTO;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.workers.SyncScheduler;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Repository for transaction data.
@@ -21,16 +29,45 @@ import java.util.List;
  */
 public class TransactionRepository {
 
-    private final TransactionDao transactionDao;
+    public interface PageCallback<T> {
+        void onSuccess(T data);
+        void onError(Exception exception);
+    }
 
-    public TransactionRepository(TransactionDao transactionDao) {
+    public interface WriteCallback {
+        void onSuccess();
+        void onError(@NonNull Throwable throwable);
+    }
+
+    private final TransactionDao transactionDao;
+    private final WalletDao walletDao;
+    @Nullable
+    private final SyncScheduler syncScheduler;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    // Keep updated_at strictly increasing so MAX(updated_at)-based invalidation
+    // cannot miss rapid consecutive writes that land in the same millisecond.
+    private static final AtomicLong LAST_WRITE_TIMESTAMP = new AtomicLong(0L);
+
+    public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
+        this(transactionDao, walletDao, null);
+    }
+
+    public TransactionRepository(TransactionDao transactionDao,
+                                 WalletDao walletDao,
+                                 @Nullable SyncScheduler syncScheduler) {
         this.transactionDao = transactionDao;
+        this.walletDao = walletDao;
+        this.syncScheduler = syncScheduler;
     }
 
     // ─── Read ─────────────────────────────────────────────────────────────────
 
     public LiveData<List<TransactionEntity>> getAllTransactions(String userId) {
         return transactionDao.getAllTransactions(userId);
+    }
+
+    public LiveData<Long> getTransactionInvalidationKey(String userId) {
+        return transactionDao.getTransactionInvalidationKey(userId);
     }
 
     public LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit) {
@@ -83,6 +120,39 @@ public class TransactionRepository {
 
     public LiveData<List<TransactionEntity>> searchTransactions(String userId, String keyword) {
         return transactionDao.searchTransactions(userId, keyword);
+    }
+
+    public void getFirstTransactionsPage(String userId,
+                                         int limit,
+                                         @NonNull PageCallback<List<TransactionEntity>> callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                List<TransactionEntity> page = transactionDao.getFirstTransactionsPageSync(userId, limit);
+                mainHandler.post(() -> callback.onSuccess(page));
+            } catch (Exception exception) {
+                mainHandler.post(() -> callback.onError(exception));
+            }
+        });
+    }
+
+    public void getTransactionsPageByCursor(String userId,
+                                            int limit,
+                                            long lastTimestamp,
+                                            @NonNull String lastId,
+                                            @NonNull PageCallback<List<TransactionEntity>> callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                List<TransactionEntity> page = transactionDao.getTransactionsPagedByCursorSync(
+                        userId,
+                        lastTimestamp,
+                        lastId,
+                        limit
+                );
+                mainHandler.post(() -> callback.onSuccess(page));
+            } catch (Exception exception) {
+                mainHandler.post(() -> callback.onError(exception));
+            }
+        });
     }
 
     public LiveData<Double> getTotalIncome(String userId, long startDate, long endDate) {
@@ -282,27 +352,118 @@ public class TransactionRepository {
         return transactionDao.getTotalExpenseByCategory(userId, categoryId, walletId, startDate, endDate);
     }
 
+    public List<TransactionEntity> getPendingSyncSince(@NonNull String userId,
+                                                       long lastSyncedAt,
+                                                       @NonNull String lastSyncedId,
+                                                       int limit) {
+        return transactionDao.getPendingSyncSince(userId, lastSyncedAt, lastSyncedId, limit);
+    }
+
+    public List<TransactionEntity> getPendingSyncPagedSince(@NonNull String userId,
+                                                            long lastSyncedAt,
+                                                            @NonNull String lastSyncedId,
+                                                            int limit,
+                                                            int offset) {
+        return transactionDao.getPendingSyncTransactionsPagedSince(
+                userId,
+                lastSyncedAt,
+                lastSyncedId,
+                limit,
+                offset
+        );
+    }
+
+    public void markSynced(@NonNull String id) {
+        transactionDao.markSynced(id);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void hardDeleteById(@NonNull String id) {
+        transactionDao.hardDeleteById(id);
+    }
+
     // ─── Write ────────────────────────────────────────────────────────────────
 
     public void insertTransaction(TransactionEntity transaction) {
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-            transaction.setUpdatedAt(System.currentTimeMillis());
-            transactionDao.insertTransaction(transaction);
-        });
+        upsertTransactionInternal(transaction, null);
     }
 
-    public void updateTransaction(TransactionEntity oldTransaction, TransactionEntity newTransaction) {
+    public void insertTransaction(TransactionEntity transaction, @Nullable WriteCallback callback) {
+        upsertTransactionInternal(transaction, callback);
+    }
+
+    public void updateTransaction(TransactionEntity newTransaction) {
+        upsertTransactionInternal(newTransaction, null);
+    }
+
+    public void updateTransaction(TransactionEntity newTransaction, @Nullable WriteCallback callback) {
+        upsertTransactionInternal(newTransaction, callback);
+    }
+
+    private void upsertTransactionInternal(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            newTransaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
-            newTransaction.setUpdatedAt(System.currentTimeMillis());
-            transactionDao.updateTransaction(newTransaction);
+            try {
+                long now = nextWriteTimestamp();
+                if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
+                    transaction.setId(UUID.randomUUID().toString());
+                }
+                if (transaction.getCreatedAt() <= 0L) {
+                    transaction.setCreatedAt(now);
+                }
+                transaction.setUpdatedAt(now);
+                transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+                transactionDao.upsertLocal(transaction);
+                scheduleSyncIfEnabled();
+                notifyWriteSuccess(callback);
+            } catch (Exception exception) {
+                notifyWriteError(callback, exception);
+            }
         });
     }
 
     public void softDeleteTransaction(TransactionEntity transaction) {
+        softDeleteTransaction(transaction, null);
+    }
+
+    public void softDeleteTransaction(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            transactionDao.softDelete(transaction.getId(), System.currentTimeMillis());
+            try {
+                transactionDao.softDelete(transaction.getId(), nextWriteTimestamp());
+                scheduleSyncIfEnabled();
+                notifyWriteSuccess(callback);
+            } catch (Exception exception) {
+                notifyWriteError(callback, exception);
+            }
         });
+    }
+
+    private long nextWriteTimestamp() {
+        while (true) {
+            long previous = LAST_WRITE_TIMESTAMP.get();
+            long candidate = Math.max(System.currentTimeMillis(), previous + 1L);
+            if (LAST_WRITE_TIMESTAMP.compareAndSet(previous, candidate)) {
+                return candidate;
+            }
+        }
+    }
+
+    private void notifyWriteSuccess(@Nullable WriteCallback callback) {
+        if (callback == null) {
+            return;
+        }
+        mainHandler.post(callback::onSuccess);
+    }
+
+    private void notifyWriteError(@Nullable WriteCallback callback, @NonNull Throwable throwable) {
+        if (callback == null) {
+            return;
+        }
+        mainHandler.post(() -> callback.onError(throwable));
+    }
+
+    private void scheduleSyncIfEnabled() {
+        if (syncScheduler != null) {
+            syncScheduler.scheduleOneTimeSyncDebounced();
+        }
     }
 }

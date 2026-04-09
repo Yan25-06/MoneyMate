@@ -8,6 +8,8 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import java.util.Objects;
+
 @Entity(
     tableName = "transactions",
     foreignKeys = {
@@ -48,7 +50,10 @@ import androidx.room.PrimaryKey;
         @Index("debt_id"),
         @Index("event_id"),
         @Index("to_wallet_id"),
-        @Index("user_id")
+        @Index("user_id"),
+        @Index(name = "idx_transactions_wallet_deleted_type_timestamp", value = {"wallet_id", "is_deleted", "type", "timestamp"}),
+        @Index(name = "index_transactions_user_deleted_timestamp_id", value = {"user_id", "is_deleted", "timestamp", "id"}),
+        @Index(name = "idx_tx_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
     }
 )
 public class TransactionEntity {
@@ -91,6 +96,9 @@ public class TransactionEntity {
     @Nullable
     @ColumnInfo(name = "image_path")
     private String imagePath;
+
+    @ColumnInfo(name = "created_at")
+    private long createdAt;
 
     @ColumnInfo(name = "updated_at")
     private long updatedAt;
@@ -143,6 +151,9 @@ public class TransactionEntity {
     @Nullable public String getImagePath() { return imagePath; }
     public void setImagePath(@Nullable String imagePath) { this.imagePath = imagePath; }
 
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 
@@ -154,4 +165,21 @@ public class TransactionEntity {
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TransactionEntity)) {
+            return false;
+        }
+        TransactionEntity that = (TransactionEntity) o;
+        return updatedAt == that.updatedAt && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, updatedAt);
+    }
 }

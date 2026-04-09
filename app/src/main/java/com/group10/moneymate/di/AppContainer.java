@@ -9,10 +9,12 @@ import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.DebtRepository;
 import com.group10.moneymate.data.repository.EventRepository;
+import com.group10.moneymate.data.repository.SyncMetadataRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.UserRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.utils.PrefsManager;
+import com.group10.moneymate.workers.SyncScheduler;
 
 public class AppContainer {
 
@@ -27,19 +29,23 @@ public class AppContainer {
     public final BudgetRepository budgetRepository;
     public final DebtRepository debtRepository;
     public final EventRepository eventRepository;
+    public final SyncMetadataRepository syncMetadataRepository;
+    public final SyncScheduler syncScheduler;
 
     public AppContainer(Context context) {
         database           = AppDatabase.getInstance(context);
         firebaseAuthHelper = new FirebaseAuthHelper();
         prefsManager       = new PrefsManager(context);
+        syncScheduler      = new SyncScheduler(context.getApplicationContext());
         authRepository        = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());
         categoryRepository    = new CategoryRepository(database.categoryDao());
-        transactionRepository = new TransactionRepository(database.transactionDao());
-        this.budgetRepository = new BudgetRepository(database.budgetDao());
+        transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao(), syncScheduler);
+        this.budgetRepository = new BudgetRepository(database.budgetDao(), database, syncScheduler);
         debtRepository        = new DebtRepository(database.debtDao());
         eventRepository       = new EventRepository(database.eventDao());
+        syncMetadataRepository = new SyncMetadataRepository(database.syncMetadataDao());
     }
 
     /**

@@ -8,6 +8,8 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import java.util.Objects;
+
 @Entity(
     tableName = "wallets",
     foreignKeys = {
@@ -19,7 +21,8 @@ import androidx.room.PrimaryKey;
         )
     },
     indices = {
-        @Index(name = "index_wallets_user_archived_deleted", value = {"user_id", "is_archived", "is_deleted"})
+        @Index(name = "index_wallets_user_archived_deleted", value = {"user_id", "is_archived", "is_deleted"}),
+        @Index(name = "idx_wallet_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
     }
 )
 public class WalletEntity {
@@ -105,4 +108,21 @@ public class WalletEntity {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof WalletEntity)) {
+            return false;
+        }
+        WalletEntity that = (WalletEntity) o;
+        return updatedAt == that.updatedAt && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, updatedAt);
+    }
 }

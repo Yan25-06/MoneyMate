@@ -25,13 +25,12 @@ import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.dto.WalletWithBalance;
-import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.databinding.FragmentAddEditBudgetBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.utils.Constants;
-import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.LoadingHelper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -63,6 +62,8 @@ public class AddEditBudgetFragment extends Fragment {
     private double totalWalletBalance;
     private String userId;
     private AppContainer appContainer;
+    private boolean isSaving;
+    private final LoadingHelper loadingHelper = new LoadingHelper();
 
     @Nullable
     @Override
@@ -154,7 +155,12 @@ public class AddEditBudgetFragment extends Fragment {
         updatePeriodLabel();
         binding.dropdownWallet.setKeyListener(null);
 
-        binding.tvCancel.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+        binding.tvCancel.setOnClickListener(v -> {
+            if (isSaving) {
+                return;
+            }
+            Navigation.findNavController(v).navigateUp();
+        });
         binding.rowCategory.setOnClickListener(v -> showCategoryPicker());
         binding.rowPeriod.setOnClickListener(v -> showDateRangePicker());
         binding.btnSave.setOnClickListener(v -> saveBudget());
@@ -478,6 +484,9 @@ public class AddEditBudgetFragment extends Fragment {
     }
 
     private void saveBudget() {
+        if (isSaving) {
+            return;
+        }
         if (!selectedAllCategories && selectedCategory == null) {
             Toast.makeText(requireContext(), R.string.error_category_required, Toast.LENGTH_SHORT).show();
             return;
@@ -492,7 +501,7 @@ public class AddEditBudgetFragment extends Fragment {
             return;
         }
 
-        binding.btnSave.setEnabled(false);
+        startSavingUi();
         performSaveBudget();
     }
 
@@ -527,8 +536,10 @@ public class AddEditBudgetFragment extends Fragment {
         @Override
         public void onSuccess() {
             if (binding == null || !isAdded()) {
+                loadingHelper.dismiss();
                 return;
             }
+            stopSavingUi();
             Toast.makeText(requireContext(), R.string.budget_save_success, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(binding.getRoot()).navigateUp();
         }
@@ -536,9 +547,10 @@ public class AddEditBudgetFragment extends Fragment {
         @Override
         public void onError(Throwable throwable) {
             if (binding == null || !isAdded()) {
+                loadingHelper.dismiss();
                 return;
             }
-            binding.btnSave.setEnabled(true);
+            stopSavingUi();
             if (throwable instanceof BudgetRepository.BudgetRuleException) {
                 BudgetRepository.BudgetRuleException ruleException =
                         (BudgetRepository.BudgetRuleException) throwable;
@@ -553,6 +565,22 @@ public class AddEditBudgetFragment extends Fragment {
             }
             Toast.makeText(requireContext(), R.string.budget_save_failed, Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void startSavingUi() {
+        isSaving = true;
+        binding.btnSave.setEnabled(false);
+        binding.tvCancel.setEnabled(false);
+        loadingHelper.show(this, R.string.common_saving);
+    }
+
+    private void stopSavingUi() {
+        isSaving = false;
+        if (binding != null) {
+            binding.btnSave.setEnabled(true);
+            binding.tvCancel.setEnabled(true);
+        }
+        loadingHelper.dismiss();
     }
 
     private void formatAmountInput(@NonNull Editable editable) {
@@ -616,6 +644,7 @@ public class AddEditBudgetFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        loadingHelper.dismiss();
         super.onDestroyView();
         binding = null;
     }

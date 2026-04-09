@@ -1,11 +1,9 @@
 package com.group10.moneymate.data.local.dao;
 
 import androidx.lifecycle.LiveData;
+import androidx.annotation.RestrictTo;
 import androidx.room.Dao;
-import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
-import androidx.room.Update;
 
 import com.group10.moneymate.data.local.entity.BudgetEntity;
 
@@ -13,11 +11,49 @@ import java.util.List;
 
 @Dao
 public interface BudgetDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(BudgetEntity budget);
+    @Query("INSERT INTO budgets ("
+            + "id, category_id, user_id, amount, start_date, end_date, wallet_id, "
+            + "created_at, updated_at, is_deleted, sync_status"
+            + ") VALUES (:id, :categoryId, :userId, :amount, :startDate, :endDate, :walletId, "
+            + ":createdAt, :updatedAt, :isDeleted, :syncStatus) "
+            + "ON CONFLICT(user_id, wallet_id, start_date, end_date, category_id) DO UPDATE SET "
+            + "amount = excluded.amount, "
+            + "updated_at = excluded.updated_at, "
+            + "sync_status = CASE WHEN budgets.sync_status = 2 THEN 2 ELSE excluded.sync_status END, "
+            + "is_deleted = CASE WHEN budgets.is_deleted = 1 THEN 1 ELSE excluded.is_deleted END, "
+            + "created_at = CASE WHEN budgets.created_at IS NULL OR budgets.created_at <= 0 THEN excluded.created_at ELSE budgets.created_at END")
+    void upsertLocalInternal(String id,
+                             String categoryId,
+                             String userId,
+                             double amount,
+                             long startDate,
+                             long endDate,
+                             String walletId,
+                             long createdAt,
+                             long updatedAt,
+                             boolean isDeleted,
+                             int syncStatus);
 
-    @Update
-    void update(BudgetEntity budget);
+    default void upsertLocal(BudgetEntity budget) {
+        upsertLocalInternal(
+                budget.getId(),
+                budget.getCategoryId(),
+                budget.getUserId(),
+                budget.getAmount(),
+                budget.getStartDate(),
+                budget.getEndDate(),
+                budget.getWalletId(),
+                budget.getCreatedAt(),
+                budget.getUpdatedAt(),
+                budget.isDeleted(),
+                budget.getSyncStatus()
+        );
+    }
+
+    default void insert(BudgetEntity budget) {
+        upsertLocal(budget);
+    }
+
 
     @Query("SELECT * FROM budgets WHERE user_id = :userId AND is_deleted = 0 ORDER BY start_date ASC, updated_at DESC")
     LiveData<List<BudgetEntity>> getAllBudgets(String userId);
@@ -78,4 +114,19 @@ public interface BudgetDao {
 
     @Query("UPDATE budgets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE user_id = :userId AND id = :id")
     void softDelete(String userId, String id, long updatedAt);
+
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND sync_status IN (1, 2) " +
+            "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
+            "ORDER BY updated_at ASC, id ASC LIMIT :limit")
+    List<BudgetEntity> getPendingSyncSince(String userId,
+                                           long lastSyncedAt,
+                                           String lastSyncedId,
+                                           int limit);
+
+    @Query("UPDATE budgets SET sync_status = 0 WHERE id = :id")
+    void markSynced(String id);
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @Query("DELETE FROM budgets WHERE id = :id")
+    void hardDeleteById(String id);
 }

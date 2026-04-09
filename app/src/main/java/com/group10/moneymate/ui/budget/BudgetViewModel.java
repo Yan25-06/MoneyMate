@@ -17,7 +17,9 @@ import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.data.repository.CategoryRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
+import com.group10.moneymate.ui.common.DebounceableViewModel;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.utils.DistinctLiveData;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -30,7 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class BudgetViewModel extends ViewModel {
+public class BudgetViewModel extends DebounceableViewModel {
+
+    private static final long UI_REBUILD_DEBOUNCE_MS = 30L;
 
     public enum BudgetTab {
         THIS_MONTH,
@@ -65,9 +69,11 @@ public class BudgetViewModel extends ViewModel {
     private final Map<String, WalletEntity> walletValues = new HashMap<>();
     private final Map<String, Double> spentValues = new HashMap<>();
     private List<BudgetEntity> currentBudgets = new ArrayList<>();
+    private boolean uiRebuildScheduled;
+    private boolean uiRebuildPending;
     private final Observer<List<BudgetEntity>> budgetObserver = this::onBudgetsChanged;
-    private final Observer<String> selectedWalletObserver = ignored -> rebuildUiModels();
-    private final Observer<BudgetTab> selectedTabObserver = ignored -> rebuildUiModels();
+    private final Observer<String> selectedWalletObserver = ignored -> scheduleRebuildUiModels();
+    private final Observer<BudgetTab> selectedTabObserver = ignored -> scheduleRebuildUiModels();
 
     public BudgetViewModel(@NonNull BudgetRepository budgetRepository,
                            @NonNull CategoryRepository categoryRepository,
@@ -81,9 +87,11 @@ public class BudgetViewModel extends ViewModel {
         this.walletRepository = walletRepository;
         this.userId = userId;
         this.labels = labels;
-        this.budgetSource = budgetRepository.getAllBudgets(userId);
-        this.expenseCategories = categoryRepository.getCategoriesByType(userId, "EXPENSE");
-        this.wallets = walletRepository.getAllByUser(userId);
+        this.budgetSource = DistinctLiveData.distinctUntilChanged(budgetRepository.getAllBudgets(userId));
+        this.expenseCategories = DistinctLiveData.distinctUntilChanged(
+                categoryRepository.getCategoriesByType(userId, "EXPENSE")
+        );
+        this.wallets = DistinctLiveData.distinctUntilChanged(walletRepository.getAllByUser(userId));
 
         budgetSource.observeForever(budgetObserver);
         selectedWalletFilterId.observeForever(selectedWalletObserver);
@@ -302,7 +310,25 @@ public class BudgetViewModel extends ViewModel {
         currentBudgets = budgets != null ? new ArrayList<>(budgets) : new ArrayList<>();
         hasAnyBudgets.setValue(!currentBudgets.isEmpty());
         syncChildSources();
+        scheduleRebuildUiModels();
+    }
+
+    private void scheduleRebuildUiModels() {
+        if (uiRebuildScheduled) {
+            uiRebuildPending = true;
+            return;
+        }
+        uiRebuildScheduled = true;
+        debounce(this::runRebuildUiModels, UI_REBUILD_DEBOUNCE_MS);
+    }
+
+    private void runRebuildUiModels() {
+        uiRebuildScheduled = false;
         rebuildUiModels();
+        if (uiRebuildPending) {
+            uiRebuildPending = false;
+            scheduleRebuildUiModels();
+        }
     }
 
     private void syncChildSources() {
@@ -316,7 +342,7 @@ public class BudgetViewModel extends ViewModel {
                         categoryRepository.getCategoryById(budgetEntity.getCategoryId());
                 Observer<CategoryEntity> categoryObserver = categoryEntity -> {
                     categoryValues.put(budgetId, categoryEntity);
-                    rebuildUiModels();
+                    scheduleRebuildUiModels();
                 };
                 categorySources.put(budgetId, categoryLiveData);
                 categoryObservers.put(budgetId, categoryObserver);
@@ -328,7 +354,7 @@ public class BudgetViewModel extends ViewModel {
                         walletRepository.getById(budgetEntity.getWalletId());
                 Observer<WalletEntity> walletObserver = walletEntity -> {
                     walletValues.put(budgetId, walletEntity);
-                    rebuildUiModels();
+                    scheduleRebuildUiModels();
                 };
                 walletSources.put(budgetId, walletLiveData);
                 walletObservers.put(budgetId, walletObserver);
@@ -344,7 +370,7 @@ public class BudgetViewModel extends ViewModel {
             );
             Observer<Double> spentObserver = spentAmount -> {
                 spentValues.put(budgetId, spentAmount != null ? spentAmount : 0d);
-                rebuildUiModels();
+                scheduleRebuildUiModels();
             };
             spentSources.put(budgetId, spentLiveData);
             spentObservers.put(budgetId, spentObserver);
@@ -535,7 +561,11 @@ public class BudgetViewModel extends ViewModel {
                                               @Nullable BudgetUIModel allCategoriesBudget) {
         if (allCategoriesBudget != null) {
             double specificBudgetsTotal = 0d;
+            BudgetEntity allCategoriesEntity = allCategoriesBudget.getBudgetEntity();
             for (BudgetUIModel item : visibleBudgets) {
+                if (!shouldIncludeInGapComparison(item, allCategoriesEntity)) {
+                    continue;
+                }
                 specificBudgetsTotal += item.getBudgetEntity().getAmount();
             }
             double shortfall = Math.max(0d, specificBudgetsTotal - allCategoriesBudget.getBudgetEntity().getAmount());
@@ -575,6 +605,27 @@ public class BudgetViewModel extends ViewModel {
                 false,
                 0d
         );
+    }
+
+    private boolean shouldIncludeInGapComparison(@NonNull BudgetUIModel item,
+                                                 @NonNull BudgetEntity allCategoriesEntity) {
+        BudgetEntity entity = item.getBudgetEntity();
+        if (Constants.isOtherCategoryId(entity.getCategoryId())) {
+            return false;
+        }
+        return isDateRangeOverlapping(
+                entity.getStartDate(),
+                entity.getEndDate(),
+                allCategoriesEntity.getStartDate(),
+                allCategoriesEntity.getEndDate()
+        );
+    }
+
+    private boolean isDateRangeOverlapping(long firstStart,
+                                           long firstEnd,
+                                           long secondStart,
+                                           long secondEnd) {
+        return firstStart <= secondEnd && secondStart <= firstEnd;
     }
 
     @NonNull

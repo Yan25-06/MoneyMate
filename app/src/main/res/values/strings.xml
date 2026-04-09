@@ -81,6 +81,8 @@
     <string name="wallet">Ví</string>
     <string name="date">Ngày</string>
     <string name="btn_save">Lưu</string>
+    <string name="common_saving">Đang lưu...</string>
+    <string name="common_save_failed">Không thể lưu dữ liệu. Vui lòng thử lại.</string>
     <string name="common_cancel">Hủy</string>
     <string name="common_back">Quay về</string>
     <string name="empty_transactions">Chưa có giao dịch nào.\nNhấn + để thêm mới.</string>
@@ -431,4 +433,9 @@
     <string name="category_delete_blocked_title">Không thể xóa danh mục!</string>
     <string name="category_delete_blocked_message">Danh mục %1$s đang chứa các danh mục con bên trong. Vui lòng xóa hoặc di chuyển các danh mục con sang nơi khác trước khi thực hiện thao tác này.</string>
     <string name="btn_acknowledge">Đã hiểu</string>
+    <string name="sync_channel_name">Trạng thái đồng bộ</string>
+    <string name="sync_channel_description">Thông báo lỗi đồng bộ dữ liệu nền</string>
+    <string name="sync_failed_title">Đồng bộ thất bại</string>
+    <string name="sync_failed_message">Không thể đồng bộ dữ liệu sau nhiều lần thử. Hãy thử lại.</string>
+    <string name="sync_retry_action">Thử lại</string>
 </resources>

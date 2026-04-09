@@ -62,7 +62,7 @@
                             android:contentDescription="@string/hide_balance"
                             android:padding="8dp"
                             android:src="@drawable/outline_visibility_off_24"
-                            android:tint="@color/statistics_text_primary" />
+                            app:tint="@color/statistics_text_primary" />
                     </LinearLayout>
 
                     <TextView
@@ -84,7 +84,7 @@
                     android:contentDescription="@string/home_search"
                     android:padding="8dp"
                     android:src="@drawable/outline_search_24"
-                    android:tint="@color/statistics_text_primary" />
+                    app:tint="@color/statistics_text_primary" />
 
                 <ImageButton
                     android:id="@+id/btnNotificationsHome"
@@ -95,7 +95,7 @@
                     android:contentDescription="@string/home_notifications"
                     android:padding="8dp"
                     android:src="@drawable/outline_notifications_24"
-                    android:tint="@color/statistics_text_primary" />
+                    app:tint="@color/statistics_text_primary" />
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
@@ -154,7 +154,7 @@
                             android:contentDescription="@string/hide_balance"
                             android:padding="8dp"
                             android:src="@drawable/outline_visibility_off_24"
-                            android:tint="@color/statistics_text_primary"
+                            app:tint="@color/statistics_text_primary"
                             app:layout_constraintBottom_toBottomOf="@id/tvWalletsTitle"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintTop_toTopOf="@id/tvWalletsTitle" />
@@ -671,3 +671,4 @@
     </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+

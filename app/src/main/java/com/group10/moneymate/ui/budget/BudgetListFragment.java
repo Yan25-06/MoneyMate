@@ -227,6 +227,7 @@ public class BudgetListFragment extends Fragment {
         viewModel.getWallets().observe(getViewLifecycleOwner(), walletEntities -> {
             wallets = walletEntities != null ? walletEntities : new ArrayList<>();
             hasWallets = !wallets.isEmpty();
+            reconcileSelectedWalletFilter();
             updateWalletFilterLabel();
             updateWalletFilterIcon();
             renderSections();
@@ -246,6 +247,20 @@ public class BudgetListFragment extends Fragment {
         selectedWalletLabel = getString(R.string.budget_wallet_scope_total);
         updateWalletFilterLabel();
         updateWalletFilterIcon();
+    }
+
+    private void reconcileSelectedWalletFilter() {
+        if (selectedWalletId == null) {
+            return;
+        }
+        for (WalletEntity wallet : wallets) {
+            if (selectedWalletId.equals(wallet.getId())) {
+                return;
+            }
+        }
+        selectedWalletId = null;
+        selectedWalletLabel = getString(R.string.budget_wallet_scope_total);
+        viewModel.setSelectedWalletFilter(null);
     }
 
     private void selectTab(@Nullable BudgetViewModel.BudgetTab budgetTab) {
@@ -471,7 +486,7 @@ public class BudgetListFragment extends Fragment {
                 return;
             }
         }
-        binding.tvWalletFilterLabel.setText(selectedWalletLabel);
+        binding.tvWalletFilterLabel.setText(getString(R.string.budget_wallet_scope_total));
     }
 
     private void updateWalletFilterIcon() {

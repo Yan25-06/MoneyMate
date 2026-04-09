@@ -27,7 +27,7 @@
             android:backgroundTint="@android:color/white"
             android:padding="6dp"
             android:src="@drawable/outline_add_24"
-            android:tint="@color/transaction_income_accent"
+            app:tint="@color/transaction_income_accent"
             android:contentDescription="@null" />
 
         <TextView
@@ -43,4 +43,5 @@
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
+
 
