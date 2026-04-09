@@ -105,6 +105,9 @@ dependencies {
     implementation(libs.json)
     implementation(libs.exifinterface)
 
+    // Google Sign-In
+    implementation(libs.playservices.auth)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

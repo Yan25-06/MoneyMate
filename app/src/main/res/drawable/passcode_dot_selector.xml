@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/drawable/passcode_dot_selector.xml -->
+<!-- Dùng activated state: dot filled khi activated=true (digit entered) -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Filled dot (digit entered) -->
+    <item android:state_activated="true">
+        <shape android:shape="oval">
+            <solid android:color="@color/moneymate_picker_accent" />
+        </shape>
+    </item>
+
+    <!-- Empty dot (no digit) -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/transparent" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/moneymate_field_border" />
+        </shape>
+    </item>
+
+</selector>

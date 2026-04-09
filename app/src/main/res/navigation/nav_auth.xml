@@ -5,7 +5,9 @@
     android:id="@+id/nav_auth"
     app:startDestination="@id/loginFragment">
 
-    <!-- Login Fragment: Email/Password login via Firebase -->
+    <!-- ══════════════════════════════════════════════════════════════════════
+         LOGIN
+         ══════════════════════════════════════════════════════════════════════ -->
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.group10.moneymate.ui.auth.LoginFragment"
@@ -30,9 +32,20 @@
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
 
+        <!-- Login → Passcode (VERIFY mode) — hiện khi passcode đã thiết lập -->
+        <action
+            android:id="@+id/action_login_to_passcode"
+            app:destination="@id/passcodeFragment"
+            app:enterAnim="@anim/slide_in_up"
+            app:exitAnim="@anim/slide_out_down"
+            app:popEnterAnim="@anim/slide_in_up"
+            app:popExitAnim="@anim/slide_out_down" />
+
     </fragment>
 
-    <!-- Register Fragment: Email/Password registration via Firebase -->
+    <!-- ══════════════════════════════════════════════════════════════════════
+         REGISTER
+         ══════════════════════════════════════════════════════════════════════ -->
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.group10.moneymate.ui.auth.RegisterFragment"
@@ -50,9 +63,22 @@
             app:popEnterAnim="@anim/slide_in_right"
             app:popExitAnim="@anim/slide_out_left" />
 
+        <!-- Register → Passcode (CREATE mode) — bắt buộc sau khi đăng ký -->
+        <action
+            android:id="@+id/action_register_to_passcode"
+            app:destination="@id/passcodeFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+
     </fragment>
 
-    <!-- Forgot Password Fragment: Reset password via email -->
+    <!-- ══════════════════════════════════════════════════════════════════════
+         FORGOT PASSWORD
+         ══════════════════════════════════════════════════════════════════════ -->
     <fragment
         android:id="@+id/forgotPasswordFragment"
         android:name="com.group10.moneymate.ui.auth.ForgotPasswordFragment"
@@ -69,6 +95,36 @@
             app:exitAnim="@anim/slide_out_right"
             app:popEnterAnim="@anim/slide_in_right"
             app:popExitAnim="@anim/slide_out_left" />
+
+    </fragment>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PASSCODE (CREATE mode mặc định — fragment tự đọc args để biết mode)
+         ══════════════════════════════════════════════════════════════════════ -->
+    <fragment
+        android:id="@+id/passcodeFragment"
+        android:name="com.group10.moneymate.ui.security.PasscodeFragment"
+        android:label="@string/title_passcode"
+        tools:layout="@layout/fragment_passcode">
+
+        <argument
+            android:name="passcode_mode"
+            app:argType="integer"
+            android:defaultValue="0" />
+
+        <argument
+            android:name="passcode_finish_to_home"
+            app:argType="boolean"
+            android:defaultValue="true" />
+
+        <!-- Passcode CREATE → Passcode CONFIRM (self-loop với args khác) -->
+        <action
+            android:id="@+id/action_passcode_to_confirm"
+            app:destination="@id/passcodeFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
 
     </fragment>
 

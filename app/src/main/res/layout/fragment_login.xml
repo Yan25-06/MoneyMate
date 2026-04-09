@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -57,8 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:hint="@string/hint_password"
-            app:endIconMode="password_toggle"
-            xmlns:app="http://schemas.android.com/apk/res-auto">
+            app:endIconMode="password_toggle">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_password"
@@ -78,16 +78,60 @@
             android:layout_marginTop="24dp"
             android:text="@string/btn_login" />
 
-        <!-- Guest Login Button -->
+        <!-- Divider "hoặc" -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="?attr/colorOutline" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:text="@string/label_or"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="?attr/colorOutline" />
+
+        </LinearLayout>
+
+        <!-- Google Sign-In Button -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_guest_login"
+            android:id="@+id/btn_google_login"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/btn_google_login"
+            app:icon="@drawable/ic_google"
+            app:iconGravity="textStart"
+            app:iconSize="20dp"
+            app:iconPadding="8dp" />
+
+        <!-- Passcode Login Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_passcode_login"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="@string/btn_guest_login" />
+            android:text="@string/btn_passcode_login" />
 
-        <!-- Loading indicator — hiển thị khi đang xác thực -->
+        <!-- Loading indicator -->
         <ProgressBar
             android:id="@+id/pb_loading"
             android:layout_width="wrap_content"

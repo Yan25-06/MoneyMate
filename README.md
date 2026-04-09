@@ -23,14 +23,15 @@
 ### Xác thực & Bảo mật
 - Đăng ký / Đăng nhập bằng Email & Password (Firebase Auth)
 - Đăng nhập nhanh bằng **Passcode 6 số** (hoạt động offline)
-- Xác thực sinh trắc học (vân tay / Face ID) qua Biometric API
 - Ẩn/hiện số dư tổng để bảo mật
 
 ### Quản lý Ví
 - Tạo nhiều ví: Tiền mặt / Ngân hàng / Ví điện tử
-- Theo dõi số dư từng ví riêng biệt
+- Theo dõi số dư từng ví với mô hình số dư động (base balance + biến động giao dịch)
 - Chuyển tiền giữa các ví
 - Đánh dấu ví loại trừ khỏi tổng số dư
+- Vòng đời ví đầy đủ: **Active / Archived / Deleted (soft-delete)**
+- Khôi phục ví đã archive, giữ nguyên lịch sử giao dịch khi archive/delete
 
 ### Giao dịch Thu – Chi
 - Thêm / Sửa / Xóa giao dịch (Thu nhập / Chi tiêu / Chuyển khoản)
@@ -39,12 +40,17 @@
 - Số dư ví **tự động cập nhật** khi thêm / sửa / xóa giao dịch
 - Liên kết giao dịch với khoản nợ hoặc sự kiện
 - Quét hoá đơn tự động bằng camera (ML Kit + Gemini AI)
+- Danh sách giao dịch nhóm theo mốc thời gian (card-style sections)
+- Hỗ trợ drill-down từ màn Budget/Statistics sang danh sách giao dịch theo bộ lọc
 
 ### Danh mục
 - Danh mục hệ thống mặc định sẵn có (16 danh mục: 10 Chi + 6 Thu)
 - Tạo danh mục tùy chỉnh (Thu / Chi) với màu sắc riêng
 - Không thể xóa danh mục mặc định
 - Hỗ trợ icon picker và dữ liệu danh mục ảo phục vụ budget
+- Hỗ trợ **cấu trúc cha-con (category hierarchy)**
+- Soft-delete danh mục (kể cả cascade cho danh mục con trực tiếp)
+- Giữ tên/icon danh mục đã xóa cho lịch sử giao dịch và thống kê
 
 ### Ngân sách
 - Đặt hạn mức chi tiêu theo khoảng ngày / danh mục / ví
@@ -64,9 +70,10 @@
 - Theo dõi sự kiện đang hoạt động
 
 ### Thống kê & Báo cáo
-- Biểu đồ tròn (PieChart) chi tiêu theo danh mục
-- Biểu đồ cột (BarChart) so sánh thu/chi theo tháng
-- Module Statistics đã có nền tảng và là mục tiêu ưu tiên tiếp theo
+- Dashboard tổng quan với lọc ví + khoảng thời gian
+- Drill-down đầy đủ: Overview → Income/Expense detail → Group report → Single-category report
+- Điều hướng nhanh tới danh sách giao dịch theo report/filter đã chọn
+- Tối ưu truy vấn thống kê cho dữ liệu danh mục phân cấp
 
 ### Trợ lý AI (Gemini)
 - Hỏi đáp phân tích chi tiêu bằng ngôn ngữ tự nhiên
@@ -76,6 +83,8 @@
 - Lưu cục bộ với **Room Database** (SQLite) — hoạt động offline hoàn toàn
 - Sao lưu & đồng bộ lên **Firebase Firestore**
 - Soft-delete + `sync_status` để xử lý xung đột offline/online
+- Đồng bộ nền bằng **WorkManager SyncWorker** cho wallets/categories/transactions/budgets/debts/events
+- Có metadata đồng bộ để quản lý mốc thời gian sync và trạng thái đồng bộ thực tế
 
 ---
 
@@ -144,7 +153,7 @@ Dự án sử dụng **MVVM + Repository Pattern + Manual DI**:
 
 ## Cơ sở dữ liệu
 
-Room Database version **7** với **7 bảng**, áp dụng offline-first:
+Room Database version **13** với **8 bảng**, áp dụng offline-first:
 
 | Bảng | Mô tả | FK |
 |---|---|---|
@@ -155,8 +164,9 @@ Room Database version **7** với **7 bảng**, áp dụng offline-first:
 | `budgets` | Ngân sách theo khoảng ngày / ví / danh mục | → users, categories (nullable) |
 | `debts` | Khoản nợ/mượn | → users |
 | `events` | Sự kiện tài chính | → users |
+| `sync_metadata` | Metadata phục vụ incremental sync và quản lý trạng thái đồng bộ | — |
 
-Tất cả bảng có `sync_status (Int)` và `is_deleted (Boolean)` để hỗ trợ đồng bộ offline-first.
+Tất cả bảng nghiệp vụ chính có `sync_status (Int)` và `is_deleted (Boolean)` để hỗ trợ đồng bộ offline-first.
 
 ---
 
@@ -170,129 +180,31 @@ Tất cả bảng có `sync_status (Int)` và `is_deleted (Boolean)` để hỗ 
 
 ---
 
-## Hướng dẫn cài đặt
-
-### 1. Clone dự án
-
-```bash
-git clone https://github.com/Yan25-06/MoneyMate.git
-cd MoneyMate
-```
-
-### 2. Cấu hình `local.properties`
-
-```properties
-sdk.dir=C\:\\Users\\<your-username>\\AppData\\Local\\Android\\Sdk
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-### 3. Cấu hình Firebase
-
-1. Truy cập [Firebase Console](https://console.firebase.google.com/)
-2. Tạo project → Thêm ứng dụng Android
-3. Package name: `com.group10.moneymate`
-4. Tải file `google-services.json` → đặt vào thư mục `app/`
-5. Bật **Authentication** (Email/Password, Anonymous) và **Firestore Database**
-
-### 4. Build & Run
-
-```bash
-# Windows
-.\gradlew.bat assembleDebug
-
-# macOS / Linux
-./gradlew assembleDebug
-```
-
-Hoặc mở trong **Android Studio** → **Run** (Shift + F10)
-
----
-
 ## Trạng thái phát triển
 
-### Phase 0 — Foundation & Scaffolding ✅ Hoàn thành
+### Hoàn thành ổn định ✅
 
-| Mục | Trạng thái |
+| Module | Trạng thái hiện tại |
 |---|---|
-| Cấu hình build.gradle.kts (tất cả dependencies) | ✅ |
-| AndroidManifest (CAMERA, BIOMETRIC, NETWORK permissions) | ✅ |
-| Room DB v7: 7 entities, 7 DAOs, Converters | ✅ |
-| FK + Index đầy đủ trên tất cả entities | ✅ |
-| 8 Repositories + AppContainer (Manual DI) | ✅ |
-| UI Scaffolding: tất cả Fragment/ViewModel shells | ✅ |
-| Navigation graph (nav_main.xml, nav_auth.xml) | ✅ |
-| BUILD SUCCESSFUL | ✅ |
+| Foundation | Hoàn tất kiến trúc MVVM + Repository + Manual DI, Room migration chain tới v13 |
+| Authentication | Hoàn tất login/register/reset password, routing login state, khôi phục local user |
+| Wallet | CRUD + archive/restore + soft-delete, đồng bộ hành vi với Budget/Transaction |
+| Category | CRUD + seed mặc định + icon/color picker + category hierarchy + soft-delete |
+| Transaction | CRUD đầy đủ, cập nhật số dư ví tự động, danh sách nhóm theo thời gian, hỗ trợ báo cáo/drill-down |
+| Budget | Running/Finished budgets, wallet filter, detail chart/statistics, `Tất cả danh mục` và `Các mục khác` |
+| Statistics | Drill-down report flow đầy đủ (overview/detail/group/single-category), điều hướng tới transaction list |
 
-### Phase 1 — Authentication ✅ Hoàn thành
+### Có nền tảng, tiếp tục hoàn thiện 🔄
 
-| Mục | Trạng thái |
+| Module | Trạng thái hiện tại |
 |---|---|
-| `FirebaseAuthHelper` — signUp, signIn, signInAnonymously, resetPassword, updateDisplayName | ✅ |
-| `AuthRepository` — login, register, loginAnonymously, sendPasswordReset, saveUid, setLoggedIn | ✅ |
-| `UserRepository` — getUser, insertUser, updateUser, deleteUser (databaseWriteExecutor) | ✅ |
-| `AuthViewModel` — AndroidViewModel, AuthState enum, login/register/anonymous/resetPassword | ✅ |
-| `MainActivity` — router Firebase auth state → HomeActivity / LoginActivity | ✅ |
-| `LoginActivity` — host nav_auth, redirect nếu đã login | ✅ |
-| `LoginFragment` — ViewBinding, loading state, seed categories sau auth | ✅ |
-| `RegisterFragment` — ViewBinding, client validation, loading state, seed categories sau auth | ✅ |
-| `ForgotPasswordFragment` — ViewBinding, email validation, success/error state | ✅ |
-| `nav_auth.xml` — Login → Register → ForgotPassword với slide animations | ✅ |
-| `fragment_login.xml` — Material3 style, til_email, til_password | ✅ |
-| `fragment_register.xml` — Material3 style, đầy đủ 4 input fields | ✅ |
-
-### Phase 3 — Category ✅ Hoàn thành
-
-| Mục | Trạng thái |
-|---|---|
-| `Constants.java` — DefaultCategory, getDefaultCategories() (16 mục) | ✅ |
-| `CategoryRepository` — seedDefaults(), soft delete, databaseWriteExecutor | ✅ |
-| `AppContainer` — seedDefaultCategoriesIfNeeded(), getAppContainer() | ✅ |
-| `MoneyMateApplication` — getAppContainer() | ✅ |
-| `PrefsManager` — getUid(), saveUid(), isLoggedIn(), setLoggedIn() | ✅ |
-| `CategoryDao` — countDefaultCategoriesByUid() + loại trừ danh mục ảo budget | ✅ |
-| `CategoryViewModel` — AndroidViewModel, switchMap filter by type | ✅ |
-| `CategoryAdapter` — ListAdapter + DiffUtil, click/delete listeners | ✅ |
-| `AddEditCategoryFragment` — Add/Edit mode, color picker, icon picker, validation | ✅ |
-
-### Phase 4 — Transaction CRUD ✅ Hoàn thành
-
-| Mục | Trạng thái |
-|---|---|
-| `TransactionRepository` — databaseWriteExecutor, soft delete, applyBalanceChange() tự động cập nhật số dư ví | ✅ |
-| `AppContainer` — cập nhật TransactionRepository nhận thêm WalletDao | ✅ |
-| `TransactionViewModel` — AndroidViewModel, filter by type (switchMap), search, CRUD | ✅ |
-| `TransactionAdapter` — ListAdapter + DiffUtil, màu amount (xanh/đỏ/xanh dương), static ViewHolder | ✅ |
-| `TransactionListFragment` — RecyclerView, FAB, empty state, long-click confirm delete | ✅ |
-| `AddEditTransactionFragment` — Add/Edit mode, category chip picker, wallet dropdown, DatePicker, validation, ghi chú tiếng Việt | ✅ |
-| `fragment_add_edit_transaction.xml` — type toggle, chip group, wallet dropdown, date field, numeric keypad phù hợp | ✅ |
-| `item_transaction.xml` — MaterialCardView, amount + màu, date, type badge | ✅ |
-| `nav_main.xml` — thêm argument `transactionId` và filter phục vụ Budget detail | ✅ |
-
-### Phase 6 — Budget ✅ Hoàn thành
-
-| Mục | Trạng thái |
-|---|---|
-| `BudgetEntity`, `BudgetDao`, `BudgetRepository` | ✅ |
-| `BudgetViewModel`, `AddEditBudgetViewModel` | ✅ |
-| `BudgetListFragment`, `BudgetFinishedFragment`, `BudgetDetailFragment`, `BudgetWalletPickerFragment` | ✅ |
-| `AddEditBudgetFragment`, `BudgetAdapter`, `BudgetBreakdownAdapter` | ✅ |
-| Bộ lọc ví cho ngân sách hiện tại và ngân sách đã kết thúc | ✅ |
-| 3 tab `Tháng này / Tương lai / Thời gian khác` | ✅ |
-| Chi tiết ngân sách với biểu đồ timeline và thống kê theo ngày | ✅ |
-| `Tất cả danh mục` và `Các mục khác` | ✅ |
-| `Các mục khác` với tính toán động bằng `NOT EXISTS` | ✅ |
-| Xóa budget không xóa transaction | ✅ |
-| Empty state + redirect tạo ví khi cần | ✅ |
-
-### Các Phase còn lại
-
-| Phase | Nội dung | Trạng thái |
-|---|---|---|
-| 5 | Home Dashboard | ✅ Cơ bản |
-| 7 | Statistics | ⏳ Là mục tiêu tiếp theo |
-| 8 | Profile & Settings | 🔄 Đã có nền tảng |
-| 9 | Passcode | 🔄 Đã có nền tảng |
-| 10 | Polish & QA | 🔄 Đang thực hiện theo module |
+| Home Dashboard | Đã hoạt động tốt cho use case chính, tiếp tục polish UI/insight |
+| Debt | Có entity/repository/viewmodel/flow cơ bản, cần hoàn thiện sâu repayment/report/reminder |
+| Event | Có entity/repository/viewmodel/flow cơ bản, cần hoàn thiện detail/lifecycle/integration sâu |
+| Profile & Settings | Có cấu trúc màn hình và luồng điều hướng, tiếp tục hoàn thiện tuỳ chọn hiển thị/hồ sơ |
+| Passcode/Security | Có nền tảng passcode + security package, cần hoàn thiện lifecycle và UX lỗi |
+| AI Assistant/Receipt | Có màn hình + pipeline cơ bản, tiếp tục tối ưu độ chính xác và UX xác nhận dữ liệu |
+| Cloud Sync | Đã có SyncWorker + sync status model, tiếp tục harden conflict/retry/observability |
 
 ---
 
