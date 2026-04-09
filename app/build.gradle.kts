@@ -102,6 +102,8 @@ dependencies {
 
     // Gemini AI
     implementation(libs.generativeai)
+    implementation(libs.json)
+    implementation(libs.exifinterface)
 
     // Google Sign-In
     implementation(libs.playservices.auth)
@@ -112,6 +114,7 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.fragment.testing)
     androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.workmanager.testing)
     debugImplementation(libs.fragment.testing.manifest)
 
     implementation(libs.fragment.ktx)

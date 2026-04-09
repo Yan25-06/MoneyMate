@@ -157,6 +157,45 @@
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
+        <argument
+            android:name="ocrDraftId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="ocrDraftAmount"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="ocrDraftNote"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="ocrDraftTimestamp"
+            app:argType="long"
+            android:defaultValue="-1L" />
+        <argument
+            android:name="ocrDraftCategoryHint"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="ocrDraftCategoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="ocrDraftImagePath"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="ocrDraftWalletId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
         <action
             android:id="@+id/action_addEditTransactionFragment_to_transactionCategoryPickerFragment"
             app:destination="@id/transactionCategoryPickerFragment"
@@ -167,6 +206,108 @@
         <action
             android:id="@+id/action_addEditTransactionFragment_to_categoryIconPickerFragment"
             app:destination="@id/categoryIconPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_addEditTransactionFragment_to_cameraFragment"
+            app:destination="@id/cameraFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_addEditTransactionFragment_to_transactionConfirmationFragment"
+            app:destination="@id/transactionConfirmationFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/cameraFragment"
+        android:name="com.group10.moneymate.ui.transaction.CameraFragment"
+        android:label="@string/transaction_scan_camera_title"
+        tools:layout="@layout/fragment_camera">
+        <action
+            android:id="@+id/action_cameraFragment_to_transactionConfirmationFragment"
+            app:destination="@id/transactionConfirmationFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/transactionConfirmationFragment"
+        android:name="com.group10.moneymate.ui.transaction.TransactionConfirmationFragment"
+        android:label="@string/transaction_scan_confirmation_title"
+        tools:layout="@layout/fragment_transaction_confirmation">
+        <argument
+            android:name="imagePath"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="amount"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="timestamp"
+            app:argType="long"
+            android:defaultValue="-1L" />
+        <argument
+            android:name="merchant"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="categoryHint"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="noteHint"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="itemsJson"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="processingSource"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="processingDetail"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="imageInputSource"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="confidence"
+            app:argType="integer"
+            android:defaultValue="0" />
+        <action
+            android:id="@+id/action_transactionConfirmationFragment_to_cameraFragment"
+            app:destination="@id/cameraFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_transactionConfirmationFragment_to_addEditTransactionFragment"
+            app:destination="@id/addEditTransactionFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"

@@ -2,6 +2,10 @@ package com.group10.moneymate.di;
 
 import android.content.Context;
 
+import com.group10.moneymate.BuildConfig;
+import com.group10.moneymate.ai.receipt.GeminiService;
+import com.group10.moneymate.ai.receipt.MlKitReceiptParserBridge;
+import com.group10.moneymate.ai.receipt.ReceiptParserBridge;
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.remote.FirebaseAuthHelper;
 import com.group10.moneymate.data.repository.AuthRepository;
@@ -31,17 +35,26 @@ public class AppContainer {
     public final EventRepository eventRepository;
     public final SyncMetadataRepository syncMetadataRepository;
     public final SyncScheduler syncScheduler;
+    public final ReceiptParserBridge receiptParserBridge;
+    public final GeminiService geminiService;
 
     public AppContainer(Context context) {
         database           = AppDatabase.getInstance(context);
         firebaseAuthHelper = new FirebaseAuthHelper();
         prefsManager       = new PrefsManager(context);
         syncScheduler      = new SyncScheduler(context.getApplicationContext());
+        receiptParserBridge = new MlKitReceiptParserBridge();
+        geminiService       = new GeminiService(BuildConfig.GEMINI_API_KEY);
         authRepository        = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());
         categoryRepository    = new CategoryRepository(database.categoryDao());
-        transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao(), syncScheduler);
+        transactionRepository = new TransactionRepository(
+                database,
+                database.transactionDao(),
+                database.walletDao(),
+                syncScheduler
+        );
         this.budgetRepository = new BudgetRepository(database.budgetDao(), database, syncScheduler);
         debtRepository        = new DebtRepository(database.debtDao());
         eventRepository       = new EventRepository(database.eventDao());

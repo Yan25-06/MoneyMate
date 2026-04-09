@@ -172,6 +172,10 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
         return expenseCategories;
     }
 
+    public LiveData<List<CategoryEntity>> getExpenseCategoriesForWallet(@Nullable String walletId) {
+        return categoryRepository.getCategoriesByTypeAndWallet(userId, "EXPENSE", walletId);
+    }
+
     public LiveData<List<CategoryEntity>> getIncomeCategories() {
         return incomeCategories;
     }
@@ -314,6 +318,18 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
         transactionRepository.insertTransaction(transaction, callback);
     }
 
+    public void insertTransactions(@NonNull List<TransactionEntity> transactions,
+                                   @Nullable TransactionRepository.WriteCallback callback) {
+        transactionRepository.insertTransactions(transactions, callback);
+    }
+
+    public void checkOcrDuplicateCandidates(
+            @NonNull List<TransactionRepository.OcrDuplicateCandidate> candidates,
+            @NonNull TransactionRepository.DuplicateCheckCallback callback
+    ) {
+        transactionRepository.checkOcrDuplicateCandidates(userId, candidates, callback);
+    }
+
     public void updateTransaction(TransactionEntity newTransaction) {
         transactionRepository.updateTransaction(newTransaction);
     }
@@ -420,5 +436,10 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
         invalidationHandler.removeCallbacksAndMessages(null);
         transactionInvalidationSource.removeObserver(transactionInvalidationObserver);
         super.onCleared();
+    }
+
+    @Nullable
+    public String getCurrentUserId() {
+        return userId;
     }
 }

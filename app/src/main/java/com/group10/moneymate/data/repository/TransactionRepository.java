@@ -17,9 +17,14 @@ import com.group10.moneymate.data.local.dto.NetIncomeDTO;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.Constants;
+import com.group10.moneymate.utils.ReceiptImageHashUtils;
 import com.group10.moneymate.workers.SyncScheduler;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -39,8 +44,139 @@ public class TransactionRepository {
         void onError(@NonNull Throwable throwable);
     }
 
+    public interface DuplicateCheckCallback {
+        void onCompleted(@NonNull DuplicateCheckResult result);
+        void onError(@NonNull Throwable throwable);
+    }
+
+    public static final class OcrDuplicateCandidate {
+        @NonNull
+        private final String candidateId;
+        @Nullable
+        private final String imagePath;
+        private final double amount;
+        private final long timestamp;
+        @NonNull
+        private final String note;
+
+        public OcrDuplicateCandidate(@NonNull String candidateId,
+                                     @Nullable String imagePath,
+                                     double amount,
+                                     long timestamp,
+                                     @Nullable String note) {
+            this.candidateId = candidateId;
+            this.imagePath = imagePath;
+            this.amount = amount;
+            this.timestamp = timestamp;
+            this.note = note == null ? "" : note.trim();
+        }
+
+        @NonNull
+        public String getCandidateId() {
+            return candidateId;
+        }
+
+        @Nullable
+        public String getImagePath() {
+            return imagePath;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        @NonNull
+        public String getNote() {
+            return note;
+        }
+    }
+
+    public static final class SuspectedDuplicate {
+        @NonNull
+        private final String candidateId;
+        @NonNull
+        private final String existingTransactionId;
+        private final double amount;
+        private final long existingTimestamp;
+        @NonNull
+        private final String existingNote;
+
+        public SuspectedDuplicate(@NonNull String candidateId,
+                                  @NonNull String existingTransactionId,
+                                  double amount,
+                                  long existingTimestamp,
+                                  @Nullable String existingNote) {
+            this.candidateId = candidateId;
+            this.existingTransactionId = existingTransactionId;
+            this.amount = amount;
+            this.existingTimestamp = existingTimestamp;
+            this.existingNote = existingNote == null ? "" : existingNote.trim();
+        }
+
+        @NonNull
+        public String getCandidateId() {
+            return candidateId;
+        }
+
+        @NonNull
+        public String getExistingTransactionId() {
+            return existingTransactionId;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public long getExistingTimestamp() {
+            return existingTimestamp;
+        }
+
+        @NonNull
+        public String getExistingNote() {
+            return existingNote;
+        }
+    }
+
+    public static final class DuplicateCheckResult {
+        @NonNull
+        private final List<SuspectedDuplicate> suspectedDuplicates;
+
+        public DuplicateCheckResult(@NonNull List<SuspectedDuplicate> suspectedDuplicates) {
+            this.suspectedDuplicates = suspectedDuplicates;
+        }
+
+        @NonNull
+        public List<SuspectedDuplicate> getSuspectedDuplicates() {
+            return suspectedDuplicates;
+        }
+
+        public boolean hasSuspectedDuplicates() {
+            return !suspectedDuplicates.isEmpty();
+        }
+    }
+
+    public static class TransactionValidationException extends IllegalArgumentException {
+        public TransactionValidationException(@NonNull String message) {
+            super(message);
+        }
+    }
+
+    public static class DuplicateCheckException extends RuntimeException {
+        public DuplicateCheckException(@NonNull String message, @NonNull Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    private static final long OCR_DUPLICATE_TIME_BUCKET_MS = 2L * 60L * 1000L;
+    private static final double OCR_DUPLICATE_AMOUNT_TOLERANCE = 0.005d;
+
     private final TransactionDao transactionDao;
     private final WalletDao walletDao;
+    private final AppDatabase appDatabase;
     @Nullable
     private final SyncScheduler syncScheduler;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -48,13 +184,17 @@ public class TransactionRepository {
     // cannot miss rapid consecutive writes that land in the same millisecond.
     private static final AtomicLong LAST_WRITE_TIMESTAMP = new AtomicLong(0L);
 
-    public TransactionRepository(TransactionDao transactionDao, WalletDao walletDao) {
-        this(transactionDao, walletDao, null);
+    public TransactionRepository(@NonNull AppDatabase appDatabase,
+                                 @NonNull TransactionDao transactionDao,
+                                 @NonNull WalletDao walletDao) {
+        this(appDatabase, transactionDao, walletDao, null);
     }
 
-    public TransactionRepository(TransactionDao transactionDao,
-                                 WalletDao walletDao,
+    public TransactionRepository(@NonNull AppDatabase appDatabase,
+                                 @NonNull TransactionDao transactionDao,
+                                 @NonNull WalletDao walletDao,
                                  @Nullable SyncScheduler syncScheduler) {
+        this.appDatabase = appDatabase;
         this.transactionDao = transactionDao;
         this.walletDao = walletDao;
         this.syncScheduler = syncScheduler;
@@ -382,6 +522,27 @@ public class TransactionRepository {
         transactionDao.hardDeleteById(id);
     }
 
+    /**
+     * OCR duplicate gate before insert.
+     * A transaction is considered a suspected duplicate only when all three signals match:
+     * 1) same internal receipt image hash (SHA-256), 2) same amount, 3) timestamp within +/- 2 minutes.
+     * The result is advisory and must always be confirmed by the user in UI.
+     */
+    public void checkOcrDuplicateCandidates(@NonNull String userId,
+                                            @NonNull List<OcrDuplicateCandidate> candidates,
+                                            @NonNull DuplicateCheckCallback callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                DuplicateCheckResult result = new DuplicateCheckResult(
+                        detectSuspectedDuplicates(userId, candidates)
+                );
+                mainHandler.post(() -> callback.onCompleted(result));
+            } catch (Exception exception) {
+                mainHandler.post(() -> callback.onError(exception));
+            }
+        });
+    }
+
     // ─── Write ────────────────────────────────────────────────────────────────
 
     public void insertTransaction(TransactionEntity transaction) {
@@ -400,18 +561,29 @@ public class TransactionRepository {
         upsertTransactionInternal(newTransaction, callback);
     }
 
+    public void insertTransactions(@NonNull List<TransactionEntity> transactions,
+                                   @Nullable WriteCallback callback) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                appDatabase.runInTransaction(() -> {
+                    for (TransactionEntity transaction : transactions) {
+                        TransactionEntity writeTransaction = copyTransaction(transaction);
+                        prepareTransactionForWrite(writeTransaction);
+                        transactionDao.upsertLocal(writeTransaction);
+                    }
+                });
+                scheduleSyncIfEnabled();
+                notifyWriteSuccess(callback);
+            } catch (Exception exception) {
+                notifyWriteError(callback, exception);
+            }
+        });
+    }
+
     private void upsertTransactionInternal(TransactionEntity transaction, @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                long now = nextWriteTimestamp();
-                if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
-                    transaction.setId(UUID.randomUUID().toString());
-                }
-                if (transaction.getCreatedAt() <= 0L) {
-                    transaction.setCreatedAt(now);
-                }
-                transaction.setUpdatedAt(now);
-                transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+                prepareTransactionForWrite(transaction);
                 transactionDao.upsertLocal(transaction);
                 scheduleSyncIfEnabled();
                 notifyWriteSuccess(callback);
@@ -444,6 +616,121 @@ public class TransactionRepository {
             if (LAST_WRITE_TIMESTAMP.compareAndSet(previous, candidate)) {
                 return candidate;
             }
+        }
+    }
+
+    private void prepareTransactionForWrite(@NonNull TransactionEntity transaction) {
+        validateTransaction(transaction);
+        long now = nextWriteTimestamp();
+        if (transaction.getId() == null || transaction.getId().trim().isEmpty()) {
+            transaction.setId(UUID.randomUUID().toString());
+        }
+        if (transaction.getCreatedAt() <= 0L) {
+            transaction.setCreatedAt(now);
+        }
+        transaction.setUpdatedAt(now);
+        transaction.setDeleted(false);
+        transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
+    }
+
+    private void validateTransaction(@NonNull TransactionEntity transaction) {
+        if (isBlank(transaction.getUserId())) {
+            throw new TransactionValidationException("transaction.validation.user_required");
+        }
+        if (isBlank(transaction.getWalletId())) {
+            throw new TransactionValidationException("transaction.validation.wallet_required");
+        }
+        if (isBlank(transaction.getCategoryId())) {
+            throw new TransactionValidationException("transaction.validation.category_required");
+        }
+        if (isBlank(transaction.getType())) {
+            throw new TransactionValidationException("transaction.validation.type_required");
+        }
+        if (transaction.getAmount() <= 0d) {
+            throw new TransactionValidationException("transaction.validation.amount_positive");
+        }
+        if (transaction.getTimestamp() <= 0L) {
+            throw new TransactionValidationException("transaction.validation.timestamp_required");
+        }
+    }
+
+    @NonNull
+    private TransactionEntity copyTransaction(@NonNull TransactionEntity source) {
+        TransactionEntity copy = new TransactionEntity();
+        copy.setId(source.getId());
+        copy.setWalletId(source.getWalletId());
+        copy.setCategoryId(source.getCategoryId());
+        copy.setDebtId(source.getDebtId());
+        copy.setEventId(source.getEventId());
+        copy.setAmount(source.getAmount());
+        copy.setType(source.getType());
+        copy.setToWalletId(source.getToWalletId());
+        copy.setNote(source.getNote());
+        copy.setTimestamp(source.getTimestamp());
+        copy.setImagePath(source.getImagePath());
+        copy.setCreatedAt(source.getCreatedAt());
+        copy.setUpdatedAt(source.getUpdatedAt());
+        copy.setSyncStatus(source.getSyncStatus());
+        copy.setDeleted(source.isDeleted());
+        copy.setUserId(source.getUserId());
+        return copy;
+    }
+
+    private boolean isBlank(@Nullable String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    @NonNull
+    private List<SuspectedDuplicate> detectSuspectedDuplicates(@NonNull String userId,
+                                                               @NonNull List<OcrDuplicateCandidate> candidates) {
+        List<SuspectedDuplicate> suspectedDuplicates = new ArrayList<>();
+        Map<String, String> hashCache = new HashMap<>();
+        for (OcrDuplicateCandidate candidate : candidates) {
+            String candidateHash = computeImageHash(candidate.getImagePath(), hashCache);
+            if (isBlank(candidateHash)) {
+                continue;
+            }
+            long candidateTimestamp = candidate.getTimestamp();
+            List<TransactionEntity> matchingTransactions = transactionDao.getTransactionsForDuplicateCheckSync(
+                    userId,
+                    candidate.getAmount() - OCR_DUPLICATE_AMOUNT_TOLERANCE,
+                    candidate.getAmount() + OCR_DUPLICATE_AMOUNT_TOLERANCE,
+                    candidateTimestamp - OCR_DUPLICATE_TIME_BUCKET_MS,
+                    candidateTimestamp + OCR_DUPLICATE_TIME_BUCKET_MS
+            );
+            for (TransactionEntity existingTransaction : matchingTransactions) {
+                String existingHash = computeImageHash(existingTransaction.getImagePath(), hashCache);
+                if (isBlank(existingHash) || !existingHash.equals(candidateHash)) {
+                    continue;
+                }
+                suspectedDuplicates.add(new SuspectedDuplicate(
+                        candidate.getCandidateId(),
+                        existingTransaction.getId(),
+                        existingTransaction.getAmount(),
+                        existingTransaction.getTimestamp(),
+                        existingTransaction.getNote()
+                ));
+                break;
+            }
+        }
+        return suspectedDuplicates;
+    }
+
+    @Nullable
+    private String computeImageHash(@Nullable String imagePath,
+                                    @NonNull Map<String, String> hashCache) {
+        if (isBlank(imagePath)) {
+            return null;
+        }
+        if (hashCache.containsKey(imagePath)) {
+            return hashCache.get(imagePath);
+        }
+        try {
+            String hash = ReceiptImageHashUtils.computeSha256(imagePath);
+            hashCache.put(imagePath, hash);
+            return hash;
+        } catch (IOException exception) {
+            throw new DuplicateCheckException("transaction.duplicate_check.image_hash_failed", exception);
         }
     }
 

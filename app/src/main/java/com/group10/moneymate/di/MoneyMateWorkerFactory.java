@@ -40,7 +40,14 @@ public class MoneyMateWorkerFactory extends WorkerFactory {
         }
 
         if (AIReceiptScannerWorker.class.getName().equals(workerClassName)) {
-            return new AIReceiptScannerWorker(appContext, workerParameters);
+            return new AIReceiptScannerWorker(
+                    appContext,
+                    workerParameters,
+                    appContainer.receiptParserBridge,
+                    appContainer.geminiService,
+                    appContainer.categoryRepository,
+                    appContainer.authRepository
+            );
         }
 
         return null;
