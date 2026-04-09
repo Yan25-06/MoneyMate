@@ -2,6 +2,8 @@ package com.group10.moneymate.di;
 
 import android.content.Context;
 
+import com.group10.moneymate.BuildConfig;
+import com.group10.moneymate.ai.receipt.GeminiService;
 import com.group10.moneymate.ai.receipt.MlKitReceiptParserBridge;
 import com.group10.moneymate.ai.receipt.ReceiptParserBridge;
 import com.group10.moneymate.data.local.AppDatabase;
@@ -34,6 +36,7 @@ public class AppContainer {
     public final SyncMetadataRepository syncMetadataRepository;
     public final SyncScheduler syncScheduler;
     public final ReceiptParserBridge receiptParserBridge;
+    public final GeminiService geminiService;
 
     public AppContainer(Context context) {
         database           = AppDatabase.getInstance(context);
@@ -41,6 +44,7 @@ public class AppContainer {
         prefsManager       = new PrefsManager(context);
         syncScheduler      = new SyncScheduler(context.getApplicationContext());
         receiptParserBridge = new MlKitReceiptParserBridge();
+        geminiService       = new GeminiService(BuildConfig.GEMINI_API_KEY);
         authRepository        = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());

@@ -43,7 +43,10 @@ public class MoneyMateWorkerFactory extends WorkerFactory {
             return new AIReceiptScannerWorker(
                     appContext,
                     workerParameters,
-                    appContainer.receiptParserBridge
+                    appContainer.receiptParserBridge,
+                    appContainer.geminiService,
+                    appContainer.categoryRepository,
+                    appContainer.authRepository
             );
         }
 

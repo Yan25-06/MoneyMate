@@ -16,6 +16,7 @@ public final class ReceiptData {
     private final long timestamp;
     private final String merchant;
     private final String categoryHint;
+    private final String noteHint;
     private final List<ReceiptItem> items;
     private final int confidence;
 
@@ -23,12 +24,14 @@ public final class ReceiptData {
                        long timestamp,
                        String merchant,
                        String categoryHint,
+                       String noteHint,
                        List<ReceiptItem> items,
                        int confidence) {
         this.amount = sanitize(amount);
         this.timestamp = timestamp;
         this.merchant = sanitize(merchant);
         this.categoryHint = sanitize(categoryHint);
+        this.noteHint = sanitize(noteHint);
         this.items = items == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(items));
@@ -39,6 +42,7 @@ public final class ReceiptData {
         return new ReceiptData(
                 "",
                 UNKNOWN_TIMESTAMP,
+                "",
                 "",
                 "",
                 Collections.emptyList(),
@@ -60,6 +64,10 @@ public final class ReceiptData {
 
     public String getCategoryHint() {
         return categoryHint;
+    }
+
+    public String getNoteHint() {
+        return noteHint;
     }
 
     public List<ReceiptItem> getItems() {
@@ -100,11 +108,12 @@ public final class ReceiptData {
                 && Objects.equals(amount, that.amount)
                 && Objects.equals(merchant, that.merchant)
                 && Objects.equals(categoryHint, that.categoryHint)
+                && Objects.equals(noteHint, that.noteHint)
                 && Objects.equals(items, that.items);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(amount, timestamp, merchant, categoryHint, items, confidence);
+        return Objects.hash(amount, timestamp, merchant, categoryHint, noteHint, items, confidence);
     }
 }

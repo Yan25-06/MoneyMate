@@ -51,14 +51,12 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:padding="18dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
@@ -78,6 +76,30 @@
                     android:text="@string/transaction_scan_confirmation_summary_subtitle"
                     android:textColor="@color/transaction_muted_text"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tv_confirmation_processing_source"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_statistics_header_icon_button"
+                    android:paddingStart="10dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="6dp"
+                    android:textColor="@color/statistics_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="Kết quả OCR từ cloud" />
+
+                <TextView
+                    android:id="@+id/tv_confirmation_save_wallet"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/statistics_text_secondary"
+                    android:textSize="13sp"
+                    tools:text="Sẽ lưu vào ví: Ví tiền mặt" />
 
                 <LinearLayout
                     android:id="@+id/layout_confirmation_summary_warning"
@@ -107,14 +129,28 @@
 
             <ImageView
                 android:id="@+id/iv_receipt_thumbnail"
-                android:layout_width="88dp"
-                android:layout_height="88dp"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:layout_marginTop="14dp"
+                android:adjustViewBounds="true"
                 android:background="@drawable/bg_statistics_header_icon_button"
                 android:contentDescription="@string/transaction_scan_confirmation_receipt_preview"
                 android:padding="6dp"
-                android:scaleType="centerCrop"
+                android:scaleType="fitCenter"
                 android:src="@drawable/outline_receipt_24"
                 app:tint="@color/transaction_income_accent" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_confirmation_rescan"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:textAllCaps="false"
+                app:icon="@drawable/ic_category_camera"
+                app:iconPadding="10dp"
+                app:strokeColor="@color/transaction_border"
+                tools:text="Chụp lại ảnh" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

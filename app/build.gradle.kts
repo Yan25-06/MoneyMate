@@ -102,6 +102,8 @@ dependencies {
 
     // Gemini AI
     implementation(libs.generativeai)
+    implementation(libs.json)
+    implementation(libs.exifinterface)
 
     // Testing
     testImplementation(libs.junit)

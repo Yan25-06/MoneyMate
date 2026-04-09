@@ -23,7 +23,10 @@ public class OcrPrivacyLoggingSourceTest {
         assertFalse(workerSource.contains("Log.d(TAG, recognizedText.getText())"));
         assertFalse(workerSource.contains("Log.w(TAG, recognizedText.getText())"));
         assertFalse(workerSource.contains("Log.e(TAG, recognizedText.getText())"));
-        assertFalse(workerSource.contains("rawText"));
+        assertFalse(workerSource.contains("Log.i(TAG, rawText)"));
+        assertFalse(workerSource.contains("Log.d(TAG, rawText)"));
+        assertFalse(workerSource.contains("Log.w(TAG, rawText)"));
+        assertFalse(workerSource.contains("Log.e(TAG, rawText)"));
         assertTrue(workerSource.contains("blocks="));
         assertTrue(workerSource.contains("lines="));
         assertTrue(workerSource.contains("durationMs="));

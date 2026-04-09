@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="20dp"
@@ -94,6 +95,15 @@
                     android:textColor="@color/statistics_text_secondary"
                     android:textSize="13sp" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_receipt_wallet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/statistics_text_secondary"
+                android:textSize="13sp"
+                tools:text="Ví: Tiền mặt" />
 
             <LinearLayout
                 android:layout_width="match_parent"

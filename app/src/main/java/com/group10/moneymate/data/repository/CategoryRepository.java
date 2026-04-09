@@ -16,6 +16,7 @@ import com.group10.moneymate.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -144,6 +145,35 @@ public class CategoryRepository {
 
     public LiveData<CategoryEntity> getCategoryByIdIncludingDeleted(String id) {
         return categoryDao.getCategoryByIdIncludingDeleted(id);
+    }
+
+    @NonNull
+    public List<String> getExpenseCategoryNamesSync(@Nullable String userId) {
+        LinkedHashSet<String> names = new LinkedHashSet<>();
+        List<CategoryEntity> categories = categoryDao.getRootCategoriesByTypeAndWalletSync(
+                userId,
+                Constants.TYPE_EXPENSE,
+                null
+        );
+        for (CategoryEntity category : categories) {
+            if (category.getName() == null) {
+                continue;
+            }
+            String name = category.getName().trim();
+            if (!name.isEmpty()) {
+                names.add(name);
+            }
+        }
+
+        if (names.isEmpty()) {
+            for (Constants.DefaultCategory defaultCategory : Constants.getDefaultCategories()) {
+                if (Constants.TYPE_EXPENSE.equals(defaultCategory.type)) {
+                    names.add(defaultCategory.name);
+                }
+            }
+        }
+
+        return new ArrayList<>(names);
     }
 
     public List<CategoryEntity> getPendingSyncPagedSince(@NonNull String userId,

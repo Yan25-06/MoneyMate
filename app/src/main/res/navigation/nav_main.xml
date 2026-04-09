@@ -182,7 +182,17 @@
             android:defaultValue="@null"
             app:nullable="true" />
         <argument
+            android:name="ocrDraftCategoryId"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
             android:name="ocrDraftImagePath"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="ocrDraftWalletId"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
@@ -260,7 +270,27 @@
             android:defaultValue="@null"
             app:nullable="true" />
         <argument
+            android:name="noteHint"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
             android:name="itemsJson"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="processingSource"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="processingDetail"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
+            android:name="imageInputSource"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
@@ -268,6 +298,13 @@
             android:name="confidence"
             app:argType="integer"
             android:defaultValue="0" />
+        <action
+            android:id="@+id/action_transactionConfirmationFragment_to_cameraFragment"
+            app:destination="@id/cameraFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_transactionConfirmationFragment_to_addEditTransactionFragment"
             app:destination="@id/addEditTransactionFragment"

@@ -69,6 +69,7 @@ public class MlKitReceiptParserBridge implements ReceiptParserBridge {
             }
             builder.append('{')
                     .append("\"name\":\"").append(escapeJson(item.getName())).append("\",")
+                    .append("\"note_hint\":\"").append(escapeJson(item.getName())).append("\",")
                     .append("\"amount\":\"").append(escapeJson(item.getAmount())).append("\",")
                     .append("\"category_hint\":\"").append(escapeJson(item.getCategoryHint())).append("\",")
                     .append("\"confidence\":").append(item.getConfidence())

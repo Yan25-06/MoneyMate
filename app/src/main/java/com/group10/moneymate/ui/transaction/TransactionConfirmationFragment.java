@@ -3,25 +3,33 @@ package com.group10.moneymate.ui.transaction;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
+import com.group10.moneymate.ai.receipt.ReceiptScanContract;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
@@ -32,11 +40,14 @@ import com.group10.moneymate.ui.transaction.adapter.ReceiptTransactionAdapter;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.DateUtils;
+import com.group10.moneymate.utils.FileUtils;
 import com.group10.moneymate.utils.LoadingHelper;
+import com.group10.moneymate.workers.AIReceiptScannerWorker;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import androidx.work.Data;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import java.io.File;
 import java.text.Normalizer;
@@ -45,11 +56,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TransactionConfirmationFragment extends Fragment {
 
     private static final int HIGH_CONFIDENCE = 2;
-    private static final int MAX_THUMBNAIL_SIZE_PX = 320;
+    private static final int MAX_THUMBNAIL_SIZE_PX = 720;
+    private static final int MAX_PREVIEW_SIZE_PX = 1800;
 
     private FragmentTransactionConfirmationBinding binding;
     private TransactionViewModel viewModel;
@@ -68,6 +83,43 @@ public class TransactionConfirmationFragment extends Fragment {
     @Nullable
     private String saveAllWalletId;
     private boolean isSavingAll;
+    @Nullable
+    private String currentImagePath;
+    @Nullable
+    private String currentAmount;
+    @Nullable
+    private String currentMerchant;
+    @Nullable
+    private String currentCategoryHint;
+    @Nullable
+    private String currentNoteHint;
+    @Nullable
+    private String currentItemsJson;
+    @Nullable
+    private String currentProcessingSource;
+    @Nullable
+    private String currentProcessingDetail;
+    @Nullable
+    private String currentImageInputSource;
+    private long currentTimestamp = -1L;
+    private int currentConfidence;
+    @Nullable
+    private LiveData<WorkInfo> receiptScanWorkInfoSource;
+    @Nullable
+    private Observer<WorkInfo> receiptScanWorkInfoObserver;
+    @Nullable
+    private UUID currentReceiptScanWorkId;
+    private ActivityResultLauncher<String> galleryPickerLauncher;
+    private final ExecutorService receiptImageExecutor = Executors.newSingleThreadExecutor();
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        galleryPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                this::handleGalleryImageSelected
+        );
+    }
 
     @Nullable
     @Override
@@ -90,8 +142,10 @@ public class TransactionConfirmationFragment extends Fragment {
         setupRecyclerView();
         setupActions();
         observeDraftSaveResults();
+        observeCameraCaptureResults();
         observeSaveDependencies();
-        renderConfirmationState(confirmationArgs);
+        bindCurrentStateFromArgs(confirmationArgs);
+        renderCurrentState();
     }
 
     private void setupToolbar() {
@@ -112,6 +166,7 @@ public class TransactionConfirmationFragment extends Fragment {
 
     private void setupActions() {
         binding.btnSaveAllReceiptTransactions.setOnClickListener(v -> attemptSaveAll());
+        binding.btnConfirmationRescan.setOnClickListener(v -> handleRescanAction());
     }
 
     private void observeDraftSaveResults() {
@@ -148,10 +203,9 @@ public class TransactionConfirmationFragment extends Fragment {
             availableExpenseCategories.clear();
         }
 
-        if (confirmationArgs != null) {
-            updateSummary(confirmationArgs);
+        if (binding != null) {
+            renderCurrentState();
         }
-        updateActionState();
     }
 
     private void observeExpenseCategories(@Nullable String walletId) {
@@ -162,8 +216,8 @@ public class TransactionConfirmationFragment extends Fragment {
             if (categories != null) {
                 availableExpenseCategories.addAll(categories);
             }
-            if (confirmationArgs != null) {
-                updateSummary(confirmationArgs);
+            if (binding != null) {
+                renderCurrentState();
             }
         };
         expenseCategoriesSource.observe(getViewLifecycleOwner(), expenseCategoriesObserver);
@@ -177,67 +231,45 @@ public class TransactionConfirmationFragment extends Fragment {
         expenseCategoriesObserver = null;
     }
 
-    private void renderConfirmationState(@NonNull TransactionConfirmationFragmentArgs args) {
+    private void bindCurrentStateFromArgs(@NonNull TransactionConfirmationFragmentArgs args) {
+        currentImagePath = args.getImagePath();
+        currentAmount = args.getAmount();
+        currentTimestamp = args.getTimestamp();
+        currentMerchant = args.getMerchant();
+        currentCategoryHint = args.getCategoryHint();
+        currentNoteHint = args.getNoteHint();
+        currentItemsJson = args.getItemsJson();
+        currentProcessingSource = args.getProcessingSource();
+        currentProcessingDetail = args.getProcessingDetail();
+        currentImageInputSource = args.getImageInputSource();
+        currentConfidence = args.getConfidence();
+    }
+
+    private void renderCurrentState() {
         pendingItems.clear();
-        pendingItems.addAll(buildPendingItems(args));
+        pendingItems.addAll(buildPendingItems());
         adapter.submitList(new ArrayList<>(pendingItems));
 
-        updateThumbnail(args.getImagePath());
-        updateSummary(args);
+        updateThumbnail(currentImagePath);
+        updateProcessingSource();
+        updateRescanAction();
+        updateSummary();
+        updateSaveWalletLabel();
         updateEmptyState();
     }
 
     @NonNull
-    private List<ReceiptTransactionAdapter.PendingReceiptItem> buildPendingItems(
-            @NonNull TransactionConfirmationFragmentArgs args
-    ) {
-        List<ReceiptTransactionAdapter.PendingReceiptItem> items = parseItemPayload(args);
-        if (!items.isEmpty()) {
-            return items;
-        }
-
+    private List<ReceiptTransactionAdapter.PendingReceiptItem> buildPendingItems() {
         List<ReceiptTransactionAdapter.PendingReceiptItem> fallbackItems = new ArrayList<>();
         fallbackItems.add(createPendingItem(
                 "ocr_root_0",
-                args.getAmount(),
-                resolveFallbackNote(args.getMerchant()),
-                args.getCategoryHint(),
-                args.getTimestamp(),
-                args.getConfidence()
+                currentAmount,
+                resolveFallbackNote(currentNoteHint, currentMerchant),
+                currentCategoryHint,
+                currentTimestamp,
+                currentConfidence
         ));
         return fallbackItems;
-    }
-
-    @NonNull
-    private List<ReceiptTransactionAdapter.PendingReceiptItem> parseItemPayload(
-            @NonNull TransactionConfirmationFragmentArgs args
-    ) {
-        String itemsJson = args.getItemsJson();
-        if (TextUtils.isEmpty(itemsJson)) {
-            return new ArrayList<>();
-        }
-
-        List<ReceiptTransactionAdapter.PendingReceiptItem> parsedItems = new ArrayList<>();
-        try {
-            JSONArray jsonArray = new JSONArray(itemsJson);
-            for (int index = 0; index < jsonArray.length(); index++) {
-                JSONObject itemObject = jsonArray.optJSONObject(index);
-                if (itemObject == null) {
-                    continue;
-                }
-                parsedItems.add(createPendingItem(
-                        "ocr_item_" + index,
-                        itemObject.optString("amount", ""),
-                        resolveItemNote(itemObject.optString("name", ""), args.getMerchant()),
-                        resolveCategoryHint(itemObject.optString("category_hint", ""), args.getCategoryHint()),
-                        args.getTimestamp(),
-                        itemObject.optInt("confidence", args.getConfidence())
-                ));
-            }
-        } catch (JSONException exception) {
-            return new ArrayList<>();
-        }
-        return parsedItems;
     }
 
     @NonNull
@@ -252,7 +284,7 @@ public class TransactionConfirmationFragment extends Fragment {
         String safeNote = note == null || note.trim().isEmpty()
                 ? getString(R.string.transaction_scan_confirmation_note_fallback)
                 : note.trim();
-        long safeTimestamp = timestamp > 0L ? timestamp : System.currentTimeMillis();
+        long safeTimestamp = timestamp > 0L ? timestamp : ReceiptScanContract.UNKNOWN_TIMESTAMP;
 
         return new ReceiptTransactionAdapter.PendingReceiptItem(
                 draftId,
@@ -263,6 +295,7 @@ public class TransactionConfirmationFragment extends Fragment {
                 resolveCategoryLabel(safeCategoryHint),
                 safeTimestamp,
                 resolveDateLabel(timestamp),
+                resolvePendingWalletLabel(),
                 confidence,
                 buildWarningLabel(safeAmountRaw, safeCategoryHint, confidence)
         );
@@ -317,7 +350,10 @@ public class TransactionConfirmationFragment extends Fragment {
     }
 
     @NonNull
-    private String resolveFallbackNote(@Nullable String merchant) {
+    private String resolveFallbackNote(@Nullable String noteHint, @Nullable String merchant) {
+        if (!TextUtils.isEmpty(noteHint)) {
+            return noteHint.trim();
+        }
         if (!TextUtils.isEmpty(merchant)) {
             return merchant.trim();
         }
@@ -325,11 +361,17 @@ public class TransactionConfirmationFragment extends Fragment {
     }
 
     @NonNull
-    private String resolveItemNote(@Nullable String itemName, @Nullable String merchant) {
+    private String resolveItemNote(@Nullable String noteHint,
+                                   @Nullable String itemName,
+                                   @Nullable String overallNoteHint,
+                                   @Nullable String merchant) {
+        if (!TextUtils.isEmpty(noteHint)) {
+            return noteHint.trim();
+        }
         if (!TextUtils.isEmpty(itemName)) {
             return itemName.trim();
         }
-        return resolveFallbackNote(merchant);
+        return resolveFallbackNote(overallNoteHint, merchant);
     }
 
     @NonNull
@@ -349,6 +391,7 @@ public class TransactionConfirmationFragment extends Fragment {
             binding.ivReceiptThumbnail.setImageTintList(ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)
             ));
+            binding.ivReceiptThumbnail.setOnClickListener(null);
             return;
         }
 
@@ -358,28 +401,65 @@ public class TransactionConfirmationFragment extends Fragment {
             binding.ivReceiptThumbnail.setImageTintList(ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)
             ));
+            binding.ivReceiptThumbnail.setOnClickListener(null);
             return;
         }
         binding.ivReceiptThumbnail.setImageBitmap(thumbnailBitmap);
         binding.ivReceiptThumbnail.setImageTintList(null);
+        binding.ivReceiptThumbnail.setOnClickListener(v -> showZoomedReceiptPreview());
     }
 
-    private void updateSummary(@NonNull TransactionConfirmationFragmentArgs args) {
-        String merchant = args.getMerchant();
-        int itemCount = pendingItems.size();
+    private void updateSummary() {
+        String merchant = currentMerchant;
         if (!TextUtils.isEmpty(merchant)) {
             binding.tvConfirmationSummaryTitle.setText(merchant);
         } else {
             binding.tvConfirmationSummaryTitle.setText(R.string.transaction_scan_confirmation_summary_title);
         }
-        binding.tvConfirmationSummarySubtitle.setText(
-                getString(R.string.transaction_scan_confirmation_summary_count, itemCount)
-        );
+        binding.tvConfirmationSummarySubtitle.setVisibility(View.GONE);
+        binding.tvConfirmationSaveWallet.setVisibility(View.GONE);
 
-        boolean hasPendingWarnings = args.getConfidence() < HIGH_CONFIDENCE || hasAnyPendingWarning();
+        boolean hasPendingWarnings = currentConfidence < HIGH_CONFIDENCE || hasAnyPendingWarning();
         boolean hasSummaryWarning = hasPendingWarnings || saveAllWalletId == null;
         binding.layoutConfirmationSummaryWarning.setVisibility(hasSummaryWarning ? View.VISIBLE : View.GONE);
         binding.tvConfirmationSummaryWarning.setText(resolveSummaryWarningMessage(hasPendingWarnings));
+    }
+
+    private void updateProcessingSource() {
+        String processingSource = currentProcessingSource;
+        String processingDetail = currentProcessingDetail;
+        boolean isCloud = ReceiptScanContract.SOURCE_CLOUD.equals(processingSource);
+        binding.tvConfirmationProcessingSource.setText(
+                resolveProcessingSourceLabel(processingSource, processingDetail)
+        );
+        binding.tvConfirmationProcessingSource.setBackgroundTintList(ColorStateList.valueOf(
+                ContextCompat.getColor(
+                        requireContext(),
+                        isCloud ? R.color.transaction_income_accent : R.color.budget_warning_orange
+                )
+        ));
+        binding.tvConfirmationProcessingSource.setTextColor(ContextCompat.getColor(
+                requireContext(),
+                isCloud ? R.color.white : R.color.statistics_text_primary
+        ));
+    }
+
+    @NonNull
+    private String resolveProcessingSourceLabel(@Nullable String processingSource,
+                                                @Nullable String processingDetail) {
+        if (ReceiptScanContract.SOURCE_CLOUD.equals(processingSource)) {
+            return getString(R.string.transaction_scan_confirmation_source_cloud);
+        }
+        if (ReceiptScanContract.DETAIL_LOCAL_NO_NETWORK.equals(processingDetail)) {
+            return getString(R.string.transaction_scan_confirmation_source_local_offline);
+        }
+        if (ReceiptScanContract.DETAIL_LOCAL_RATE_LIMITED.equals(processingDetail)) {
+            return getString(R.string.transaction_scan_confirmation_source_local_rate_limited);
+        }
+        if (ReceiptScanContract.SOURCE_LOCAL.equals(processingSource)) {
+            return getString(R.string.transaction_scan_confirmation_source_local_fallback);
+        }
+        return getString(R.string.transaction_scan_confirmation_source_unknown);
     }
 
     @NonNull
@@ -402,6 +482,47 @@ public class TransactionConfirmationFragment extends Fragment {
         return false;
     }
 
+    private void updateSaveWalletLabel() {
+        // Wallet info is rendered inline on each pending item card.
+    }
+
+    @NonNull
+    private String resolvePendingWalletLabel() {
+        if (TextUtils.isEmpty(saveAllWalletId)) {
+            return getString(
+                    R.string.transaction_scan_confirmation_wallet_inline_label,
+                    getString(R.string.transaction_scan_confirmation_wallet_unresolved_value)
+            );
+        }
+        return getString(
+                R.string.transaction_scan_confirmation_wallet_inline_label,
+                resolveWalletName(saveAllWalletId)
+        );
+    }
+
+    @NonNull
+    private String resolveWalletName(@Nullable String walletId) {
+        if (TextUtils.isEmpty(walletId)) {
+            return getString(R.string.transaction_scan_confirmation_wallet_unresolved_value);
+        }
+        for (WalletEntity wallet : activeWallets) {
+            if (walletId.equals(wallet.getId())) {
+                return wallet.getName();
+            }
+        }
+        return getString(R.string.transaction_scan_confirmation_wallet_unresolved_value);
+    }
+
+    private void updateRescanAction() {
+        if (AddEditTransactionFragment.IMAGE_INPUT_SOURCE_CAMERA.equals(currentImageInputSource)) {
+            binding.btnConfirmationRescan.setText(R.string.transaction_scan_confirmation_rescan_camera);
+            binding.btnConfirmationRescan.setIconResource(R.drawable.ic_category_camera);
+            return;
+        }
+        binding.btnConfirmationRescan.setText(R.string.transaction_scan_confirmation_rescan_gallery);
+        binding.btnConfirmationRescan.setIconResource(R.drawable.outline_receipt_24);
+    }
+
     private void updateEmptyState() {
         boolean isEmpty = pendingItems.isEmpty();
         binding.layoutConfirmationEmpty.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
@@ -416,6 +537,7 @@ public class TransactionConfirmationFragment extends Fragment {
         boolean hasPendingItems = !pendingItems.isEmpty();
         binding.btnConfirmationBack.setEnabled(!isSavingAll);
         binding.btnSaveAllReceiptTransactions.setEnabled(!isSavingAll && hasPendingItems);
+        binding.btnConfirmationRescan.setEnabled(!isSavingAll);
     }
 
     private void openDraftInAddEditScreen(@NonNull ReceiptTransactionAdapter.PendingReceiptItem item) {
@@ -430,7 +552,9 @@ public class TransactionConfirmationFragment extends Fragment {
         action.setOcrDraftNote(item.getNote());
         action.setOcrDraftTimestamp(item.getTimestamp());
         action.setOcrDraftCategoryHint(item.getCategoryHint());
-        action.setOcrDraftImagePath(confirmationArgs != null ? confirmationArgs.getImagePath() : null);
+        action.setOcrDraftCategoryId(resolveCategoryId(item.getCategoryHint()));
+        action.setOcrDraftImagePath(currentImagePath);
+        action.setOcrDraftWalletId(saveAllWalletId);
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }
 
@@ -527,7 +651,7 @@ public class TransactionConfirmationFragment extends Fragment {
         transaction.setType(Constants.TYPE_EXPENSE);
         transaction.setNote(pendingItem.getNote());
         transaction.setTimestamp(pendingItem.getTimestamp() > 0L ? pendingItem.getTimestamp() : now);
-        transaction.setImagePath(confirmationArgs != null ? confirmationArgs.getImagePath() : null);
+        transaction.setImagePath(currentImagePath);
         transaction.setCreatedAt(now);
         transaction.setUpdatedAt(now);
         transaction.setDeleted(false);
@@ -540,7 +664,7 @@ public class TransactionConfirmationFragment extends Fragment {
             @NonNull List<TransactionEntity> transactionsToSave
     ) {
         List<TransactionRepository.OcrDuplicateCandidate> candidates = new ArrayList<>();
-        String imagePath = confirmationArgs != null ? confirmationArgs.getImagePath() : null;
+        String imagePath = currentImagePath;
         int limit = Math.min(pendingItems.size(), transactionsToSave.size());
         for (int index = 0; index < limit; index++) {
             ReceiptTransactionAdapter.PendingReceiptItem pendingItem = pendingItems.get(index);
@@ -684,11 +808,190 @@ public class TransactionConfirmationFragment extends Fragment {
             return;
         }
         adapter.submitList(new ArrayList<>(pendingItems));
-        if (confirmationArgs != null) {
-            updateSummary(confirmationArgs);
-        }
+        updateSummary();
+        updateSaveWalletLabel();
         updateEmptyState();
         Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_item_saved_removed, Toast.LENGTH_SHORT).show();
+    }
+
+    private void handleRescanAction() {
+        if (isSavingAll) {
+            return;
+        }
+        if (AddEditTransactionFragment.IMAGE_INPUT_SOURCE_CAMERA.equals(currentImageInputSource)) {
+            NavDirections action =
+                    TransactionConfirmationFragmentDirections.actionTransactionConfirmationFragmentToCameraFragment();
+            Navigation.findNavController(binding.getRoot()).navigate(action);
+            return;
+        }
+        galleryPickerLauncher.launch("image/*");
+    }
+
+    private void handleGalleryImageSelected(@Nullable Uri sourceUri) {
+        if (sourceUri == null || !isAdded()) {
+            return;
+        }
+        Executor mainExecutor = ContextCompat.getMainExecutor(requireContext());
+        android.content.Context appContext = requireContext().getApplicationContext();
+        startRescanUi(R.string.transaction_scan_gallery_loading);
+        receiptImageExecutor.execute(() -> {
+            try {
+                FileUtils.ReceiptImageCopyResult copyResult =
+                        FileUtils.copyReceiptImageToInternalStorage(appContext, sourceUri);
+                mainExecutor.execute(() -> {
+                    stopRescanUi();
+                    currentImageInputSource = AddEditTransactionFragment.IMAGE_INPUT_SOURCE_GALLERY;
+                    enqueueReceiptScan(copyResult.getInternalPath(), copyResult.getInternalUri());
+                });
+            } catch (FileUtils.InvalidReceiptImageException exception) {
+                mainExecutor.execute(() -> finishRescanError(R.string.transaction_scan_gallery_invalid_image));
+            } catch (FileUtils.ReceiptImageTooLargeException exception) {
+                mainExecutor.execute(() -> finishRescanError(R.string.transaction_scan_gallery_image_too_large));
+            } catch (FileUtils.ReceiptImageStorageException exception) {
+                mainExecutor.execute(() -> finishRescanError(R.string.transaction_scan_gallery_copy_failed));
+            }
+        });
+    }
+
+    private void observeCameraCaptureResults() {
+        getParentFragmentManager().setFragmentResultListener(
+                CameraFragment.REQUEST_KEY_CAPTURED_IMAGE,
+                getViewLifecycleOwner(),
+                (requestKey, bundle) -> {
+                    String imagePath = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_PATH);
+                    String imageUri = bundle.getString(CameraFragment.RESULT_KEY_IMAGE_URI);
+                    if (!TextUtils.isEmpty(imagePath) && !TextUtils.isEmpty(imageUri)) {
+                        currentImageInputSource = AddEditTransactionFragment.IMAGE_INPUT_SOURCE_CAMERA;
+                        enqueueReceiptScan(imagePath, imageUri);
+                    }
+                    getParentFragmentManager().clearFragmentResult(CameraFragment.REQUEST_KEY_CAPTURED_IMAGE);
+                }
+        );
+    }
+
+    private void enqueueReceiptScan(@NonNull String imagePath, @NonNull String imageUri) {
+        clearReceiptScanWorkObservation();
+        startRescanUi(resolveProcessingMessageRes());
+        OneTimeWorkRequest request = AIReceiptScannerWorker.createRequest(imagePath, imageUri);
+        WorkManager workManager = WorkManager.getInstance(requireContext().getApplicationContext());
+        currentReceiptScanWorkId = request.getId();
+        observeReceiptScanWork(workManager, currentReceiptScanWorkId);
+        workManager.enqueue(request);
+    }
+
+    private void observeReceiptScanWork(@NonNull WorkManager workManager, @NonNull UUID workId) {
+        receiptScanWorkInfoSource = workManager.getWorkInfoByIdLiveData(workId);
+        receiptScanWorkInfoObserver = workInfo -> {
+            if (workInfo == null || !workId.equals(currentReceiptScanWorkId) || !workInfo.getState().isFinished()) {
+                return;
+            }
+
+            clearReceiptScanWorkObservation();
+            stopRescanUi();
+
+            if (!isAdded() || binding == null) {
+                return;
+            }
+
+            if (workInfo.getState() == WorkInfo.State.SUCCEEDED) {
+                applyScanOutput(workInfo.getOutputData());
+                return;
+            }
+
+            Toast.makeText(requireContext(), R.string.transaction_scan_failed, Toast.LENGTH_SHORT).show();
+        };
+        receiptScanWorkInfoSource.observe(getViewLifecycleOwner(), receiptScanWorkInfoObserver);
+    }
+
+    private void applyScanOutput(@NonNull Data outputData) {
+        currentImagePath = outputData.getString(ReceiptScanContract.KEY_IMAGE_PATH);
+        currentAmount = outputData.getString(ReceiptScanContract.KEY_AMOUNT);
+        currentTimestamp = outputData.getLong(
+                ReceiptScanContract.KEY_TIMESTAMP,
+                ReceiptScanContract.UNKNOWN_TIMESTAMP
+        );
+        currentMerchant = outputData.getString(ReceiptScanContract.KEY_MERCHANT);
+        currentCategoryHint = outputData.getString(ReceiptScanContract.KEY_CATEGORY_HINT);
+        currentNoteHint = outputData.getString(ReceiptScanContract.KEY_NOTE_HINT);
+        currentItemsJson = outputData.getString(ReceiptScanContract.KEY_ITEMS_JSON);
+        currentProcessingSource = outputData.getString(ReceiptScanContract.KEY_PROCESSING_SOURCE);
+        currentProcessingDetail = outputData.getString(ReceiptScanContract.KEY_PROCESSING_DETAIL);
+        currentConfidence = outputData.getInt(
+                ReceiptScanContract.KEY_CONFIDENCE,
+                ReceiptScanContract.CONFIDENCE_LOW
+        );
+        renderCurrentState();
+    }
+
+    private void startRescanUi(int messageResId) {
+        isSavingAll = true;
+        updateActionState();
+        loadingHelper.show(this, messageResId);
+    }
+
+    private void stopRescanUi() {
+        isSavingAll = false;
+        updateActionState();
+        loadingHelper.dismiss();
+    }
+
+    private void finishRescanError(int messageResId) {
+        stopRescanUi();
+        if (isAdded()) {
+            Toast.makeText(requireContext(), messageResId, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private int resolveProcessingMessageRes() {
+        String processingDetail = AIReceiptScannerWorker.resolvePreScanProcessingDetail(requireContext());
+        if (ReceiptScanContract.DETAIL_CLOUD_PRIMARY.equals(processingDetail)) {
+            return R.string.transaction_scan_processing_cloud;
+        }
+        if (ReceiptScanContract.DETAIL_LOCAL_RATE_LIMITED.equals(processingDetail)) {
+            return R.string.transaction_scan_processing_local_rate_limited;
+        }
+        return R.string.transaction_scan_processing_local;
+    }
+
+    private void clearReceiptScanWorkObservation() {
+        if (receiptScanWorkInfoSource != null && receiptScanWorkInfoObserver != null) {
+            receiptScanWorkInfoSource.removeObserver(receiptScanWorkInfoObserver);
+        }
+        receiptScanWorkInfoSource = null;
+        receiptScanWorkInfoObserver = null;
+        currentReceiptScanWorkId = null;
+    }
+
+    private void showZoomedReceiptPreview() {
+        if (TextUtils.isEmpty(currentImagePath)) {
+            return;
+        }
+        Bitmap previewBitmap = decodeSampledBitmap(currentImagePath, MAX_PREVIEW_SIZE_PX, MAX_PREVIEW_SIZE_PX);
+        if (previewBitmap == null) {
+            Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_preview_unavailable, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ImageView imageView = new ImageView(requireContext());
+        imageView.setImageBitmap(previewBitmap);
+        imageView.setAdjustViewBounds(true);
+        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+
+        FrameLayout container = new FrameLayout(requireContext());
+        int padding = (int) (24 * requireContext().getResources().getDisplayMetrics().density);
+        container.setPadding(padding, padding, padding, padding);
+        container.addView(
+                imageView,
+                new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setView(container)
+                .setPositiveButton(R.string.btn_cancel, null)
+                .show();
     }
 
     @Nullable
@@ -722,10 +1025,17 @@ public class TransactionConfirmationFragment extends Fragment {
     @Override
     public void onDestroyView() {
         clearExpenseCategoryObserver();
+        clearReceiptScanWorkObservation();
         loadingHelper.dismiss();
         super.onDestroyView();
         binding.rvReceiptTransactions.setAdapter(null);
         binding = null;
         adapter = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        receiptImageExecutor.shutdownNow();
+        super.onDestroy();
     }
 }

@@ -23,6 +23,8 @@ public interface ReceiptParserBridge {
         @Nullable
         private final String categoryHint;
         @Nullable
+        private final String noteHint;
+        @Nullable
         private final String itemsJson;
         private final int confidence;
 
@@ -30,12 +32,14 @@ public interface ReceiptParserBridge {
                            long timestamp,
                            @Nullable String merchant,
                            @Nullable String categoryHint,
+                           @Nullable String noteHint,
                            @Nullable String itemsJson,
                            int confidence) {
             this.amount = amount;
             this.timestamp = timestamp;
             this.merchant = merchant;
             this.categoryHint = categoryHint;
+            this.noteHint = noteHint;
             this.itemsJson = itemsJson;
             this.confidence = confidence;
         }
@@ -43,6 +47,9 @@ public interface ReceiptParserBridge {
         @NonNull
         public Data toOutputData(@NonNull String imagePath,
                                  @NonNull String imageUri,
+                                 @Nullable String rawText,
+                                 @NonNull String processingSource,
+                                 @NonNull String processingDetail,
                                  boolean hasOcrText,
                                  int ocrBlockCount,
                                  int ocrLineCount) {
@@ -53,7 +60,11 @@ public interface ReceiptParserBridge {
                     timestamp,
                     merchant,
                     categoryHint,
+                    noteHint,
                     itemsJson,
+                    rawText,
+                    processingSource,
+                    processingDetail,
                     confidence,
                     hasOcrText,
                     ocrBlockCount,
@@ -66,6 +77,7 @@ public interface ReceiptParserBridge {
             return new ParseResult(
                     "",
                     ReceiptScanContract.UNKNOWN_TIMESTAMP,
+                    "",
                     "",
                     "",
                     ReceiptScanContract.EMPTY_ITEMS_JSON,
@@ -81,6 +93,7 @@ public interface ReceiptParserBridge {
                     receiptData.getTimestamp(),
                     receiptData.getMerchant(),
                     receiptData.getCategoryHint(),
+                    receiptData.getNoteHint(),
                     itemsJson,
                     receiptData.getConfidence()
             );

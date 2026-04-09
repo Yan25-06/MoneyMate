@@ -12,7 +12,11 @@ public final class ReceiptScanContract {
     public static final String KEY_TIMESTAMP = "timestamp";
     public static final String KEY_MERCHANT = "merchant";
     public static final String KEY_CATEGORY_HINT = "category_hint";
+    public static final String KEY_NOTE_HINT = "note_hint";
     public static final String KEY_ITEMS_JSON = "items_json";
+    public static final String KEY_RAW_TEXT = "raw_text";
+    public static final String KEY_PROCESSING_SOURCE = "processing_source";
+    public static final String KEY_PROCESSING_DETAIL = "processing_detail";
     public static final String KEY_CONFIDENCE = "confidence";
     public static final String KEY_OCR_HAS_TEXT = "ocr_has_text";
     public static final String KEY_OCR_BLOCK_COUNT = "ocr_block_count";
@@ -35,6 +39,14 @@ public final class ReceiptScanContract {
     public static final String STAGE_OCR = "ocr";
     public static final String STAGE_PARSER = "parser";
 
+    public static final String SOURCE_CLOUD = "cloud";
+    public static final String SOURCE_LOCAL = "local";
+
+    public static final String DETAIL_CLOUD_PRIMARY = "cloud_primary";
+    public static final String DETAIL_LOCAL_NO_NETWORK = "local_no_network";
+    public static final String DETAIL_LOCAL_RATE_LIMITED = "local_rate_limited";
+    public static final String DETAIL_LOCAL_CLOUD_FAILED = "local_cloud_failed";
+
     public static final int CONFIDENCE_LOW = 0;
     public static final int CONFIDENCE_MEDIUM = 1;
     public static final int CONFIDENCE_HIGH = 2;
@@ -51,7 +63,11 @@ public final class ReceiptScanContract {
                                           long timestamp,
                                           @Nullable String merchant,
                                           @Nullable String categoryHint,
+                                          @Nullable String noteHint,
                                           @Nullable String itemsJson,
+                                          @Nullable String rawText,
+                                          @Nullable String processingSource,
+                                          @Nullable String processingDetail,
                                           int confidence,
                                           boolean hasOcrText,
                                           int ocrBlockCount,
@@ -63,7 +79,11 @@ public final class ReceiptScanContract {
                 .putLong(KEY_TIMESTAMP, timestamp)
                 .putString(KEY_MERCHANT, sanitize(merchant))
                 .putString(KEY_CATEGORY_HINT, sanitize(categoryHint))
+                .putString(KEY_NOTE_HINT, sanitize(noteHint))
                 .putString(KEY_ITEMS_JSON, sanitizeItemsJson(itemsJson))
+                .putString(KEY_RAW_TEXT, sanitizeRawText(rawText))
+                .putString(KEY_PROCESSING_SOURCE, sanitize(processingSource))
+                .putString(KEY_PROCESSING_DETAIL, sanitize(processingDetail))
                 .putInt(KEY_CONFIDENCE, confidence)
                 .putBoolean(KEY_OCR_HAS_TEXT, hasOcrText)
                 .putInt(KEY_OCR_BLOCK_COUNT, ocrBlockCount)
@@ -83,7 +103,11 @@ public final class ReceiptScanContract {
                 .putLong(KEY_TIMESTAMP, UNKNOWN_TIMESTAMP)
                 .putString(KEY_MERCHANT, "")
                 .putString(KEY_CATEGORY_HINT, "")
+                .putString(KEY_NOTE_HINT, "")
                 .putString(KEY_ITEMS_JSON, EMPTY_ITEMS_JSON)
+                .putString(KEY_RAW_TEXT, "")
+                .putString(KEY_PROCESSING_SOURCE, "")
+                .putString(KEY_PROCESSING_DETAIL, "")
                 .putInt(KEY_CONFIDENCE, CONFIDENCE_LOW)
                 .putBoolean(KEY_OCR_HAS_TEXT, false)
                 .putInt(KEY_OCR_BLOCK_COUNT, 0)
@@ -104,5 +128,10 @@ public final class ReceiptScanContract {
             return EMPTY_ITEMS_JSON;
         }
         return itemsJson;
+    }
+
+    @NonNull
+    private static String sanitizeRawText(@Nullable String rawText) {
+        return rawText == null ? "" : rawText.trim();
     }
 }

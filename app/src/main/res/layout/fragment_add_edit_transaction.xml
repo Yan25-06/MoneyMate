@@ -17,7 +17,7 @@
             android:paddingStart="16dp"
             android:paddingTop="18dp"
             android:paddingEnd="16dp"
-            android:paddingBottom="104dp">
+            android:paddingBottom="28dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -50,10 +50,76 @@
                 app:layout_constraintTop_toTopOf="@id/btn_close_screen" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/fab_scan_transaction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:clickable="true"
+                android:contentDescription="@string/transaction_scan_receipt"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/transaction_income_accent"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_circle_icon"
+                        android:backgroundTint="@color/transaction_income_soft"
+                        android:contentDescription="@null"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_category_camera"
+                        app:tint="@color/transaction_income_accent" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/transaction_scan_entry_title"
+                            android:textColor="@color/statistics_text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/transaction_scan_entry_subtitle"
+                            android:textColor="@color/transaction_muted_text"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@null"
+                        android:rotation="180"
+                        android:src="@drawable/outline_arrow_back_24"
+                        app:tint="@color/transaction_muted_icon" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="16dp"
             app:cardBackgroundColor="@color/transaction_panel"
             app:cardCornerRadius="28dp"
             app:cardElevation="0dp"
@@ -353,18 +419,6 @@
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_scan_transaction"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="24dp"
-        android:contentDescription="@string/transaction_scan_receipt"
-        android:src="@drawable/ic_category_camera"
-        app:backgroundTint="@color/transaction_income_accent"
-        app:tint="@color/white" />
 
 </FrameLayout>
 

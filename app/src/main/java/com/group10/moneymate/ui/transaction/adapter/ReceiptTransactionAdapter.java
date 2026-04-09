@@ -66,6 +66,7 @@ public class ReceiptTransactionAdapter extends ListAdapter<ReceiptTransactionAda
             binding.tvReceiptNote.setText(item.getNote());
             binding.tvReceiptCategory.setText(item.getCategoryLabel());
             binding.tvReceiptDate.setText(item.getDateLabel());
+            binding.tvReceiptWallet.setText(item.getWalletLabel());
             binding.tvReceiptWarning.setText(item.getWarningLabel());
             binding.tvReceiptWarning.setVisibility(item.hasWarning() ? android.view.View.VISIBLE : android.view.View.GONE);
             binding.ivReceiptWarning.setVisibility(item.hasWarning() ? android.view.View.VISIBLE : android.view.View.GONE);
@@ -96,6 +97,8 @@ public class ReceiptTransactionAdapter extends ListAdapter<ReceiptTransactionAda
         private final long timestamp;
         @NonNull
         private final String dateLabel;
+        @NonNull
+        private final String walletLabel;
         private final int confidence;
         @NonNull
         private final String warningLabel;
@@ -108,6 +111,7 @@ public class ReceiptTransactionAdapter extends ListAdapter<ReceiptTransactionAda
                                   @NonNull String categoryLabel,
                                   long timestamp,
                                   @NonNull String dateLabel,
+                                  @NonNull String walletLabel,
                                   int confidence,
                                   @NonNull String warningLabel) {
             this.draftId = draftId;
@@ -118,6 +122,7 @@ public class ReceiptTransactionAdapter extends ListAdapter<ReceiptTransactionAda
             this.categoryLabel = categoryLabel;
             this.timestamp = timestamp;
             this.dateLabel = dateLabel;
+            this.walletLabel = walletLabel;
             this.confidence = confidence;
             this.warningLabel = warningLabel;
         }
@@ -161,6 +166,11 @@ public class ReceiptTransactionAdapter extends ListAdapter<ReceiptTransactionAda
             return dateLabel;
         }
 
+        @NonNull
+        public String getWalletLabel() {
+            return walletLabel;
+        }
+
         public int getConfidence() {
             return confidence;
         }
@@ -192,6 +202,7 @@ public class ReceiptTransactionAdapter extends ListAdapter<ReceiptTransactionAda
                     && categoryHint.equals(item.categoryHint)
                     && categoryLabel.equals(item.categoryLabel)
                     && dateLabel.equals(item.dateLabel)
+                    && walletLabel.equals(item.walletLabel)
                     && warningLabel.equals(item.warningLabel);
         }
 
@@ -206,6 +217,7 @@ public class ReceiptTransactionAdapter extends ListAdapter<ReceiptTransactionAda
                     categoryLabel,
                     timestamp,
                     dateLabel,
+                    walletLabel,
                     confidence,
                     warningLabel
             );
