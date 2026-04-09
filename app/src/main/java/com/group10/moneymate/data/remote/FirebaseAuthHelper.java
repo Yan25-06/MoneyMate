@@ -8,9 +8,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.UserProfileChangeRequest;
 
-/**
- * Helper class for Firebase Authentication operations.
- */
 public class FirebaseAuthHelper {
     private final FirebaseAuth firebaseAuth;
 
@@ -18,13 +15,9 @@ public class FirebaseAuthHelper {
         this.firebaseAuth = FirebaseAuth.getInstance();
     }
 
-    public FirebaseUser getCurrentUser() {
-        return firebaseAuth.getCurrentUser();
-    }
+    public FirebaseUser getCurrentUser() { return firebaseAuth.getCurrentUser(); }
 
-    public boolean isLoggedIn() {
-        return firebaseAuth.getCurrentUser() != null;
-    }
+    public boolean isLoggedIn() { return firebaseAuth.getCurrentUser() != null; }
 
     public String getCurrentUserId() {
         FirebaseUser user = firebaseAuth.getCurrentUser();
@@ -47,17 +40,12 @@ public class FirebaseAuthHelper {
         return firebaseAuth.signInAnonymously();
     }
 
-    /**
-     * Đăng nhập bằng Google ID Token lấy từ Google Sign-In.
-     */
-    public Task<AuthResult> signInWithGoogle(String idToken) {
-        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+    /** Dùng chung cho Google credential và các provider khác */
+    public Task<AuthResult> signInWithCredential(AuthCredential credential) {
         return firebaseAuth.signInWithCredential(credential);
     }
 
-    public void signOut() {
-        firebaseAuth.signOut();
-    }
+    public void signOut() { firebaseAuth.signOut(); }
 
     public Task<Void> updateDisplayName(FirebaseUser user, String displayName) {
         UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()

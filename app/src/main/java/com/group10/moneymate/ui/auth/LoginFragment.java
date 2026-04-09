@@ -1,12 +1,14 @@
 package com.group10.moneymate.ui.auth;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
@@ -32,17 +34,15 @@ import com.group10.moneymate.ui.main.HomeActivity;
 import com.group10.moneymate.ui.security.SecurityViewModel;
 import com.group10.moneymate.utils.ValidationResult;
 
-/**
- * Fragment for email/password and Google login.
- * Hiển thị nút "Đăng nhập bằng mã PIN" nếu passcode đã được thiết lập.
- */
 public class LoginFragment extends Fragment {
 
     private FragmentLoginBinding binding;
     private AuthViewModel viewModel;
     private GoogleSignInClient googleSignInClient;
 
-    // Launcher để nhận kết quả từ Google Sign-In Intent
+    // Luu tam idToken trong khi cho user nhap password de link
+    private String pendingLinkIdToken;
+
     private final ActivityResultLauncher<Intent> googleSignInLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
@@ -68,21 +68,18 @@ public class LoginFragment extends Fragment {
         setupListeners();
     }
 
-    // ─── Google Sign-In ───────────────────────────────────────────────────────
+    // Google Sign-In setup
 
     private void setupGoogleSignIn() {
-        // Lấy Web Client ID từ google-services.json qua string resource
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .requestProfile()
                 .build();
-
         googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso);
     }
 
     private void launchGoogleSignIn() {
-        // Sign out khỏi Google trước để luôn hiển thị account picker
         googleSignInClient.signOut().addOnCompleteListener(task -> {
             Intent signInIntent = googleSignInClient.getSignInIntent();
             googleSignInLauncher.launch(signInIntent);
@@ -96,28 +93,52 @@ public class LoginFragment extends Fragment {
             GoogleSignInAccount account = task.getResult(ApiException.class);
             String idToken = account.getIdToken();
             if (idToken != null) {
-                // Gửi idToken lên Firebase → ViewModel
                 viewModel.loginWithGoogle(idToken);
             } else {
                 Toast.makeText(requireContext(),
                         getString(R.string.error_auth_login_failed), Toast.LENGTH_SHORT).show();
             }
         } catch (ApiException e) {
-            // Người dùng hủy hoặc lỗi Google
-            Log.e("GoogleSignIn", "signInResult:failed code=" + e.getStatusCode());
-            if (e.getStatusCode() != 12501) { // 12501 = người dùng bấm Back
+            if (e.getStatusCode() != 12501) {
                 Toast.makeText(requireContext(),
                         getString(R.string.error_auth_login_failed), Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    // ─── Passcode login button ────────────────────────────────────────────────
+    /**
+     * Hien dialog hoi password khi Google Sign-In gap account da ton tai.
+     * Sau khi user nhap dung password, goi viewModel.linkPendingGoogle(password)
+     * de link Google vao account email/password -> ca hai cach deu dang nhap duoc.
+     */
+    private void showLinkAccountDialog(String email) {
+        EditText passwordInput = new EditText(requireContext());
+        passwordInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        passwordInput.setHint(getString(R.string.hint_password));
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.dialog_link_account_title))
+                .setMessage(getString(R.string.dialog_link_account_message, email))
+                .setView(passwordInput)
+                .setPositiveButton(getString(R.string.dialog_link_account_confirm), (dialog, which) -> {
+                    String password = passwordInput.getText().toString().trim();
+                    if (TextUtils.isEmpty(password)) {
+                        Toast.makeText(requireContext(),
+                                getString(R.string.error_auth_wrong_password), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    viewModel.linkPendingGoogle(password);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .setCancelable(false)
+                .show();
+    }
+
+    // Passcode login button
 
     private void setupPasscodeLoginButton() {
         AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
                 .getAppContainer();
-
         if (container.authRepository.isPasscodeEnabled()) {
             binding.btnPasscodeLogin.setVisibility(View.VISIBLE);
             binding.btnPasscodeLogin.setOnClickListener(v -> navigateToPasscodeVerify());
@@ -130,12 +151,11 @@ public class LoginFragment extends Fragment {
         Bundle args = new Bundle();
         args.putInt("passcode_mode", SecurityViewModel.MODE_VERIFY);
         args.putBoolean("passcode_finish_to_home", true);
-
         Navigation.findNavController(requireView())
                 .navigate(R.id.action_login_to_passcode, args);
     }
 
-    // ─── Observers ────────────────────────────────────────────────────────────
+    // Observers
 
     private void observeAuthState() {
         viewModel.getAuthState().observe(getViewLifecycleOwner(), state -> {
@@ -150,9 +170,16 @@ public class LoginFragment extends Fragment {
 
             if (state == AuthViewModel.AuthState.AUTHENTICATED) {
                 ((MoneyMateApplication) requireActivity().getApplication())
-                        .getAppContainer()
-                        .seedDefaultCategoriesIfNeeded();
+                        .getAppContainer().seedDefaultCategoriesIfNeeded();
                 openHomeActivity();
+                return;
+            }
+
+            // Google collision: email da ton tai voi provider email/password
+            // Hien dialog de user xac nhan va link hai account
+            if (state == AuthViewModel.AuthState.GOOGLE_LINK_REQUIRED) {
+                String email = viewModel.getPendingGoogleEmail();
+                showLinkAccountDialog(email != null ? email : "");
             }
         });
 
@@ -162,48 +189,30 @@ public class LoginFragment extends Fragment {
         });
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
-            if (!TextUtils.isEmpty(message)) {
+            if (!TextUtils.isEmpty(message))
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-            }
         });
     }
 
-    // ─── Listeners ────────────────────────────────────────────────────────────
+    // Listeners
 
     private void setupListeners() {
         binding.btnLogin.setOnClickListener(v -> {
-            try {
-                clearInputErrors();
-                String email = String.valueOf(binding.etEmail.getText()).trim();
-                String password = String.valueOf(binding.etPassword.getText()).trim();
-
-                // Log debug cho quá trình đăng nhập thường (nếu cần)
-                Log.d("LoginFragment", "Bắt đầu đăng nhập với email: " + email);
-
-                viewModel.login(email, password);
-
-            } catch (Exception e) {
-                // Bắt tất cả các lỗi có thể gây văng app khi bấm nút
-                Log.e("LoginFragment", "Lỗi ngoại lệ khi bấm nút đăng nhập", e);
-
-                // Bạn có thể hiển thị thêm Toast để báo cho người dùng
-                // Toast.makeText(requireContext(), "Có lỗi xảy ra, vui lòng thử lại", Toast.LENGTH_SHORT).show();
-            }
+            clearInputErrors();
+            String email = String.valueOf(binding.etEmail.getText()).trim();
+            String password = String.valueOf(binding.etPassword.getText()).trim();
+            viewModel.login(email, password);
         });
 
         binding.btnGoogleLogin.setOnClickListener(v -> launchGoogleSignIn());
 
         binding.tvRegister.setOnClickListener(v ->
                 Navigation.findNavController(v).navigate(
-                        LoginFragmentDirections.actionLoginToRegister()
-                )
-        );
+                        LoginFragmentDirections.actionLoginToRegister()));
 
         binding.tvForgotPassword.setOnClickListener(v ->
                 Navigation.findNavController(v).navigate(
-                        LoginFragmentDirections.actionLoginToForgotPassword()
-                )
-        );
+                        LoginFragmentDirections.actionLoginToForgotPassword()));
     }
 
     private void clearInputErrors() {
@@ -225,7 +234,7 @@ public class LoginFragment extends Fragment {
         }
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    // Helpers
 
     private void openHomeActivity() {
         Intent intent = new Intent(requireContext(), HomeActivity.class);

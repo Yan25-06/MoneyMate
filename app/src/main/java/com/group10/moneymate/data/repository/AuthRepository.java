@@ -1,48 +1,39 @@
 package com.group10.moneymate.data.repository;
 
 import android.text.TextUtils;
-
 import androidx.annotation.NonNull;
-
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.UserDao;
 import com.group10.moneymate.data.local.entity.UserEntity;
 import com.group10.moneymate.data.remote.FirebaseAuthHelper;
 import com.group10.moneymate.utils.PasscodeHasher;
 import com.group10.moneymate.utils.PrefsManager;
-
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
-
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 
-/**
- * Repository handling authentication (Firebase Auth) and local user persistence.
- */
 public class AuthRepository {
 
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
-
         void onError(String message);
     }
 
     public interface SimpleCallback {
         void onSuccess();
-
         void onError(String message);
     }
 
-    /**
-     * Callback cho passcode login (offline-capable, không cần FirebaseUser).
-     */
     public interface PasscodeCallback {
         void onSuccess(String uid);
-
         void onError(String message);
     }
 
@@ -57,17 +48,13 @@ public class AuthRepository {
         this.prefsManager = prefsManager;
     }
 
-    // ─── Auth state ───────────────────────────────────────────────────────────
+    // Auth state
 
-    public boolean isLoggedIn() {
-        return firebaseAuthHelper.isLoggedIn();
-    }
+    public boolean isLoggedIn() { return firebaseAuthHelper.isLoggedIn(); }
 
     public String getCurrentUserId() {
         String localUid = prefsManager.getUid();
-        if (!TextUtils.isEmpty(localUid)) {
-            return localUid;
-        }
+        if (!TextUtils.isEmpty(localUid)) return localUid;
         String firebaseUid = firebaseAuthHelper.getCurrentUserId();
         return firebaseUid != null ? firebaseUid : "";
     }
@@ -75,14 +62,11 @@ public class AuthRepository {
     public void ensureLocalUserRecord() {
         final String localUserId = getCurrentUserId();
         if (TextUtils.isEmpty(localUserId)) return;
-
         final FirebaseUser firebaseUser = firebaseAuthHelper.getCurrentUser();
         final long now = System.currentTimeMillis();
-
         AppDatabase.databaseWriteExecutor.execute(() -> {
             UserEntity existing = userDao.getUserByIdSync(localUserId);
             if (existing != null) return;
-
             UserEntity entity = new UserEntity();
             entity.setId(localUserId);
             entity.setEmail(firebaseUser != null ? firebaseUser.getEmail() : null);
@@ -103,14 +87,10 @@ public class AuthRepository {
         firebaseAuthHelper.signOut();
         prefsManager.setLoggedIn(false);
         prefsManager.saveUid(null);
-        // Không xóa passcode khi sign out — passcode vẫn dùng được offline
     }
 
-    // ─── Firebase Auth ────────────────────────────────────────────────────────
+    // Firebase Auth
 
-    /**
-     * Register với email/password, cập nhật display name, lưu UserEntity vào Room.
-     */
     public void register(String email, String password, String displayName,
                          @NonNull final AuthCallback callback) {
         final String trimmedDisplayName = displayName != null ? displayName.trim() : "";
@@ -118,22 +98,14 @@ public class AuthRepository {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         AuthResult result = task.getResult();
-                        if (result == null) {
-                            callback.onError("Registration failed: empty result");
-                            return;
-                        }
+                        if (result == null) { callback.onError("Registration failed: empty result"); return; }
                         FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) {
-                            callback.onError("Registration failed: no user");
-                            return;
-                        }
-
+                        if (firebaseUser == null) { callback.onError("Registration failed: no user"); return; }
                         if (TextUtils.isEmpty(trimmedDisplayName)) {
                             handleAuthSuccess(firebaseUser, trimmedDisplayName);
                             callback.onSuccess(firebaseUser);
                             return;
                         }
-
                         firebaseAuthHelper.updateDisplayName(firebaseUser, trimmedDisplayName)
                                 .addOnCompleteListener(updateTask -> {
                                     handleAuthSuccess(firebaseUser, trimmedDisplayName);
@@ -146,81 +118,102 @@ public class AuthRepository {
                 });
     }
 
-    /**
-     * Login với email/password, đảm bảo UserEntity tồn tại trong Room.
-     */
     public void login(String email, String password, @NonNull final AuthCallback callback) {
         firebaseAuthHelper.signInWithEmail(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         AuthResult result = task.getResult();
-                        if (result == null) {
-                            callback.onError("auth_login_failed");
-                            return;
-                        }
+                        if (result == null) { callback.onError("auth_login_failed"); return; }
                         FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) {
-                            callback.onError("auth_login_failed");
-                            return;
-                        }
+                        if (firebaseUser == null) { callback.onError("auth_login_failed"); return; }
                         handleAuthSuccess(firebaseUser);
                         callback.onSuccess(firebaseUser);
                         return;
                     }
+                    callback.onError(mapLoginErrorKey(task.getException()));
+                });
+    }
 
+    public void loginWithGoogle(String idToken, @NonNull final AuthCallback callback) {
+        AuthCredential googleCredential = GoogleAuthProvider.getCredential(idToken, null);
+        firebaseAuthHelper.signInWithCredential(googleCredential)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        AuthResult result = task.getResult();
+                        if (result == null) { callback.onError("auth_login_failed"); return; }
+                        FirebaseUser firebaseUser = result.getUser();
+                        if (firebaseUser == null) { callback.onError("auth_login_failed"); return; }
+                        handleAuthSuccess(firebaseUser);
+                        callback.onSuccess(firebaseUser);
+                        return;
+                    }
                     Exception e = task.getException();
+                    if (e instanceof FirebaseAuthUserCollisionException) {
+                        // Email đã tồn tại với provider khác
+                        // Trả về error key đặc biệt để UI hỏi password rồi link
+                        String email = ((FirebaseAuthUserCollisionException) e).getEmail();
+                        callback.onError("auth_google_link_needed:" + (email != null ? email : ""));
+                        return;
+                    }
                     callback.onError(mapLoginErrorKey(e));
                 });
     }
 
     /**
-     * Đăng nhập bằng Google ID Token.
-     * Tự động tạo UserEntity trong Room nếu user mới.
+     * Đăng nhập email/password rồi link Google credential vào.
+     * Gọi khi loginWithGoogle() trả về "auth_google_link_needed".
+     * Sau khi link xong, account có CẢ HAI provider:
+     *   - Có thể đăng nhập bằng email/password
+     *   - Có thể đăng nhập bằng Google
+     *
+     * @param email    email của account
+     * @param password password để xác thực lần đầu
+     * @param idToken  Google ID Token từ Google Sign-In
+     * @param callback kết quả
      */
-    public void loginWithGoogle(String idToken, @NonNull final AuthCallback callback) {
-        firebaseAuthHelper.signInWithGoogle(idToken)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        AuthResult result = task.getResult();
-                        if (result == null) {
-                            callback.onError("auth_login_failed");
-                            return;
-                        }
-                        FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) {
-                            callback.onError("auth_login_failed");
-                            return;
-                        }
-                        handleAuthSuccess(firebaseUser);
-                        callback.onSuccess(firebaseUser);
-                    } else {
-                        Exception e = task.getException();
-                        callback.onError(mapLoginErrorKey(e));
+    public void linkGoogleToEmailAccount(String email, String password, String idToken,
+                                         @NonNull final AuthCallback callback) {
+        // Bước 1: đăng nhập bằng email/password để lấy FirebaseUser
+        firebaseAuthHelper.signInWithEmail(email, password)
+                .addOnCompleteListener(loginTask -> {
+                    if (!loginTask.isSuccessful()) {
+                        callback.onError(mapLoginErrorKey(loginTask.getException()));
+                        return;
                     }
+                    FirebaseUser user = loginTask.getResult() != null
+                            ? loginTask.getResult().getUser() : null;
+                    if (user == null) { callback.onError("auth_login_failed"); return; }
+
+                    // Bước 2: link Google credential vào account này
+                    AuthCredential googleCredential = GoogleAuthProvider.getCredential(idToken, null);
+                    user.linkWithCredential(googleCredential)
+                            .addOnCompleteListener(linkTask -> {
+                                if (linkTask.isSuccessful()) {
+                                    FirebaseUser linkedUser = linkTask.getResult() != null
+                                            ? linkTask.getResult().getUser() : user;
+                                    if (linkedUser == null) { callback.onError("auth_login_failed"); return; }
+                                    handleAuthSuccess(linkedUser);
+                                    callback.onSuccess(linkedUser);
+                                } else {
+                                    // Google đã được link rồi → vẫn cho đăng nhập
+                                    handleAuthSuccess(user);
+                                    callback.onSuccess(user);
+                                }
+                            });
                 });
     }
 
     private String mapLoginErrorKey(Exception exception) {
-        if (exception == null) {
-            return "auth_login_failed";
-        }
-        if (exception instanceof FirebaseAuthInvalidUserException) {
-            return "auth_user_not_found";
-        }
-        if (exception instanceof FirebaseAuthInvalidCredentialsException) {
-            return "auth_wrong_password";
-        }
+        if (exception == null) return "auth_login_failed";
+        if (exception instanceof FirebaseAuthInvalidUserException) return "auth_user_not_found";
+        if (exception instanceof FirebaseAuthInvalidCredentialsException) return "auth_wrong_password";
+        if (exception instanceof FirebaseAuthUserCollisionException) return "auth_account_exists_with_different_credential";
         if (exception instanceof FirebaseNetworkException
                 || exception instanceof SocketTimeoutException
-                || exception instanceof IOException) {
-            return "auth_network_timeout";
-        }
+                || exception instanceof IOException) return "auth_network_timeout";
         return "auth_login_failed";
     }
 
-    /**
-     * Gửi email đặt lại mật khẩu.
-     */
     public void sendPasswordResetEmail(String email, @NonNull final SimpleCallback callback) {
         firebaseAuthHelper.sendPasswordResetEmail(email)
                 .addOnCompleteListener(task -> {
@@ -228,18 +221,16 @@ public class AuthRepository {
                         callback.onSuccess();
                     } else {
                         Exception e = task.getException();
-                        callback.onError(e != null ? e.getMessage()
-                                : "Failed to send password reset email");
+                        callback.onError(e != null ? e.getMessage() : "Failed to send password reset email");
                     }
                 });
     }
 
-    // ─── Passcode ─────────────────────────────────────────────────────────────
+    // Passcode
 
     public void savePasscode(String uid, String passcode) {
         String hash = PasscodeHasher.hash(passcode);
         prefsManager.savePasscodeHash(uid, hash);
-
         AppDatabase.databaseWriteExecutor.execute(() -> {
             UserEntity user = userDao.getUserByIdSync(uid);
             if (user != null) {
@@ -252,8 +243,7 @@ public class AuthRepository {
 
     public void verifyPasscode(String passcode, @NonNull final PasscodeCallback callback) {
         String storedHash = prefsManager.getPasscodeHash();
-        String storedUid = prefsManager.getPasscodeUid();
-
+        String storedUid  = prefsManager.getPasscodeUid();
         if (!TextUtils.isEmpty(storedHash) && !TextUtils.isEmpty(storedUid)) {
             if (PasscodeHasher.verify(passcode, storedHash)) {
                 prefsManager.saveUid(storedUid);
@@ -264,13 +254,8 @@ public class AuthRepository {
             }
             return;
         }
-
         String currentUid = getCurrentUserId();
-        if (TextUtils.isEmpty(currentUid)) {
-            callback.onError("no_passcode_set");
-            return;
-        }
-
+        if (TextUtils.isEmpty(currentUid)) { callback.onError("no_passcode_set"); return; }
         AppDatabase.databaseWriteExecutor.execute(() -> {
             UserEntity user = userDao.getUserByIdSync(currentUid);
             if (user == null || TextUtils.isEmpty(user.getHashedPasscode())) {
@@ -288,9 +273,7 @@ public class AuthRepository {
         });
     }
 
-    public boolean isPasscodeEnabled() {
-        return prefsManager.isPasscodeEnabled();
-    }
+    public boolean isPasscodeEnabled() { return prefsManager.isPasscodeEnabled(); }
 
     public void clearPasscode(String uid) {
         prefsManager.clearPasscode();
@@ -304,7 +287,7 @@ public class AuthRepository {
         });
     }
 
-    // ─── Private helpers ──────────────────────────────────────────────────────
+    // Private helpers
 
     private void handleAuthSuccess(@NonNull FirebaseUser firebaseUser) {
         handleAuthSuccess(firebaseUser,
@@ -317,8 +300,6 @@ public class AuthRepository {
         final String localUserId = firebaseUser.getUid();
         final String resolvedName = !TextUtils.isEmpty(displayName) ? displayName
                 : (firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
-
-        // Lấy avatar URL từ Google nếu có
         final String photoUrl = firebaseUser.getPhotoUrl() != null
                 ? firebaseUser.getPhotoUrl().toString() : null;
 
@@ -340,7 +321,6 @@ public class AuthRepository {
             } else {
                 existing.setEmail(firebaseUser.getEmail());
                 existing.setDisplayName(resolvedName);
-                // Cập nhật avatar từ Google nếu chưa có avatar custom
                 if (TextUtils.isEmpty(existing.getAvatarUrl()) && !TextUtils.isEmpty(photoUrl)) {
                     existing.setAvatarUrl(photoUrl);
                 }

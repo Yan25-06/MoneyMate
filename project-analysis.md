@@ -368,6 +368,46 @@ Khi thành công:
 -> `AuthViewModel.AuthState.AUTHENTICATED`
 -> `LoginFragment` mở `HomeActivity`.
 
+### Google Sign-In Flow
+User Action
+ -> `LoginFragment` (tap Google button, `btnGoogleSignIn`)
+ -> `AuthViewModel.loginWithGoogle(idToken)`
+ -> `AuthRepository.loginWithGoogle(idToken)`
+ -> `FirebaseAuthHelper.signInWithGoogleCredential(idToken)`
+ -> Firebase Auth (`signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))`)
+
+Khi thành công:
+-> `AuthRepository.handleAuthSuccess(...)` ghi local (`users` + `PrefsManager`)
+-> `AuthViewModel.AuthState.AUTHENTICATED`
+-> `LoginFragment` mở `HomeActivity`.
+
+### Google Account Linking (same email with Email/Password)
+- Khi user đã có tài khoản Email/Password và đăng nhập Google cùng email, Firebase hợp nhất theo cùng user (1 email = 1 account) nếu cấu hình Firebase Auth đã bật đúng.
+- Ứng dụng vẫn giữ flow local như login thường:
+  - cập nhật `UserEntity` trong Room
+  - cập nhật `PrefsManager` (`uid`, `is_logged_in`)
+- Sau khi link thành công, user có thể đăng nhập lại bằng cả:
+  - Email/Password
+  - Google provider
+
+### Function Chain (Google)
+`LoginFragment.onGoogleSignInResult()`
+-> `AuthViewModel.loginWithGoogle(idToken)`
+-> `AuthRepository.loginWithGoogle(idToken, callback)`
+-> `FirebaseAuthHelper.signInWithGoogleCredential(idToken, callback)`
+-> Firebase success
+-> `AuthRepository.handleAuthSuccess(...)`
+-> `UserDao.getUserByIdSync(...)` + `insertUser(...)`/`updateUser(...)` (background executor)
+-> `PrefsManager.saveUid(...)`, `PrefsManager.setLoggedIn(true)`
+
+### Notes (Google)
+- `idToken` phải là token mới từ Google Sign-In client; token rỗng/hết hạn sẽ gây `FirebaseAuthInvalidCredentialsException`.
+- `AuthRepository` nên log debug theo `tag = AuthRepository` cho các điểm:
+  - nhận `idToken` null/rỗng
+  - lỗi từ `signInWithCredential`
+  - thông tin provider hiện có của user sau đăng nhập thành công
+- Google flow dùng chung `handleAuthSuccess(...)` để đảm bảo nhất quán local persistence với Email/Password flow.
+
 ### Register Flow
 User Action
  -> `RegisterFragment` (`btnRegister`)
@@ -432,21 +472,13 @@ Khi thành công:
   -> Firebase Auth gửi reset email
 
 ### Notes
-- `AuthRepository` là điểm coupling chính giữa remote và local:
-  - Remote: gọi Firebase Auth qua `FirebaseAuthHelper`.
-  - Local: ghi Room (`UserDao`) + SharedPreferences (`PrefsManager`) trong cùng auth flow.
-- `FirebaseAuthHelper` chỉ bọc FirebaseAuth API, không chứa logic local/cache.
-- `LoginActivity` và `MainActivity` route dựa trên `authRepository.isLoggedIn()` và trạng thái passcode (`isPasscodeEnabled()`).
-- Utils/models liên quan trực tiếp trong auth flow:
-  - `AuthInputValidator`, `ValidationResult` (validate và field-level error)
-  - `PrefsManager` (phiên đăng nhập + passcode metadata)
-  - `PasscodeHasher` (hash/verify passcode)
-  - `UserEntity` (local profile + hashed passcode fallback)
+- `AuthViewModel` đang dùng callback từ repository để cập nhật `authState`, chưa chuyển sang sealed-state cho từng phase (loading/success/error) như một số feature khác.
+- `AuthRepository.handleAuthSuccess(...)` chạy write Room trên `databaseWriteExecutor` nhưng set Prefs ngay; có thể có race nhỏ giữa điều hướng UI và thời điểm user record local hoàn tất.
+- `ensureLocalUserRecord()` chạy ở app startup giúp hạn chế thiếu bản ghi `users`, nhưng có thể tạo thêm truy cập DB sớm ngay khi app mở.
 
 ### Open Questions / Uncertain Areas
-- `AuthRepository.signOut()` cố ý giữ passcode để hỗ trợ offline unlock, nhưng sau khi logout user vẫn có thể vào app qua passcode verify (khôi phục `is_logged_in=true` từ local). Đây là hành vi chủ đích hay rủi ro bảo mật cần điều chỉnh?
-- `MoneyMateApplication.onCreate()` gọi `bootstrapLocalData()` ngay khi app start. Trong trường hợp Firebase session hết hạn nhưng Prefs còn uid cũ, có cần cơ chế reconcile/chuẩn hóa lại `uid` local để tránh lệch user context?
-- Hiện chỉ thấy luồng push sync cho transactions/categories/wallets/budgets/debts/events; nếu cần đồng bộ `users` (display_name/avatar/currency/language) với cloud thì chưa có pipeline rõ ràng trong worker hiện tại.
+- `MainActivity` và `LoginActivity` đều có routing logic liên quan trạng thái đăng nhập/passcode; cần xác nhận có muốn gom về một điểm để tránh duplication không?
+- `AuthRepository.signOut()` hiện không clear passcode; đây là chủ đích để giữ khóa offline cho lần đăng nhập sau hay cần reset theo account context?
 
 ## 4.7 Database Design
 
@@ -498,7 +530,7 @@ Khi thành công:
   - Migration chain đăng ký tuần tự trong `AppDatabase`: `7->8`, `8->9`, `9->10`, `10->11`, `11->12`, `12->13`.
   - Mỗi migration tách file riêng theo version pair trong `data/local/migrations`.
   - Nội dung migration hiện tại gồm: reshape schema lớn (`7->8`), chuẩn hóa timestamp (`8->9`), unique index budget scope (`9->10`), tạo bảng sync metadata (`10->11`), tối ưu index sync/read path (`11->12`, `12->13`).
-- **Utils/models tham gia trực tiếp:**
+- **Utils/models liên quan trực tiếp:**
   - `Converters` map enum/date <-> DB scalar.
   - Các enum `TransactionType`, `WalletType`, `CategoryType`, `DebtType`, `DebtStatus` dùng trong conversion và điều kiện query string.
   - `SyncStatus` chuẩn hóa state machine đồng bộ cho nhiều bảng.
