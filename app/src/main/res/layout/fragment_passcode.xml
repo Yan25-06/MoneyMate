@@ -1,21 +1,239 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="32dp">
+    android:background="@color/white">
 
+    <!-- Back button (top-left) -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/btn_back"
+        android:src="@drawable/outline_arrow_back_24"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/moneymate_field_text" />
+
+    <!-- Title label -->
     <TextView
         android:id="@+id/tvPasscodeTitle"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/title_passcode"
-        android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+        android:layout_marginTop="56dp"
+        android:gravity="center"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/budget_text_primary"
+        android:textSize="22sp"
+        android:letterSpacing="0.01"
+        tools:text="@string/title_create_passcode"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Subtitle / instruction -->
     <TextView
-        android:id="@+id/tvPasscodeIndicator"
+        android:id="@+id/tvPasscodeSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="40dp"
+        android:gravity="center"
+        android:textColor="@color/statistics_text_secondary"
+        android:textSize="14sp"
+        tools:text="@string/passcode_subtitle_create"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvPasscodeTitle" />
+
+    <!-- PIN dot indicators -->
+    <LinearLayout
+        android:id="@+id/layoutPasscodeDots"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp" />
-</LinearLayout>
+        android:layout_marginTop="40dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:clipChildren="false"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvPasscodeSubtitle">
+
+        <!-- Dot 1 -->
+        <View
+            android:id="@+id/dot1"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/passcode_dot_selector" />
+        <!-- Dot 2 -->
+        <View
+            android:id="@+id/dot2"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/passcode_dot_selector" />
+        <!-- Dot 3 -->
+        <View
+            android:id="@+id/dot3"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/passcode_dot_selector" />
+        <!-- Dot 4 -->
+        <View
+            android:id="@+id/dot4"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/passcode_dot_selector" />
+        <!-- Dot 5 -->
+        <View
+            android:id="@+id/dot5"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/passcode_dot_selector" />
+        <!-- Dot 6 -->
+        <View
+            android:id="@+id/dot6"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/passcode_dot_selector" />
+
+    </LinearLayout>
+
+    <!-- Error message -->
+    <TextView
+        android:id="@+id/tvPasscodeError"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginHorizontal="40dp"
+        android:gravity="center"
+        android:textColor="@color/expense_red"
+        android:textSize="13sp"
+        android:visibility="invisible"
+        tools:text="Mã không đúng, thử lại"
+        tools:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutPasscodeDots" />
+
+    <!-- ── Number pad ───────────────────────────────────────────────────── -->
+    <GridLayout
+        android:id="@+id/gridNumpad"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="40dp"
+        android:columnCount="3"
+        android:rowCount="4"
+        android:useDefaultMargins="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvPasscodeError"
+        app:layout_constraintVertical_bias="0.5">
+
+        <!-- Row 1: 1 2 3 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn1"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="1"
+            android:layout_column="0"
+            android:layout_row="0" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn2"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="2"
+            android:layout_column="1"
+            android:layout_row="0" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn3"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="3"
+            android:layout_column="2"
+            android:layout_row="0" />
+
+        <!-- Row 2: 4 5 6 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn4"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="4"
+            android:layout_column="0"
+            android:layout_row="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn5"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="5"
+            android:layout_column="1"
+            android:layout_row="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn6"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="6"
+            android:layout_column="2"
+            android:layout_row="1" />
+
+        <!-- Row 3: 7 8 9 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn7"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="7"
+            android:layout_column="0"
+            android:layout_row="2" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn8"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="8"
+            android:layout_column="1"
+            android:layout_row="2" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn9"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="9"
+            android:layout_column="2"
+            android:layout_row="2" />
+
+        <!-- Row 4: [empty] 0 [backspace] -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_column="0"
+            android:layout_columnWeight="1"
+            android:layout_row="3"
+            android:layout_rowWeight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn0"
+            style="@style/Widget.MoneyMate.Passcode.NumKey"
+            android:text="0"
+            android:layout_column="1"
+            android:layout_row="3" />
+
+        <!-- Backspace key -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBackspace"
+            style="@style/Widget.MoneyMate.Passcode.NumKey.Icon"
+            android:contentDescription="@string/passcode_backspace"
+            app:icon="@drawable/outline_remove_24"
+            android:layout_column="2"
+            android:layout_row="3" />
+
+    </GridLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

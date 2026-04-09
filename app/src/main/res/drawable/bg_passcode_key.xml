@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/drawable/bg_passcode_key.xml -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/statistics_chip_ripple">
+
+    <item android:id="@android:id/mask">
+        <shape android:shape="oval">
+            <solid android:color="@color/white" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/statistics_chip_background" />
+        </shape>
+    </item>
+
+</ripple>

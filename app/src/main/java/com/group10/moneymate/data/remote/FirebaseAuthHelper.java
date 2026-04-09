@@ -1,14 +1,13 @@
 package com.group10.moneymate.data.remote;
 
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.UserProfileChangeRequest;
 
-/**
- * Helper class for Firebase Authentication operations.
- */
 public class FirebaseAuthHelper {
     private final FirebaseAuth firebaseAuth;
 
@@ -16,13 +15,9 @@ public class FirebaseAuthHelper {
         this.firebaseAuth = FirebaseAuth.getInstance();
     }
 
-    public FirebaseUser getCurrentUser() {
-        return firebaseAuth.getCurrentUser();
-    }
+    public FirebaseUser getCurrentUser() { return firebaseAuth.getCurrentUser(); }
 
-    public boolean isLoggedIn() {
-        return firebaseAuth.getCurrentUser() != null;
-    }
+    public boolean isLoggedIn() { return firebaseAuth.getCurrentUser() != null; }
 
     public String getCurrentUserId() {
         FirebaseUser user = firebaseAuth.getCurrentUser();
@@ -40,12 +35,17 @@ public class FirebaseAuthHelper {
     public Task<Void> sendPasswordResetEmail(String email) {
         return firebaseAuth.sendPasswordResetEmail(email);
     }
+
     public Task<AuthResult> signInAnonymously() {
         return firebaseAuth.signInAnonymously();
     }
-    public void signOut() {
-        firebaseAuth.signOut();
+
+    /** Dùng chung cho Google credential và các provider khác */
+    public Task<AuthResult> signInWithCredential(AuthCredential credential) {
+        return firebaseAuth.signInWithCredential(credential);
     }
+
+    public void signOut() { firebaseAuth.signOut(); }
 
     public Task<Void> updateDisplayName(FirebaseUser user, String displayName) {
         UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()

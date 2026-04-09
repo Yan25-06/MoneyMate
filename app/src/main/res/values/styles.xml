@@ -6,6 +6,38 @@
         <item name="cornerSize">18dp</item>
     </style>
 
+    <!-- Thêm vào res/values/styles.xml -->
+
+    <!--
+        NumKey: nút số tròn, nền chip xám nhạt, chữ lớn đậm
+    -->
+    <style name="Widget.MoneyMate.Passcode.NumKey" parent="Widget.Material3.Button.TextButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">72dp</item>
+        <item name="android:layout_margin">6dp</item>
+        <item name="android:layout_columnWeight">1</item>
+        <item name="android:layout_rowWeight">1</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textColor">@color/budget_text_primary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="backgroundTint">@color/statistics_chip_background</item>
+        <item name="cornerRadius">36dp</item>
+        <item name="rippleColor">@color/statistics_chip_ripple</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">72dp</item>
+    </style>
+
+    <!--
+        NumKey.Icon: biến thể cho nút backspace (icon thay text)
+    -->
+    <style name="Widget.MoneyMate.Passcode.NumKey.Icon" parent="Widget.MoneyMate.Passcode.NumKey">
+        <item name="android:text"></item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconTint">@color/moneymate_field_text</item>
+        <item name="iconSize">24dp</item>
+    </style>
     <style name="Widget.MoneyMate.TextInputLayout.Outlined" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="boxBackgroundColor">@color/moneymate_field_surface</item>
         <item name="boxStrokeColor">@color/selector_moneymate_field_stroke</item>
