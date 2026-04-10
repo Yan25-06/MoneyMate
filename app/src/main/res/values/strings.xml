@@ -24,6 +24,8 @@
     <string name="dialog_link_account_title">Liên kết tài khoản</string>
     <string name="dialog_link_account_message">Email %1$s đã được đăng ký bằng mật khẩu. Nhập mật khẩu để liên kết với Google.</string>
     <string name="dialog_link_account_confirm">Liên kết</string>
+    <!-- Google OAuth Web client ID used by Google Sign-In requestIdToken() -->
+    <string name="default_web_client_id">496742424416-vnn4vhu67svk924jeuceqo25f9ou3jq6.apps.googleusercontent.com</string>
 
     <string name="error_email_required">Vui lòng nhập email</string>
     <string name="error_email_invalid">Email không hợp lệ</string>

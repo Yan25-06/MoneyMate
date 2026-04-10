@@ -2,18 +2,31 @@ package com.group10.moneymate.ui.auth;
 
 import android.app.Application;
 import android.text.TextUtils;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import com.google.firebase.auth.FirebaseUser;
+
 import com.group10.moneymate.R;
+import com.group10.moneymate.data.remote.SupabaseAuthHelper;
 import com.group10.moneymate.data.repository.AuthRepository;
-import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.utils.AuthInputValidator;
 import com.group10.moneymate.utils.ValidationResult;
 
+/**
+ * AuthViewModel – thay FirebaseUser bằng SupabaseAuthHelper.SupabaseUser.
+ *
+ * THAY ĐỔI DUY NHẤT so với phiên bản Firebase:
+ *  - import FirebaseUser → import SupabaseAuthHelper.SupabaseUser
+ *  - AuthCallback.onSuccess(FirebaseUser) → AuthCallback.onSuccess(SupabaseUser)
+ *  - Tất cả logic, state, flow giữ nguyên 100%
+ *
+ * GHI CHÚ về Google link flow:
+ *  - Supabase tự link account cùng email → GOOGLE_LINK_REQUIRED sẽ không bao giờ xuất hiện
+ *  - Giữ lại state + method để LoginFragment không cần sửa
+ */
 public class AuthViewModel extends AndroidViewModel {
 
     private final AuthRepository authRepository;
@@ -21,22 +34,19 @@ public class AuthViewModel extends AndroidViewModel {
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<ValidationResult> validationError = new MutableLiveData<>();
 
-    // Luu tam Google idToken va email khi gap collision de link sau
     private String pendingGoogleIdToken;
     private String pendingGoogleEmail;
 
     public enum AuthState {
         IDLE, LOADING, AUTHENTICATED, LOGGED_OUT, PASSWORD_RESET_EMAIL_SENT,
         REGISTERED_NEEDS_PASSCODE, PASSCODE_SAVED, PASSCODE_VERIFIED,
-        /** Can user nhap password de link Google vao account email/password hien co */
         GOOGLE_LINK_REQUIRED,
         ERROR
     }
 
     public AuthViewModel(@NonNull Application application) {
         super(application);
-        MoneyMateApplication app = (MoneyMateApplication) application;
-        authRepository = app.getAppContainer().authRepository;
+        authRepository = ((MoneyMateApplication) application).getAppContainer().authRepository;
         authState.setValue(AuthState.IDLE);
     }
 
@@ -54,6 +64,8 @@ public class AuthViewModel extends AndroidViewModel {
         authState.setValue(AuthState.ERROR);
     }
 
+    // ─── Login ────────────────────────────────────────────────────────────────
+
     public void login(String loginIdentifier, String password) {
         ValidationResult result = AuthInputValidator.validateLoginInput(
                 getApplication(), loginIdentifier, password);
@@ -64,7 +76,11 @@ public class AuthViewModel extends AndroidViewModel {
         }
         authState.setValue(AuthState.LOADING);
         authRepository.login(loginIdentifier, password, new AuthRepository.AuthCallback() {
-            public void onSuccess(FirebaseUser user) { authState.postValue(AuthState.AUTHENTICATED); }
+            @Override
+            public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                authState.postValue(AuthState.AUTHENTICATED);
+            }
+            @Override
             public void onError(String message) {
                 errorMessage.postValue(mapLoginErrorMessage(message));
                 authState.postValue(AuthState.ERROR);
@@ -72,19 +88,18 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
 
-    /**
-     * Dang nhap bang Google.
-     * Neu email da ton tai voi provider email/password:
-     *   -> luu pendingGoogleIdToken + pendingGoogleEmail
-     *   -> post state GOOGLE_LINK_REQUIRED
-     *   -> Fragment hien dialog hoi password
-     *   -> sau do goi linkPendingGoogle(password)
-     */
+    // ─── Google Login ─────────────────────────────────────────────────────────
+
     public void loginWithGoogle(String idToken) {
         authState.setValue(AuthState.LOADING);
         authRepository.loginWithGoogle(idToken, new AuthRepository.AuthCallback() {
-            public void onSuccess(FirebaseUser user) { authState.postValue(AuthState.AUTHENTICATED); }
+            @Override
+            public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                authState.postValue(AuthState.AUTHENTICATED);
+            }
+            @Override
             public void onError(String message) {
+                // Supabase không có collision case nhưng giữ lại để LoginFragment không phải sửa
                 if (message != null && message.startsWith("auth_google_link_needed:")) {
                     pendingGoogleIdToken = idToken;
                     pendingGoogleEmail = message.substring("auth_google_link_needed:".length());
@@ -97,10 +112,6 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
 
-    /**
-     * Duoc goi sau khi user nhap password trong dialog link.
-     * Dang nhap email/password truoc, sau do link Google credential vao.
-     */
     public void linkPendingGoogle(String password) {
         if (pendingGoogleIdToken == null || pendingGoogleEmail == null) {
             setError(getApplication().getString(R.string.error_auth_login_failed));
@@ -110,11 +121,13 @@ public class AuthViewModel extends AndroidViewModel {
         authRepository.linkGoogleToEmailAccount(
                 pendingGoogleEmail, password, pendingGoogleIdToken,
                 new AuthRepository.AuthCallback() {
-                    public void onSuccess(FirebaseUser user) {
+                    @Override
+                    public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
                         pendingGoogleIdToken = null;
-                        pendingGoogleEmail = null;
+                        pendingGoogleEmail   = null;
                         authState.postValue(AuthState.AUTHENTICATED);
                     }
+                    @Override
                     public void onError(String message) {
                         errorMessage.postValue(mapLoginErrorMessage(message));
                         authState.postValue(AuthState.ERROR);
@@ -122,18 +135,7 @@ public class AuthViewModel extends AndroidViewModel {
                 });
     }
 
-    private String mapLoginErrorMessage(String errorKey) {
-        if ("auth_user_not_found".equals(errorKey))
-            return getApplication().getString(R.string.error_auth_user_not_found);
-        if ("auth_wrong_password".equals(errorKey))
-            return getApplication().getString(R.string.error_auth_wrong_password);
-        if ("auth_network_timeout".equals(errorKey))
-            return getApplication().getString(R.string.error_auth_network_timeout);
-        if ("auth_login_failed".equals(errorKey))
-            return getApplication().getString(R.string.error_auth_login_failed);
-        if (!TextUtils.isEmpty(errorKey)) return errorKey;
-        return getApplication().getString(R.string.error_auth_login_failed);
-    }
+    // ─── Register ─────────────────────────────────────────────────────────────
 
     public void register(String email, String password, String confirmPassword, String displayName) {
         ValidationResult result = AuthInputValidator.validateRegisterInput(
@@ -146,7 +148,11 @@ public class AuthViewModel extends AndroidViewModel {
         String trimmedDisplayName = displayName != null ? displayName.trim() : "";
         authState.setValue(AuthState.LOADING);
         authRepository.register(email, password, trimmedDisplayName, new AuthRepository.AuthCallback() {
-            public void onSuccess(FirebaseUser user) { authState.postValue(AuthState.REGISTERED_NEEDS_PASSCODE); }
+            @Override
+            public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                authState.postValue(AuthState.REGISTERED_NEEDS_PASSCODE);
+            }
+            @Override
             public void onError(String message) {
                 errorMessage.postValue(message);
                 authState.postValue(AuthState.ERROR);
@@ -154,19 +160,23 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
 
+    // ─── Password reset ───────────────────────────────────────────────────────
+
     public void sendPasswordResetEmail(String email) {
         authState.setValue(AuthState.LOADING);
         authRepository.sendPasswordResetEmail(email, new AuthRepository.SimpleCallback() {
-            public void onSuccess() {
+            @Override public void onSuccess() {
                 errorMessage.postValue(null);
                 authState.postValue(AuthState.PASSWORD_RESET_EMAIL_SENT);
             }
-            public void onError(String message) {
+            @Override public void onError(String message) {
                 errorMessage.postValue(message);
                 authState.postValue(AuthState.ERROR);
             }
         });
     }
+
+    // ─── Logout / Passcode ────────────────────────────────────────────────────
 
     public void logout() {
         authRepository.signOut();
@@ -182,8 +192,10 @@ public class AuthViewModel extends AndroidViewModel {
     public void verifyPasscode(String passcode) {
         authState.setValue(AuthState.LOADING);
         authRepository.verifyPasscode(passcode, new AuthRepository.PasscodeCallback() {
-            public void onSuccess(String uid) { authState.postValue(AuthState.PASSCODE_VERIFIED); }
-            public void onError(String message) {
+            @Override public void onSuccess(String uid) {
+                authState.postValue(AuthState.PASSCODE_VERIFIED);
+            }
+            @Override public void onError(String message) {
                 if ("wrong_passcode".equals(message))
                     errorMessage.postValue(getApplication().getString(R.string.error_passcode_wrong));
                 else if ("no_passcode_set".equals(message))
@@ -195,5 +207,20 @@ public class AuthViewModel extends AndroidViewModel {
                 authState.postValue(AuthState.ERROR);
             }
         });
+    }
+
+    // ─── Error mapping ────────────────────────────────────────────────────────
+
+    private String mapLoginErrorMessage(String errorKey) {
+        if ("auth_user_not_found".equals(errorKey))
+            return getApplication().getString(R.string.error_auth_user_not_found);
+        if ("auth_wrong_password".equals(errorKey))
+            return getApplication().getString(R.string.error_auth_wrong_password);
+        if ("auth_network_timeout".equals(errorKey))
+            return getApplication().getString(R.string.error_auth_network_timeout);
+        if ("auth_login_failed".equals(errorKey))
+            return getApplication().getString(R.string.error_auth_login_failed);
+        if (!TextUtils.isEmpty(errorKey)) return errorKey;
+        return getApplication().getString(R.string.error_auth_login_failed);
     }
 }

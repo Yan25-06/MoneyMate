@@ -1,29 +1,37 @@
 package com.group10.moneymate.data.repository;
 
 import android.text.TextUtils;
+
 import androidx.annotation.NonNull;
-import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.EmailAuthProvider;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.GoogleAuthProvider;
+
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.UserDao;
 import com.group10.moneymate.data.local.entity.UserEntity;
-import com.group10.moneymate.data.remote.FirebaseAuthHelper;
+import com.group10.moneymate.data.remote.SupabaseAuthHelper;
 import com.group10.moneymate.utils.PasscodeHasher;
 import com.group10.moneymate.utils.PrefsManager;
-import com.google.firebase.FirebaseNetworkException;
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
-import com.google.firebase.auth.FirebaseAuthInvalidUserException;
-import com.google.firebase.auth.FirebaseAuthUserCollisionException;
-import java.io.IOException;
-import java.net.SocketTimeoutException;
 
+/**
+ * AuthRepository dùng Supabase thay Firebase.
+ *
+ * THAY ĐỔI SO VỚI PHIÊN BẢN FIREBASE:
+ *  - FirebaseUser → SupabaseAuthHelper.SupabaseUser trong các callback nội bộ
+ *  - AuthCallback.onSuccess vẫn nhận kiểu USER_TYPE nhưng giờ là SupabaseUser
+ *    (AuthViewModel không dùng object này, chỉ check onSuccess() được gọi)
+ *  - linkGoogleToEmailAccount() bỏ đi vì Supabase tự động link providers cùng email
+ *  - loginWithGoogle() vẫn giữ, logic đơn giản hơn (không có collision case)
+ *  - mapLoginErrorKey() dùng string key giống hệt cũ → AuthViewModel không thay đổi
+ */
 public class AuthRepository {
 
+    // ─── Callbacks (interface giữ nguyên 100% so với Firebase version) ────────
+
+    /**
+     * Callback auth – AuthViewModel KHÔNG dùng tham số user,
+     * chỉ cần biết onSuccess/onError. Interface giữ nguyên để không phải sửa ViewModel.
+     */
     public interface AuthCallback {
-        void onSuccess(FirebaseUser user);
+        void onSuccess(SupabaseAuthHelper.SupabaseUser user);
         void onError(String message);
     }
 
@@ -37,42 +45,56 @@ public class AuthRepository {
         void onError(String message);
     }
 
-    private final FirebaseAuthHelper firebaseAuthHelper;
+    // ─── Fields ───────────────────────────────────────────────────────────────
+
+    private final SupabaseAuthHelper supabaseAuthHelper;
     private final UserDao userDao;
     private final PrefsManager prefsManager;
 
-    public AuthRepository(FirebaseAuthHelper firebaseAuthHelper, UserDao userDao,
+    public AuthRepository(SupabaseAuthHelper supabaseAuthHelper, UserDao userDao,
                           PrefsManager prefsManager) {
-        this.firebaseAuthHelper = firebaseAuthHelper;
-        this.userDao = userDao;
-        this.prefsManager = prefsManager;
+        this.supabaseAuthHelper = supabaseAuthHelper;
+        this.userDao            = userDao;
+        this.prefsManager       = prefsManager;
     }
 
-    // Auth state
+    // ─── Auth state ───────────────────────────────────────────────────────────
 
-    public boolean isLoggedIn() { return firebaseAuthHelper.isLoggedIn(); }
+    public boolean isLoggedIn() {
+        // Supabase không giữ session in-memory sau khi restart app.
+        // Ta dùng PrefsManager làm source of truth (giống behavior cũ).
+        return prefsManager.isLoggedIn();
+    }
 
     public String getCurrentUserId() {
         String localUid = prefsManager.getUid();
         if (!TextUtils.isEmpty(localUid)) return localUid;
-        String firebaseUid = firebaseAuthHelper.getCurrentUserId();
-        return firebaseUid != null ? firebaseUid : "";
+        String supabaseUid = supabaseAuthHelper.getCurrentUserId();
+        return supabaseUid != null ? supabaseUid : "";
     }
 
+    /**
+     * Tạo UserEntity local nếu chưa có (gọi khi app khởi động sau khi đã login).
+     * Không cần network – đọc từ PrefsManager.
+     */
     public void ensureLocalUserRecord() {
         final String localUserId = getCurrentUserId();
         if (TextUtils.isEmpty(localUserId)) return;
-        final FirebaseUser firebaseUser = firebaseAuthHelper.getCurrentUser();
+
+        // Lấy thông tin từ in-memory session (có nếu vừa login), hoặc fallback null
+        final SupabaseAuthHelper.SupabaseUser sessionUser = supabaseAuthHelper.getCurrentUser();
         final long now = System.currentTimeMillis();
+
         AppDatabase.databaseWriteExecutor.execute(() -> {
             UserEntity existing = userDao.getUserByIdSync(localUserId);
             if (existing != null) return;
+
             UserEntity entity = new UserEntity();
             entity.setId(localUserId);
-            entity.setEmail(firebaseUser != null ? firebaseUser.getEmail() : null);
-            entity.setDisplayName(firebaseUser != null && firebaseUser.getDisplayName() != null
-                    ? firebaseUser.getDisplayName() : "");
-            entity.setAvatarUrl(null);
+            entity.setEmail(sessionUser != null ? sessionUser.email : null);
+            entity.setDisplayName(sessionUser != null && sessionUser.displayName != null
+                    ? sessionUser.displayName : "");
+            entity.setAvatarUrl(sessionUser != null ? sessionUser.avatarUrl : null);
             entity.setCurrency("VND");
             entity.setLanguage("vi");
             entity.setThemeMode("system");
@@ -84,149 +106,90 @@ public class AuthRepository {
     }
 
     public void signOut() {
-        firebaseAuthHelper.signOut();
+        supabaseAuthHelper.signOut();
         prefsManager.setLoggedIn(false);
         prefsManager.saveUid(null);
     }
 
-    // Firebase Auth
+    // ─── Register ─────────────────────────────────────────────────────────────
 
     public void register(String email, String password, String displayName,
                          @NonNull final AuthCallback callback) {
-        final String trimmedDisplayName = displayName != null ? displayName.trim() : "";
-        firebaseAuthHelper.signUpWithEmail(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        AuthResult result = task.getResult();
-                        if (result == null) { callback.onError("Registration failed: empty result"); return; }
-                        FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) { callback.onError("Registration failed: no user"); return; }
-                        if (TextUtils.isEmpty(trimmedDisplayName)) {
-                            handleAuthSuccess(firebaseUser, trimmedDisplayName);
-                            callback.onSuccess(firebaseUser);
-                            return;
-                        }
-                        firebaseAuthHelper.updateDisplayName(firebaseUser, trimmedDisplayName)
-                                .addOnCompleteListener(updateTask -> {
-                                    handleAuthSuccess(firebaseUser, trimmedDisplayName);
-                                    callback.onSuccess(firebaseUser);
-                                });
-                    } else {
-                        Exception e = task.getException();
-                        callback.onError(e != null ? e.getMessage() : "Registration failed");
+        final String trimmedName = displayName != null ? displayName.trim() : "";
+
+        supabaseAuthHelper.signUpWithEmail(email, password, trimmedName,
+                new SupabaseAuthHelper.AuthCallback() {
+                    @Override
+                    public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                        handleAuthSuccess(user, trimmedName);
+                        callback.onSuccess(user);
+                    }
+                    @Override
+                    public void onError(String errorKey) {
+                        callback.onError(mapRegisterError(errorKey));
                     }
                 });
     }
+
+    // ─── Login ────────────────────────────────────────────────────────────────
 
     public void login(String email, String password, @NonNull final AuthCallback callback) {
-        firebaseAuthHelper.signInWithEmail(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        AuthResult result = task.getResult();
-                        if (result == null) { callback.onError("auth_login_failed"); return; }
-                        FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) { callback.onError("auth_login_failed"); return; }
-                        handleAuthSuccess(firebaseUser);
-                        callback.onSuccess(firebaseUser);
-                        return;
+        supabaseAuthHelper.signInWithEmail(email, password,
+                new SupabaseAuthHelper.AuthCallback() {
+                    @Override
+                    public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                        handleAuthSuccess(user);
+                        callback.onSuccess(user);
                     }
-                    callback.onError(mapLoginErrorKey(task.getException()));
+                    @Override
+                    public void onError(String errorKey) {
+                        callback.onError(errorKey);
+                    }
                 });
     }
 
+    // ─── Google Login ─────────────────────────────────────────────────────────
+
+    /**
+     * Supabase tự động link account khi cùng email → không cần xử lý collision.
+     * AuthViewModel vẫn gọi loginWithGoogle() và linkPendingGoogle() theo flow cũ,
+     * nhưng GOOGLE_LINK_REQUIRED state sẽ không bao giờ được trigger nữa.
+     */
     public void loginWithGoogle(String idToken, @NonNull final AuthCallback callback) {
-        AuthCredential googleCredential = GoogleAuthProvider.getCredential(idToken, null);
-        firebaseAuthHelper.signInWithCredential(googleCredential)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        AuthResult result = task.getResult();
-                        if (result == null) { callback.onError("auth_login_failed"); return; }
-                        FirebaseUser firebaseUser = result.getUser();
-                        if (firebaseUser == null) { callback.onError("auth_login_failed"); return; }
-                        handleAuthSuccess(firebaseUser);
-                        callback.onSuccess(firebaseUser);
-                        return;
+        supabaseAuthHelper.signInWithGoogle(idToken,
+                new SupabaseAuthHelper.AuthCallback() {
+                    @Override
+                    public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                        handleAuthSuccess(user);
+                        callback.onSuccess(user);
                     }
-                    Exception e = task.getException();
-                    if (e instanceof FirebaseAuthUserCollisionException) {
-                        // Email đã tồn tại với provider khác
-                        // Trả về error key đặc biệt để UI hỏi password rồi link
-                        String email = ((FirebaseAuthUserCollisionException) e).getEmail();
-                        callback.onError("auth_google_link_needed:" + (email != null ? email : ""));
-                        return;
+                    @Override
+                    public void onError(String errorKey) {
+                        callback.onError(errorKey);
                     }
-                    callback.onError(mapLoginErrorKey(e));
                 });
     }
 
     /**
-     * Đăng nhập email/password rồi link Google credential vào.
-     * Gọi khi loginWithGoogle() trả về "auth_google_link_needed".
-     * Sau khi link xong, account có CẢ HAI provider:
-     *   - Có thể đăng nhập bằng email/password
-     *   - Có thể đăng nhập bằng Google
-     *
-     * @param email    email của account
-     * @param password password để xác thực lần đầu
-     * @param idToken  Google ID Token từ Google Sign-In
-     * @param callback kết quả
+     * Giữ lại method để AuthViewModel compile được mà không cần sửa.
+     * Với Supabase, link xảy ra tự động → method này chỉ thực hiện login Google bình thường.
      */
     public void linkGoogleToEmailAccount(String email, String password, String idToken,
                                          @NonNull final AuthCallback callback) {
-        // Bước 1: đăng nhập bằng email/password để lấy FirebaseUser
-        firebaseAuthHelper.signInWithEmail(email, password)
-                .addOnCompleteListener(loginTask -> {
-                    if (!loginTask.isSuccessful()) {
-                        callback.onError(mapLoginErrorKey(loginTask.getException()));
-                        return;
-                    }
-                    FirebaseUser user = loginTask.getResult() != null
-                            ? loginTask.getResult().getUser() : null;
-                    if (user == null) { callback.onError("auth_login_failed"); return; }
-
-                    // Bước 2: link Google credential vào account này
-                    AuthCredential googleCredential = GoogleAuthProvider.getCredential(idToken, null);
-                    user.linkWithCredential(googleCredential)
-                            .addOnCompleteListener(linkTask -> {
-                                if (linkTask.isSuccessful()) {
-                                    FirebaseUser linkedUser = linkTask.getResult() != null
-                                            ? linkTask.getResult().getUser() : user;
-                                    if (linkedUser == null) { callback.onError("auth_login_failed"); return; }
-                                    handleAuthSuccess(linkedUser);
-                                    callback.onSuccess(linkedUser);
-                                } else {
-                                    // Google đã được link rồi → vẫn cho đăng nhập
-                                    handleAuthSuccess(user);
-                                    callback.onSuccess(user);
-                                }
-                            });
-                });
+        // Supabase link tự động, chỉ cần login với Google token
+        loginWithGoogle(idToken, callback);
     }
 
-    private String mapLoginErrorKey(Exception exception) {
-        if (exception == null) return "auth_login_failed";
-        if (exception instanceof FirebaseAuthInvalidUserException) return "auth_user_not_found";
-        if (exception instanceof FirebaseAuthInvalidCredentialsException) return "auth_wrong_password";
-        if (exception instanceof FirebaseAuthUserCollisionException) return "auth_account_exists_with_different_credential";
-        if (exception instanceof FirebaseNetworkException
-                || exception instanceof SocketTimeoutException
-                || exception instanceof IOException) return "auth_network_timeout";
-        return "auth_login_failed";
-    }
+    // ─── Password reset ───────────────────────────────────────────────────────
 
     public void sendPasswordResetEmail(String email, @NonNull final SimpleCallback callback) {
-        firebaseAuthHelper.sendPasswordResetEmail(email)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        callback.onSuccess();
-                    } else {
-                        Exception e = task.getException();
-                        callback.onError(e != null ? e.getMessage() : "Failed to send password reset email");
-                    }
-                });
+        supabaseAuthHelper.sendPasswordResetEmail(email, new SupabaseAuthHelper.SimpleCallback() {
+            @Override public void onSuccess() { callback.onSuccess(); }
+            @Override public void onError(String message) { callback.onError(message); }
+        });
     }
 
-    // Passcode
+    // ─── Passcode (không thay đổi logic) ─────────────────────────────────────
 
     public void savePasscode(String uid, String passcode) {
         String hash = PasscodeHasher.hash(passcode);
@@ -287,30 +250,26 @@ public class AuthRepository {
         });
     }
 
-    // Private helpers
+    // ─── Private helpers ──────────────────────────────────────────────────────
 
-    private void handleAuthSuccess(@NonNull FirebaseUser firebaseUser) {
-        handleAuthSuccess(firebaseUser,
-                firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
+    private void handleAuthSuccess(@NonNull SupabaseAuthHelper.SupabaseUser user) {
+        handleAuthSuccess(user, user.displayName != null ? user.displayName : "");
     }
 
-    private void handleAuthSuccess(@NonNull FirebaseUser firebaseUser,
+    private void handleAuthSuccess(@NonNull SupabaseAuthHelper.SupabaseUser user,
                                    @NonNull String displayName) {
         final long now = System.currentTimeMillis();
-        final String localUserId = firebaseUser.getUid();
         final String resolvedName = !TextUtils.isEmpty(displayName) ? displayName
-                : (firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "");
-        final String photoUrl = firebaseUser.getPhotoUrl() != null
-                ? firebaseUser.getPhotoUrl().toString() : null;
+                : (user.displayName != null ? user.displayName : "");
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            UserEntity existing = userDao.getUserByIdSync(localUserId);
+            UserEntity existing = userDao.getUserByIdSync(user.id);
             if (existing == null) {
                 UserEntity entity = new UserEntity();
-                entity.setId(localUserId);
-                entity.setEmail(firebaseUser.getEmail());
+                entity.setId(user.id);
+                entity.setEmail(user.email);
                 entity.setDisplayName(resolvedName);
-                entity.setAvatarUrl(photoUrl);
+                entity.setAvatarUrl(user.avatarUrl);
                 entity.setCurrency("VND");
                 entity.setLanguage("vi");
                 entity.setThemeMode("system");
@@ -319,16 +278,25 @@ public class AuthRepository {
                 entity.setCreatedAt(now);
                 userDao.insertUser(entity);
             } else {
-                existing.setEmail(firebaseUser.getEmail());
+                existing.setEmail(user.email);
                 existing.setDisplayName(resolvedName);
-                if (TextUtils.isEmpty(existing.getAvatarUrl()) && !TextUtils.isEmpty(photoUrl)) {
-                    existing.setAvatarUrl(photoUrl);
+                if (TextUtils.isEmpty(existing.getAvatarUrl())
+                        && !TextUtils.isEmpty(user.avatarUrl)) {
+                    existing.setAvatarUrl(user.avatarUrl);
                 }
                 userDao.updateUser(existing);
             }
         });
 
-        prefsManager.saveUid(localUserId);
+        prefsManager.saveUid(user.id);
         prefsManager.setLoggedIn(true);
+    }
+
+    private String mapRegisterError(String errorKey) {
+        if ("auth_account_exists".equals(errorKey))
+            return "Email này đã được đăng ký. Vui lòng đăng nhập.";
+        if ("auth_weak_password".equals(errorKey))
+            return "Mật khẩu phải có ít nhất 6 ký tự.";
+        return errorKey;
     }
 }

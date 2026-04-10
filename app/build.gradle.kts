@@ -8,7 +8,7 @@ if (localPropertiesFile.exists()) {
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.google.services)
+    // XÓA: alias(libs.plugins.google.services)  ← bỏ plugin google-services
     alias(libs.plugins.navigation.safeargs)
 }
 
@@ -25,12 +25,24 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // GEMINI_API_KEY: Add your key to local.properties as: GEMINI_API_KEY=your_key_here
-        // NEVER hard-code the API key directly into source code.
         buildConfigField(
             "String",
             "GEMINI_API_KEY",
             "\"${localProperties.getProperty("GEMINI_API_KEY", "")}\""
+        )
+
+        // ─── Supabase credentials (thêm vào local.properties) ─────────────────
+        // SUPABASE_URL=https://your-project-id.supabase.co
+        // SUPABASE_ANON_KEY=your-anon-key
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            "\"${localProperties.getProperty("SUPABASE_URL", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "SUPABASE_ANON_KEY",
+            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\""
         )
     }
 
@@ -66,10 +78,17 @@ dependencies {
     implementation(libs.fragment)
     annotationProcessor(libs.room.compiler)
 
-    // Firebase (BOM quản lý version tự động)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.analytics)
+    // ─── Firebase (GIỮ LẠI analytics nếu cần, XÓA auth + firestore) ──────────
+    // XÓA: implementation(platform(libs.firebase.bom))
+    // XÓA: implementation(libs.firebase.auth)
+    // XÓA: implementation(libs.firebase.analytics)
+    // XÓA: implementation(libs.firebase.firestore)
+    // Nếu vẫn muốn giữ Analytics (không bắt buộc):
+    // implementation(platform(libs.firebase.bom))
+    // implementation(libs.firebase.analytics)
+
+    // ─── Supabase: dùng OkHttp để gọi REST API (không cần SDK riêng) ─────────
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Navigation
     implementation(libs.navigation.fragment)
@@ -81,9 +100,6 @@ dependencies {
 
     // MPAndroidChart
     implementation(libs.mpandroidchart)
-
-    // Firebase Firestore
-    implementation(libs.firebase.firestore)
 
     // Biometric
     implementation(libs.biometric)
@@ -105,7 +121,7 @@ dependencies {
     implementation(libs.json)
     implementation(libs.exifinterface)
 
-    // Google Sign-In
+    // Google Sign-In (GIỮ LẠI – vẫn dùng để lấy idToken cho Supabase)
     implementation(libs.playservices.auth)
 
     // Testing

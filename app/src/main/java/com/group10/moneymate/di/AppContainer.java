@@ -7,7 +7,7 @@ import com.group10.moneymate.ai.receipt.GeminiService;
 import com.group10.moneymate.ai.receipt.MlKitReceiptParserBridge;
 import com.group10.moneymate.ai.receipt.ReceiptParserBridge;
 import com.group10.moneymate.data.local.AppDatabase;
-import com.group10.moneymate.data.remote.FirebaseAuthHelper;
+import com.group10.moneymate.data.remote.SupabaseAuthHelper;
 import com.group10.moneymate.data.repository.AuthRepository;
 import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.data.repository.CategoryRepository;
@@ -23,7 +23,7 @@ import com.group10.moneymate.workers.SyncScheduler;
 public class AppContainer {
 
     public final AppDatabase database;
-    public final FirebaseAuthHelper firebaseAuthHelper;
+    public final SupabaseAuthHelper supabaseAuthHelper;   // thay firebaseAuthHelper
     public final PrefsManager prefsManager;
     public final AuthRepository authRepository;
     public final UserRepository userRepository;
@@ -39,13 +39,20 @@ public class AppContainer {
     public final GeminiService geminiService;
 
     public AppContainer(Context context) {
-        database           = AppDatabase.getInstance(context);
-        firebaseAuthHelper = new FirebaseAuthHelper();
-        prefsManager       = new PrefsManager(context);
-        syncScheduler      = new SyncScheduler(context.getApplicationContext());
-        receiptParserBridge = new MlKitReceiptParserBridge();
-        geminiService       = new GeminiService(BuildConfig.GEMINI_API_KEY);
-        authRepository        = new AuthRepository(firebaseAuthHelper, database.userDao(), prefsManager);
+        database             = AppDatabase.getInstance(context);
+        prefsManager         = new PrefsManager(context);
+        syncScheduler        = new SyncScheduler(context.getApplicationContext());
+        receiptParserBridge  = new MlKitReceiptParserBridge();
+        geminiService        = new GeminiService(BuildConfig.GEMINI_API_KEY);
+
+        // Supabase – URL và ANON KEY đọc từ BuildConfig
+        // (thêm vào local.properties + build.gradle.kts, xem README migration)
+        supabaseAuthHelper   = new SupabaseAuthHelper(
+                BuildConfig.SUPABASE_URL,
+                BuildConfig.SUPABASE_ANON_KEY
+        );
+
+        authRepository        = new AuthRepository(supabaseAuthHelper, database.userDao(), prefsManager);
         userRepository        = new UserRepository(database.userDao());
         walletRepository      = new WalletRepository(database.walletDao());
         categoryRepository    = new CategoryRepository(database.categoryDao());
@@ -55,16 +62,12 @@ public class AppContainer {
                 database.walletDao(),
                 syncScheduler
         );
-        this.budgetRepository = new BudgetRepository(database.budgetDao(), database, syncScheduler);
+        budgetRepository      = new BudgetRepository(database.budgetDao(), database, syncScheduler);
         debtRepository        = new DebtRepository(database.debtDao());
         eventRepository       = new EventRepository(database.eventDao());
         syncMetadataRepository = new SyncMetadataRepository(database.syncMetadataDao());
     }
 
-    /**
-     * Seed danh mục mặc định nếu chưa có.
-     * Gọi sau khi đăng ký hoặc đăng nhập thành công.
-     */
     public void seedDefaultCategoriesIfNeeded() {
         categoryRepository.seedDefaults();
     }

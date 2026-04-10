@@ -3,7 +3,7 @@
 ## 1. Tổng quan kiến trúc
 
 - **Mô hình chính:** `MVVM + Repository Pattern` với phân tách package rõ ràng (`ui` -> các lớp ViewModel -> `data/repository` -> `data/local` / `data/remote`).
-- **Chiến lược dữ liệu:** `Offline-first` bằng Room (`data/local`) với ý đồ đồng bộ nền qua worker (`workers/SyncWorker`, `workers/SyncScheduler`) và tích hợp Firebase (`data/remote/FirebaseAuthHelper`, Firestore được suy ra từ ngữ cảnh dự án).
+- **Chiến lược dữ liệu:** `Offline-first` bằng Room (`data/local`) với ý đồ đồng bộ nền qua worker (`workers/SyncWorker`, `workers/SyncScheduler`) và tích hợp Supabase Auth (`data/remote/SupabaseAuthHelper`) cho xác thực.
 - **Dependency Injection:** DI thủ công qua `di/AppContainer` và khởi tạo cấp ứng dụng trong `di/MoneyMateApplication`.
 - **Điều hướng/UI:** Cấu trúc nhiều activity (`MainActivity`, `LoginActivity`, `HomeActivity`, `PasscodeActivity`) kết hợp Jetpack Navigation graph (`nav_auth`, `nav_main`, `nav_passcode`).
 - **Ước lượng kiểu kiến trúc:** Chưa phải Clean Architecture đầy đủ (không có package domain/use-case tách riêng). Đây là kiến trúc MVVM phân lớp theo hướng thực dụng.
@@ -14,7 +14,7 @@
 |---|---|---|
 | UI | `com.group10.moneymate.ui.*`, `com.group10.moneymate.MainActivity` | Chứa Fragment/Activity, adapter, custom view cho các màn hình theo feature (auth, budget, category, debt, event, home, settings, statistics, transaction, wallet, AI). |
 | ViewModel | `com.group10.moneymate.ui.*.*ViewModel`, `ui.common.Debounceable*ViewModel` | Giữ trạng thái UI bằng LiveData, xử lý logic hiển thị, và ủy quyền thao tác dữ liệu cho repository. |
-| Repository | `com.group10.moneymate.data.repository.*` | Điều phối truy cập dữ liệu và áp dụng business rule giữa ViewModel và các data source (Room/Firebase/auth/sync metadata). |
+| Repository | `com.group10.moneymate.data.repository.*` | Điều phối truy cập dữ liệu và áp dụng business rule giữa ViewModel và các data source (Room/Supabase-auth/sync metadata). |
 | Data (Local) | `com.group10.moneymate.data.local` (`entity`, `dao`, `dto`, `migrations`, `AppDatabase`, `Converters`) | Chứa schema Room, truy vấn DAO, DTO projection, migration DB và lớp lưu trữ cục bộ. |
 | Data (Remote) | `com.group10.moneymate.data.remote` | Lớp helper làm việc với dịch vụ từ xa (hiện thấy rõ helper cho auth), đóng vai trò biên tích hợp cloud. |
 | DI | `com.group10.moneymate.di` | Đồ thị phụ thuộc DI thủ công qua AppContainer, bootstrap Application và wiring WorkerFactory. |
@@ -35,7 +35,7 @@
 
 ## 4. Luồng tổng quan (Ước lượng)
 
-`UI (Activity/Fragment)` -> `ViewModel` -> `Repository` -> `Room DAO (ưu tiên local trước)` -> `Workers đồng bộ dữ liệu chờ lên remote (Firebase/Firestore)` -> `UI quan sát cập nhật qua LiveData`
+`UI (Activity/Fragment)` -> `ViewModel` -> `Repository` -> `Room DAO (ưu tiên local trước)` -> `Workers đồng bộ dữ liệu chờ lên remote` -> `UI quan sát cập nhật qua LiveData`
 
 ## 4.1 Dependency Map
 
@@ -43,7 +43,7 @@
   -> `ViewModel`
   -> `Repository`
     -> `Local (Room DAO)`
-    -> `Remote (Firebase)`
+    -> `Remote (Supabase Auth)`
 
 ### Hướng phụ thuộc (dependency direction)
 
@@ -51,7 +51,7 @@
 - ViewModel (`*ViewModel.java`) phụ thuộc vào Repository thông qua DI từ `AppContainer` (qua `MoneyMateApplication`).
 - Repository (`data/repository/*`) phụ thuộc vào data source local (`data/local/dao/*`) và một phần remote/helper (`data/remote/*`) theo use case.
 - Local (Room) không phụ thuộc ngược lên Repository/ViewModel/UI; chỉ cung cấp API dữ liệu (DAO/Entity/DTO).
-- Remote (Firebase) được gọi qua boundary repository/worker; UI và ViewModel không nên gọi trực tiếp.
+- Remote (Supabase Auth) được gọi qua boundary repository/worker; UI và ViewModel không nên gọi trực tiếp.
 
 ## 4.2 Transaction Flow
 
@@ -68,8 +68,11 @@ User Action
 - **Khởi tạo danh sách:** `TransactionViewModel` gọi `resetPagination()` trong constructor -> `loadNextPage()` -> `transactionRepository.getFirstTransactionsPage(userId, PAGE_SIZE, callback)`.
 - **Phân trang tiếp:** `TransactionListFragment.setupPagination()` gọi `viewModel.loadNextPage()` -> `transactionRepository.getTransactionsPageByCursor(...)`.
 - **Add/Edit load by id:** `AddEditTransactionFragment.loadExistingTransaction()` -> `viewModel.getTransactionById(transactionId)` -> `transactionRepository.getTransactionById(id)` -> `transactionDao.getTransactionById(id)`.
-- **Lưu Add/Edit:** `AddEditTransactionFragment.setupSaveButton()` tạo/cập nhật `TransactionEntity` -> `viewModel.insertTransaction(...)` hoặc `viewModel.updateTransaction(...)` -> `TransactionRepository.upsertTransactionInternal(...)` -> `transactionDao.upsertLocal(...)` -> bảng `transactions` trong Room.
+- **Lưu Add/Edit thường:** `AddEditTransactionFragment.setupSaveButton()` tạo/cập nhật `TransactionEntity` -> `viewModel.insertTransaction(...)` hoặc `viewModel.updateTransaction(...)` -> `TransactionRepository.upsertTransactionInternal(...)` -> `transactionDao.upsertLocal(...)` -> bảng `transactions` trong Room.
 - **Soft delete (nếu được gọi):** `viewModel.deleteTransaction(...)` -> `transactionRepository.softDeleteTransaction(...)` -> `transactionDao.softDelete(id, updatedAt)` (set `is_deleted = 1`, `sync_status = 2`).
+- **Scan hóa đơn (entry từ Add/Edit):** `AddEditTransactionFragment.showScanSourceChooser()` -> chọn Camera (`CameraFragment`) hoặc Gallery (`FileUtils.copyReceiptImageToInternalStorage`) -> `AIReceiptScannerWorker.createRequest(...)` -> observe `WorkInfo` -> success điều hướng `TransactionConfirmationFragment` với output từ `ReceiptScanContract`.
+- **Scan lại trong màn Confirmation:** `TransactionConfirmationFragment.handleRescanAction()` -> camera result (`FragmentResult`) hoặc gallery copy -> enqueue lại `AIReceiptScannerWorker` -> `applyScanOutput(...)` cập nhật amount/timestamp/category_hint/note_hint/confidence/source.
+- **Save All từ confirmation:** `TransactionConfirmationFragment.attemptSaveAll()` -> build `TransactionEntity` cho từng pending item -> `viewModel.checkOcrDuplicateCandidates(...)` -> nếu nghi trùng hiển thị confirm dialog -> `viewModel.insertTransactions(...)` batch write -> quay lại Add/Edit stack.
 
 ## Function Chain
 
@@ -93,14 +96,46 @@ User Action
   -> `TransactionDao.upsertLocalInternal()`
   -> `AppDatabase (transactions table)`
 
+- `AddEditTransactionFragment.showScanSourceChooser()`
+  -> `DialogTransactionScanSource` (camera/gallery)
+  -> camera: `CameraFragment.captureReceiptImage()` -> `FragmentResult`
+  -> gallery: `FileUtils.copyReceiptImageToInternalStorage()` (validate mime, giới hạn 20MB, copy vào `/files/receipts`)
+  -> `AddEditTransactionFragment.enqueueReceiptScan()`
+  -> `AIReceiptScannerWorker.createRequest()` + `WorkManager.enqueue()`
+  -> `AIReceiptScannerWorker.doWork()`
+  -> ưu tiên cloud khi có mạng và không rate-limited: `GeminiService.parseReceipt(...)` + `GeminiReceiptSchema`
+  -> fallback local: ML Kit OCR + `MlKitReceiptParserBridge` + `ReceiptParser`
+  -> trả output chuẩn hóa qua `ReceiptScanContract.buildSuccessOutput()/buildFailureOutput()`
+  -> `AddEditTransactionFragment.navigateToTransactionConfirmation(outputData)`
+
+- `TransactionConfirmationFragment.attemptSaveAll()`
+  -> `buildTransactionForSave()` (set `PENDING_UPLOAD`, `type=EXPENSE`, map category hint -> categoryId)
+  -> `buildDuplicateCandidates()`
+  -> `TransactionViewModel.checkOcrDuplicateCandidates()`
+  -> `TransactionRepository.checkOcrDuplicateCandidates(userId, candidates)`
+  -> `TransactionRepository.detectSuspectedDuplicates()`
+  -> `ReceiptImageHashUtils.computeSha256(imagePath)` + query DAO theo amount tolerance + bucket thời gian ±2 phút
+  -> (nếu user confirm) `TransactionViewModel.insertTransactions()`
+  -> `TransactionRepository.insertTransactions()`
+  -> `appDatabase.runInTransaction { prepareTransactionForWrite; transactionDao.upsertLocal(...) }`
+  -> `scheduleSyncIfEnabled()`
+  -> `SyncScheduler.scheduleOneTimeSyncDebounced()`
+
 - Sau khi write local thành công:
   -> `TransactionRepository.scheduleSyncIfEnabled()`
-  -> `SyncScheduler.scheduleOneTimeSyncDebounced()` (đẩy bước sync nền, không gọi Firebase trực tiếp trong chain này)
+  -> `SyncScheduler.scheduleOneTimeSyncDebounced()` (đẩy bước sync nền, không gọi remote provider trực tiếp trong chain này)
 
 ### Notes
 
 - **Read path tách 2 kiểu rõ ràng:** list dùng phân trang cursor (`timestamp + id`) thay vì load all; detail/edit dùng lookup theo `transactionId`.
 - **Write path chuẩn offline-first:** insert/update/soft delete đều ghi Room trước, set `sync_status` phù hợp, rồi mới trigger one-time sync.
+- **OCR contract rõ ràng:** output worker dùng key thống nhất (`amount`, `timestamp`, `merchant`, `category_hint`, `note_hint`, `items_json`, `processing_source/detail`, `confidence`, `error_code/stage`) giúp UI xử lý cả success/failure deterministically.
+- **Chiến lược parse 2 tầng cloud-local:** worker ưu tiên Gemini (khi online + không rate limited), nếu fail thì fallback ML Kit + parser heuristic; có gắn nhãn nguồn xử lý (`cloud`/`local`) để hiển thị cho user.
+- **Luồng duplicate gate có thể giải thích được:** nghi trùng chỉ khi đồng thời khớp 3 tín hiệu (hash ảnh SHA-256, amount trong tolerance, timestamp trong bucket 2 phút); kết quả chỉ advisory, quyết định cuối cùng thuộc người dùng.
+- **Batch save có tính nguyên tử:** `insertTransactions()` chạy trong `appDatabase.runInTransaction`; test integration xác nhận một item invalid sẽ rollback toàn bộ batch OCR save-all.
+- **UI warning theo confidence:** confirmation item hiển thị cảnh báo khi thiếu amount/category hoặc confidence thấp; test UI đã cover case low-confidence hiển thị warning và high-confidence không hiển thị warning.
+- **Failure output của worker có tính quyết định:** test integration của `AIReceiptScannerWorker` cover missing input và ảnh corrupt, đảm bảo trả `error_code/error_stage` nhất quán (`missing_image_input` ở stage `input`, `image_decode_failed` ở stage `decode`).
+- **Scan source UX đầy đủ:** có chooser camera/gallery, màn camera riêng bằng CameraX, rescan từ confirmation và zoom preview ảnh hóa đơn.
 - **Đảm bảo invalidation ổn định:** `TransactionRepository` dùng `LAST_WRITE_TIMESTAMP` để giữ `updated_at` tăng đơn điệu, giảm nguy cơ miss refresh khi nhiều write cùng millisecond.
 - **Query nhất quán theo dữ liệu active:** phần lớn query đọc có điều kiện `is_deleted = 0` và join kiểm tra `wallets.is_deleted = 0`, tránh hiển thị transaction trỏ tới wallet đã xóa.
 - **DTO/statistics query dồn ở DAO:** ngoài CRUD, `TransactionDao` còn là điểm tổng hợp báo cáo (`CategorySumDTO`, `DailyTrendDTO`, `NetIncomeDTO`), làm transaction layer kiêm cả analytical workload.
@@ -111,6 +146,9 @@ User Action
 - `TransactionDao.getPendingSyncSince(...)` và `getPendingSyncTransactionsPagedSince(...)` cùng tồn tại; cần chốt API canonical để tránh drift/nhầm giữa hai luồng pending-sync.
 - Một số query aggregate loại `sync_status = 2`, trong khi query list cơ bản chủ yếu dùng `is_deleted = 0`; cần xác nhận chuẩn lọc thống nhất cho report (dựa theo `is_deleted` hay `sync_status`).
 - Thiết kế hiện tại để `TransactionDao` gánh nhiều query thống kê có thể làm DAO phình to; có cần tách read-model/report DAO riêng để giảm coupling và dễ tối ưu hiệu năng không?
+- `TransactionConfirmationFragment.buildPendingItems()` hiện chỉ dựng fallback root item từ tổng thể OCR output; `items_json` đã có trong contract nhưng chưa được dùng để render/mapping nhiều dòng giao dịch trong confirmation list.
+- Save All hiện yêu cầu resolve được duy nhất một ví (`saveAllWalletId`), nếu nhiều ví active thì bị chặn; cần xác nhận đây là ràng buộc UX chủ đích hay cần cho user chọn ví ngay tại confirmation.
+- `resolveCategoryId()` dùng normalize + partial match và trả null khi ambiguous; cần xác nhận có cần chiến lược ranking/tiebreak rõ hơn để giảm unresolved item trong Save All.
 
 ## 4.3 Budget Flow
 
@@ -360,8 +398,8 @@ User Action
  -> `LoginFragment` (nhập email/password, `btnLogin`)
  -> `AuthViewModel.login(...)`
  -> `AuthRepository.login(...)`
- -> `FirebaseAuthHelper.signInWithEmail(...)`
- -> Firebase Auth (`signInWithEmailAndPassword`)
+ -> `SupabaseAuthHelper.signInWithEmail(...)`
+ -> Supabase Auth REST (`POST /auth/v1/token?grant_type=password`)
 
 Khi thành công:
 -> `AuthRepository.handleAuthSuccess(...)` ghi local (`users` + `PrefsManager`)
@@ -373,8 +411,8 @@ User Action
  -> `LoginFragment` (tap Google button, `btnGoogleSignIn`)
  -> `AuthViewModel.loginWithGoogle(idToken)`
  -> `AuthRepository.loginWithGoogle(idToken)`
- -> `FirebaseAuthHelper.signInWithGoogleCredential(idToken)`
- -> Firebase Auth (`signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))`)
+ -> `SupabaseAuthHelper.signInWithGoogle(idToken)`
+ -> Supabase Auth REST (`POST /auth/v1/token?grant_type=id_token` với `provider=google`)
 
 Khi thành công:
 -> `AuthRepository.handleAuthSuccess(...)` ghi local (`users` + `PrefsManager`)
@@ -382,7 +420,7 @@ Khi thành công:
 -> `LoginFragment` mở `HomeActivity`.
 
 ### Google Account Linking (same email with Email/Password)
-- Khi user đã có tài khoản Email/Password và đăng nhập Google cùng email, Firebase hợp nhất theo cùng user (1 email = 1 account) nếu cấu hình Firebase Auth đã bật đúng.
+- Khi user đã có tài khoản Email/Password và đăng nhập Google cùng email, Supabase tự động link provider theo email trong flow Auth hiện tại.
 - Ứng dụng vẫn giữ flow local như login thường:
   - cập nhật `UserEntity` trong Room
   - cập nhật `PrefsManager` (`uid`, `is_logged_in`)
@@ -394,17 +432,17 @@ Khi thành công:
 `LoginFragment.onGoogleSignInResult()`
 -> `AuthViewModel.loginWithGoogle(idToken)`
 -> `AuthRepository.loginWithGoogle(idToken, callback)`
--> `FirebaseAuthHelper.signInWithGoogleCredential(idToken, callback)`
--> Firebase success
+-> `SupabaseAuthHelper.signInWithGoogle(idToken, callback)`
+-> Supabase success
 -> `AuthRepository.handleAuthSuccess(...)`
 -> `UserDao.getUserByIdSync(...)` + `insertUser(...)`/`updateUser(...)` (background executor)
 -> `PrefsManager.saveUid(...)`, `PrefsManager.setLoggedIn(true)`
 
 ### Notes (Google)
-- `idToken` phải là token mới từ Google Sign-In client; token rỗng/hết hạn sẽ gây `FirebaseAuthInvalidCredentialsException`.
+- `idToken` phải là token mới từ Google Sign-In client; token rỗng/hết hạn sẽ làm `SupabaseAuthHelper.signInWithGoogle(...)` trả lỗi auth.
 - `AuthRepository` nên log debug theo `tag = AuthRepository` cho các điểm:
   - nhận `idToken` null/rỗng
-  - lỗi từ `signInWithCredential`
+  - lỗi từ `signInWithGoogle`
   - thông tin provider hiện có của user sau đăng nhập thành công
 - Google flow dùng chung `handleAuthSuccess(...)` để đảm bảo nhất quán local persistence với Email/Password flow.
 
@@ -413,9 +451,8 @@ User Action
  -> `RegisterFragment` (`btnRegister`)
  -> `AuthViewModel.register(...)`
  -> `AuthRepository.register(...)`
- -> `FirebaseAuthHelper.signUpWithEmail(...)`
- -> Firebase Auth (`createUserWithEmailAndPassword`)
- -> (nếu có display name) `FirebaseAuthHelper.updateDisplayName(...)`
+ -> `SupabaseAuthHelper.signUpWithEmail(...)`
+ -> Supabase Auth REST (`POST /auth/v1/signup`)
 
 Khi thành công:
 -> `AuthRepository.handleAuthSuccess(...)` ghi local (`users` + `PrefsManager`)
@@ -431,7 +468,7 @@ Khi thành công:
 - Passcode flow có local-first:
   - `savePasscode(...)`: hash bằng `PasscodeHasher`, lưu cả Prefs + `UserEntity.hashed_passcode`.
   - `verifyPasscode(...)`: ưu tiên Prefs, fallback Room nếu Prefs không còn.
-- Logout (`AuthRepository.signOut`) chỉ sign out Firebase + clear `uid/is_logged_in`; không xóa `users` table và không xóa passcode.
+- Logout (`AuthRepository.signOut`) chỉ sign out Supabase session local helper + clear `uid/is_logged_in`; không xóa `users` table và không xóa passcode.
 - Không thấy cơ chế sync user profile 2 chiều remote/local trong worker hiện tại (SyncWorker không có domain `users`).
 
 ### Function Chain (Estimated)
@@ -440,8 +477,8 @@ Khi thành công:
   -> `AuthViewModel.login(email, password)`
   -> `AuthInputValidator.validateLoginInput(...)`
   -> `AuthRepository.login(...)`
-  -> `FirebaseAuthHelper.signInWithEmail(...)`
-  -> Firebase success
+  -> `SupabaseAuthHelper.signInWithEmail(...)`
+  -> Supabase success
   -> `AuthRepository.handleAuthSuccess(...)`
   -> `UserDao.getUserByIdSync(...)` + `insertUser(...)`/`updateUser(...)` (background executor)
   -> `PrefsManager.saveUid(...)`, `PrefsManager.setLoggedIn(true)`
@@ -451,8 +488,7 @@ Khi thành công:
   -> `AuthViewModel.register(...)`
   -> `AuthInputValidator.validateRegisterInput(...)`
   -> `AuthRepository.register(...)`
-  -> `FirebaseAuthHelper.signUpWithEmail(...)`
-  -> optional `FirebaseAuthHelper.updateDisplayName(...)`
+  -> `SupabaseAuthHelper.signUpWithEmail(...)`
   -> `AuthRepository.handleAuthSuccess(...)`
   -> Room + Prefs update như login
   -> `RegisterFragment.navigateToCreatePasscode()`
@@ -461,15 +497,15 @@ Khi thành công:
   `SettingsFragment.onLogoutClicked()`
   -> `SettingsViewModel.signOut()`
   -> `AuthRepository.signOut()`
-  -> `FirebaseAuthHelper.signOut()` + clear local auth flags in Prefs
+  -> `SupabaseAuthHelper.signOut()` + clear local auth flags in Prefs
   -> `SettingsFragment.navigateToLogin()`
 
 - **Forgot password**
   `ForgotPasswordFragment.btnSendResetLink`
   -> `AuthViewModel.sendPasswordResetEmail(email)`
   -> `AuthRepository.sendPasswordResetEmail(...)`
-  -> `FirebaseAuthHelper.sendPasswordResetEmail(...)`
-  -> Firebase Auth gửi reset email
+  -> `SupabaseAuthHelper.sendPasswordResetEmail(...)`
+  -> Supabase Auth gửi reset email
 
 ### Notes
 - `AuthViewModel` đang dùng callback từ repository để cập nhật `authState`, chưa chuyển sang sealed-state cho từng phase (loading/success/error) như một số feature khác.
