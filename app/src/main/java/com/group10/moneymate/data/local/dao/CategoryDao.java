@@ -218,4 +218,8 @@ public interface CategoryDao {
     @Query("UPDATE categories SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
             "WHERE user_id = :userId AND is_default = 0")
     void softDeleteAllCustomByUser(String userId, long updatedAt);
+
+    @Query("SELECT * FROM categories WHERE name = :name AND type = :type " +
+            "AND is_deleted = 0 AND is_default = 1 LIMIT 1")
+    CategoryEntity getCategoryByNameAndTypeSync(String name, String type);
 }

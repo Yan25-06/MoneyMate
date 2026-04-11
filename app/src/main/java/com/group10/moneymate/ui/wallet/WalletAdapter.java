@@ -26,6 +26,8 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
     public interface WalletItemListener {
         void onEdit(WalletEntity wallet);
 
+        void onTransfer(WalletEntity wallet);
+
         void onArchive(WalletEntity wallet);
 
         void onRestore(WalletEntity wallet);
@@ -107,6 +109,7 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
         private void showPopupMenu(View anchor, WalletEntity wallet) {
             PopupMenu popupMenu = new PopupMenu(anchor.getContext(), anchor);
             popupMenu.getMenuInflater().inflate(R.menu.menu_wallet_item, popupMenu.getMenu());
+            popupMenu.getMenu().findItem(R.id.action_transfer_wallet).setVisible(!wallet.isArchived());
             popupMenu.getMenu().findItem(R.id.action_archive_wallet).setVisible(!wallet.isArchived());
             popupMenu.getMenu().findItem(R.id.action_restore_wallet).setVisible(wallet.isArchived());
             popupMenu.setOnMenuItemClickListener(item -> {
@@ -114,6 +117,12 @@ public class WalletAdapter extends ListAdapter<WalletWithBalance, WalletAdapter.
                 if (itemId == R.id.action_edit_wallet) {
                     if (listener != null) {
                         listener.onEdit(wallet);
+                    }
+                    return true;
+                }
+                if (itemId == R.id.action_transfer_wallet) {
+                    if (listener != null) {
+                        listener.onTransfer(wallet);
                     }
                     return true;
                 }

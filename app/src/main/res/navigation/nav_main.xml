@@ -802,6 +802,13 @@
             app:destination="@id/addEditWalletFragment"
             app:enterAnim="@anim/slide_in_up"
             app:popExitAnim="@anim/slide_out_down" />
+        <action
+            android:id="@+id/action_walletList_to_transfer"
+            app:destination="@id/walletTransferFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -830,6 +837,18 @@
         tools:layout="@layout/fragment_wallet_icon_picker">
         <argument
             android:name="selectedIconName"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/walletTransferFragment"
+        android:name="com.group10.moneymate.ui.wallet.WalletTransferFragment"
+        android:label="@string/transfer_title"
+        tools:layout="@layout/fragment_wallet_transfer">
+        <argument
+            android:name="fromWalletId"
             app:argType="string"
             android:defaultValue="@null"
             app:nullable="true" />
