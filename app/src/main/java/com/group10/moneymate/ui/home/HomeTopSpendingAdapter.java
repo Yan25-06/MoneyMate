@@ -49,7 +49,6 @@ public class HomeTopSpendingAdapter extends ListAdapter<HomeTopSpendingAdapter.I
                     ContextCompat.getColor(binding.getRoot().getContext(), android.R.color.white)
             );
             binding.ivCategoryIcon.setImageResource(item.getIconRes());
-            binding.ivCategoryIcon.setImageTintList(null);
             binding.tvCategoryName.setText(item.getCategoryName());
             binding.tvCategoryAmount.setText(CurrencyFormatter.format(item.getAmount(), "VND"));
             binding.tvCategoryPercent.setText(item.getPercentLabel());

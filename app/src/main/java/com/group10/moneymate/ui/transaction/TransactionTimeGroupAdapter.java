@@ -83,7 +83,6 @@ public class TransactionTimeGroupAdapter extends ListAdapter<TransactionTimeGrou
                         false
                 );
                 rowBinding.ivCategoryIcon.setImageResource(row.getIconRes());
-                rowBinding.ivCategoryIcon.setImageTintList(null);
                 rowBinding.tvTitle.setText(row.getTitle());
                 rowBinding.tvSubtitle.setText(row.getSubtitle());
                 rowBinding.tvAmount.setText(row.getAmountLabel());

@@ -50,7 +50,6 @@ public class LedgerSectionHeaderAdapter extends RecyclerView.Adapter<LedgerSecti
 
         void bind(@NonNull SectionHeaderItem item) {
             binding.ivSectionIcon.setImageResource(item.getIconRes());
-            binding.ivSectionIcon.setImageTintList(null);
             binding.cvSectionIconContainer.setCardBackgroundColor(
                     binding.getRoot().getContext().getColor(android.R.color.white)
             );

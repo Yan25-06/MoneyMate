@@ -75,7 +75,6 @@ public class BudgetBreakdownAdapter extends ListAdapter<BudgetUIModel, BudgetBre
                     item.getCategoryIcon(),
                     item.getCategoryName()
             ));
-            binding.ivIcon.setImageTintList(null);
             binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
                     ContextCompat.getColor(context, android.R.color.white)
             ));

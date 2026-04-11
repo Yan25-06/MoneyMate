@@ -62,7 +62,6 @@ public class HomeRecentTransactionAdapter extends ListAdapter<HomeRecentTransact
                     ContextCompat.getColor(binding.getRoot().getContext(), android.R.color.white)
             );
             binding.ivTransactionIcon.setImageResource(item.getIconRes());
-            binding.ivTransactionIcon.setImageTintList(null);
             binding.tvTransactionTitle.setText(item.getTitle());
             binding.tvTransactionDate.setText(item.getDateLabel());
             binding.tvTransactionAmount.setText(item.getAmountLabel());

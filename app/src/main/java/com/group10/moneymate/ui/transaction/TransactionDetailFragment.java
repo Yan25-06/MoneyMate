@@ -172,7 +172,6 @@ public class TransactionDetailFragment extends Fragment {
         String categoryName = resolveCategoryName(category, type);
 
         binding.ivCategoryIcon.setImageResource(iconRes);
-        binding.ivCategoryIcon.setImageTintList(null);
         binding.cvCategoryIconContainer.setCardBackgroundColor(
                 ContextCompat.getColor(requireContext(), android.R.color.white)
         );
