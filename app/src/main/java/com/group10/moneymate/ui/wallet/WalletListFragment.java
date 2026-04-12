@@ -56,6 +56,14 @@ public class WalletListFragment extends Fragment {
             }
 
             @Override
+            public void onTransfer(WalletEntity wallet) {
+                WalletListFragmentDirections.ActionWalletListToTransfer action =
+                        WalletListFragmentDirections.actionWalletListToTransfer();
+                action.setFromWalletId(wallet.getId());
+                Navigation.findNavController(view).navigate(action);
+            }
+
+            @Override
             public void onArchive(WalletEntity wallet) {
                 showArchiveConfirmDialog(wallet);
             }

@@ -32,6 +32,10 @@ public class Constants {
     public static final String CATEGORY_ID_OTHER_LEGACY = "VIRTUAL_OTHER_CATEGORIES";
     public static final String CATEGORY_TYPE_VIRTUAL_BUDGET = "VIRTUAL_BUDGET";
 
+    // ─── Transaction ───────────────────────────────────────────────────────────────
+    public static final String CATEGORY_NAME_TRANSFER_OUT = "Tiền chuyển đi";
+    public static final String CATEGORY_NAME_TRANSFER_IN = "Tiền chuyển đến";
+
     // ─── Passcode ─────────────────────────────────────────────────────────────
     public static final int PASSCODE_MAX_ATTEMPTS    = 3;
     public static final int PASSCODE_LOCKOUT_SECONDS = 30;
@@ -80,6 +84,10 @@ public class Constants {
         list.add(new DefaultCategory("Bán hàng",   "ic_category_sale", TYPE_INCOME));
         list.add(new DefaultCategory("Quà tặng",   "ic_category_gift", TYPE_INCOME));
         list.add(new DefaultCategory("Khác (Thu)", "ic_category_other_in", TYPE_INCOME));
+
+        // ── Chuyển khoản ────────────────────────────────────────────────────
+        list.add(new DefaultCategory(CATEGORY_NAME_TRANSFER_OUT, "ic_category_transfer_out", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_NAME_TRANSFER_IN,  "ic_category_transfer_in",  TYPE_INCOME));
 
         return list;
     }

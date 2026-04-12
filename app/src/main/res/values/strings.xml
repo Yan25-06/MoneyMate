@@ -460,6 +460,29 @@
     <string name="wallet_picker_archived_note">Ví này đang lưu trữ, bạn có thể khôi phục nó để sử dụng.</string>
     <string name="default_currency_zero">0 ₫</string>
 
+    <!-- Transfer -->
+    <string name="transfer_money">Chuyển tiền</string>
+    <string name="transfer_title">Chuyển tiền</string>
+    <string name="transfer_from_label">Từ</string>
+    <string name="transfer_to_label">Đến</string>
+    <string name="transfer_options_label">Tùy chọn</string>
+    <string name="transfer_note_from_hint">Chuyển tiền đến %1$s</string>
+    <string name="transfer_note_to_hint">Nhận tiền từ %1$s</string>
+    <string name="transfer_add_fee">Thêm phí chuyển khoản</string>
+    <string name="transfer_fee_note_hint">Phí chuyển khoản khi chuyển tiền từ %1$s đến %2$s</string>
+    <string name="transfer_fee_amount_hint">Số tiền phí</string>
+    <string name="transfer_select_wallet">Chọn ví</string>
+    <string name="transfer_error_same_wallet">Ví nguồn và ví đích không thể giống nhau</string>
+    <string name="transfer_error_no_dest_wallet">Vui lòng chọn ví nhận</string>
+    <string name="transfer_error_no_amount">Vui lòng nhập số tiền chuyển</string>
+    <string name="transfer_error_no_fee_amount">Vui lòng nhập số tiền phí</string>
+    <string name="transfer_success">Chuyển tiền thành công</string>
+    <string name="transfer_confirm">Xác nhận</string>
+    <string name="transfer_category_out">Tiền chuyển đi</string>
+    <string name="transfer_category_in">Tiền chuyển đến</string>
+    <string name="transfer_error_category_not_found">Không tìm thấy danh mục chuyển tiền. Vui lòng khởi động lại ứng dụng.</string>
+    <string name="transfer_error_not_enough_wallets">Cần ít nhất 2 ví hoạt động để chuyển tiền</string>
+
     <!-- Profile -->
     <string name="profile">Hồ sơ</string>
     <string name="avatar">Ảnh đại diện</string>

@@ -89,7 +89,6 @@ public class ReportTransactionAdapter extends ListAdapter<TransactionEntity, Rep
             }
 
             binding.ivCategoryIcon.setImageResource(presentation.getIconRes());
-            binding.ivCategoryIcon.setImageTintList(null);
             binding.cvCategoryIconContainer.setCardBackgroundColor(
                     ContextCompat.getColor(context, android.R.color.white)
             );

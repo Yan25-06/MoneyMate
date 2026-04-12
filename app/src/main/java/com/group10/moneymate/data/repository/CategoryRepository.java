@@ -573,4 +573,9 @@ public class CategoryRepository {
             mainHandler.post(() -> callback.onResult(count > 0));
         });
     }
+
+    @Nullable
+    public CategoryEntity getCategoryByNameAndTypeSync(@NonNull String name, @NonNull String type) {
+        return categoryDao.getCategoryByNameAndTypeSync(name, type);
+    }
 }

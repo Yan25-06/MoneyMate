@@ -83,7 +83,6 @@ public class CategoryIconAdapter extends ListAdapter<CategoryIconAdapter.Categor
             binding.ivIconOption.setImageResource(
                     IconProvider.resolveCategoryIcon(context, item.iconResId)
             );
-            binding.ivIconOption.setImageTintList(null);
             binding.tvIconOptionName.setText(item.label);
 
             boolean selected = item.iconResId.equals(selectedIconResId);

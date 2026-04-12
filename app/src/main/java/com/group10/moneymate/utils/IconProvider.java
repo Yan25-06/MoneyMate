@@ -142,6 +142,8 @@ public final class IconProvider {
         map.put("outline_receipt_24", R.drawable.outline_receipt_24);
         map.put("outline_account_balance_wallet_24", R.drawable.outline_account_balance_wallet_24);
         map.put("outline_calendar_today_24", R.drawable.outline_calendar_today_24);
+        map.put("ic_category_transfer_out", R.drawable.outline_payment_arrow_up_24);
+        map.put("ic_category_transfer_in", R.drawable.outline_payment_arrow_down_24);
         return Collections.unmodifiableMap(map);
     }
 }

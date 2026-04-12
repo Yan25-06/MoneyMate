@@ -405,7 +405,6 @@ public class TransactionConfirmationFragment extends Fragment {
             return;
         }
         binding.ivReceiptThumbnail.setImageBitmap(thumbnailBitmap);
-        binding.ivReceiptThumbnail.setImageTintList(null);
         binding.ivReceiptThumbnail.setOnClickListener(v -> showZoomedReceiptPreview());
     }
 

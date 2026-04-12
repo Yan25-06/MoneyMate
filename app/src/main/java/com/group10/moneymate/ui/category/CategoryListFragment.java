@@ -220,7 +220,6 @@ public class CategoryListFragment extends Fragment {
                         wallet.getType()
                 );
                 binding.ivWalletFilterIcon.setImageResource(iconRes);
-                binding.ivWalletFilterIcon.setImageTintList(null);
                 binding.ivWalletFilterIcon.setVisibility(View.VISIBLE);
                 return;
             }

@@ -109,13 +109,6 @@
                             app:iconTint="@color/white" />
                     </LinearLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:text="@string/wallet_list_hint"
-                        android:textColor="@color/statistics_text_secondary"
-                        android:textSize="14sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

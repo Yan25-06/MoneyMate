@@ -153,7 +153,6 @@ public class TransactionAdapter extends ListAdapter<TransactionEntity, Transacti
             }
 
             binding.ivCategoryIcon.setImageResource(iconRes);
-            binding.ivCategoryIcon.setImageTintList(null);
             binding.cvCategoryIconContainer.setCardBackgroundColor(
                     ContextCompat.getColor(context, android.R.color.white)
             );
