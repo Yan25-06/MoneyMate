@@ -79,7 +79,7 @@
                         android:backgroundTint="@color/transaction_income_soft"
                         android:contentDescription="@null"
                         android:padding="10dp"
-                        android:src="@drawable/ic_category_camera"
+                        android:src="@drawable/outline_document_scanner_24"
                         app:tint="@color/transaction_income_accent" />
 
                     <LinearLayout

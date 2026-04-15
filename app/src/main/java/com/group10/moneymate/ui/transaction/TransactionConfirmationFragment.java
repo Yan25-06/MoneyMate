@@ -363,7 +363,7 @@ public class TransactionConfirmationFragment extends Fragment {
         }
         return warnings.isEmpty()
                 ? ""
-                : TextUtils.join(getString(R.string.transaction_scan_confirmation_warning_separator), warnings);
+                : TextUtils.join(" • ", warnings);
     }
 
     @NonNull
@@ -538,11 +538,11 @@ public class TransactionConfirmationFragment extends Fragment {
     private void updateRescanAction() {
         if (AddEditTransactionFragment.IMAGE_INPUT_SOURCE_CAMERA.equals(currentImageInputSource)) {
             binding.btnConfirmationRescan.setText(R.string.transaction_scan_confirmation_rescan_camera);
-            binding.btnConfirmationRescan.setIconResource(R.drawable.ic_category_camera);
+            binding.btnConfirmationRescan.setIconResource(R.drawable.outline_photo_camera_24);
             return;
         }
         binding.btnConfirmationRescan.setText(R.string.transaction_scan_confirmation_rescan_gallery);
-        binding.btnConfirmationRescan.setIconResource(R.drawable.outline_receipt_24);
+        binding.btnConfirmationRescan.setIconResource(R.drawable.outline_image_24);
     }
 
     private void updateEmptyState() {
