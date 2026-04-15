@@ -40,7 +40,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="16dp"
+            android:layout_marginStart="16dp"
             android:text="@string/transaction_scan_camera_title"
             android:textColor="@color/white"
             android:textSize="24sp"
@@ -87,11 +87,6 @@
             android:text="@string/transaction_scan_permission_action"
             android:textAllCaps="false"
             app:backgroundTint="@color/transaction_income_accent" />
-
-        <androidx.camera.view.PreviewView
-            android:id="@+id/preview_camera"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
     </LinearLayout>
 
     <LinearLayout
