@@ -143,7 +143,6 @@ public class CameraFragment extends Fragment {
         binding.btnExposureUp.setEnabled(false);
         binding.btnCameraCapture.setText(R.string.transaction_scan_capture);
         binding.tvCameraStatus.setText(R.string.transaction_scan_camera_loading);
-        binding.tvCameraHint.setText(R.string.transaction_scan_camera_quality_hint);
     }
 
     private void startCameraPreview() {

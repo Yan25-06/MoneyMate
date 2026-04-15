@@ -12,6 +12,47 @@
         app:implementationMode="compatible"
         app:scaleType="fillCenter" />
 
+    <LinearLayout
+        android:id="@+id/layout_receipt_dim_mask"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/camera_capture_overlay_scrim" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="440dp"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/camera_capture_overlay_scrim" />
+
+            <Space
+                android:layout_width="300dp"
+                android:layout_height="match_parent" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/camera_capture_overlay_scrim" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/camera_capture_overlay_scrim" />
+    </LinearLayout>
+
     <View
         android:id="@+id/view_receipt_guide"
         android:layout_width="300dp"
@@ -98,20 +139,6 @@
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
         android:paddingBottom="28dp">
-
-        <TextView
-            android:id="@+id/tv_camera_hint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_statistics_period_nav_item"
-            android:paddingStart="14dp"
-            android:paddingTop="7dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="7dp"
-            android:text="@string/transaction_scan_camera_quality_hint"
-            android:textColor="@color/statistics_text_primary"
-            android:textSize="13sp" />
 
         <LinearLayout
             android:id="@+id/layout_camera_controls"
