@@ -58,11 +58,13 @@ import com.group10.moneymate.workers.AIReceiptScannerWorker;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.text.Normalizer;
 
 public class AddEditTransactionFragment extends Fragment {
 
@@ -91,6 +93,10 @@ public class AddEditTransactionFragment extends Fragment {
     private LiveData<CategoryEntity> selectedCategorySource;
     @Nullable
     private Observer<CategoryEntity> selectedCategoryObserver;
+    @Nullable
+    private LiveData<List<CategoryEntity>> ocrCategoryPrefillSource;
+    @Nullable
+    private Observer<List<CategoryEntity>> ocrCategoryPrefillObserver;
     private boolean isFormattingAmount;
     private boolean isLoadingEdit;
     private boolean isManualIcon;
@@ -107,6 +113,8 @@ public class AddEditTransactionFragment extends Fragment {
     private String selectedReceiptInputSource;
     @Nullable
     private String ocrDraftId;
+    @Nullable
+    private String ocrDraftCategoryHint;
     @Nullable
     private LiveData<WorkInfo> receiptScanWorkInfoSource;
     @Nullable
@@ -457,6 +465,7 @@ public class AddEditTransactionFragment extends Fragment {
         AddEditTransactionFragmentDirections.ActionAddEditTransactionFragmentToTransactionConfirmationFragment action =
                 AddEditTransactionFragmentDirections.actionAddEditTransactionFragmentToTransactionConfirmationFragment();
         action.setImagePath(outputData.getString(ReceiptScanContract.KEY_IMAGE_PATH));
+        action.setImageUri(outputData.getString(ReceiptScanContract.KEY_IMAGE_URI));
         action.setAmount(outputData.getString(ReceiptScanContract.KEY_AMOUNT));
         action.setTimestamp(outputData.getLong(
                 ReceiptScanContract.KEY_TIMESTAMP,
@@ -541,12 +550,14 @@ public class AddEditTransactionFragment extends Fragment {
         }
         String draftCategoryHint = args.getOcrDraftCategoryHint();
         if (!TextUtils.isEmpty(draftCategoryHint)) {
-            selectedCategoryName = draftCategoryHint.trim();
+            ocrDraftCategoryHint = draftCategoryHint.trim();
+            selectedCategoryName = ocrDraftCategoryHint;
         }
         if (!TextUtils.isEmpty(draftCategoryId)) {
             loadSelectedCategory();
         } else if (!TextUtils.isEmpty(draftCategoryHint)) {
             updateCategorySelectionUi();
+            resolveCategoryFromOcrHintIfNeeded();
         }
 
         String draftImagePath = args.getOcrDraftImagePath();
@@ -696,6 +707,75 @@ public class AddEditTransactionFragment extends Fragment {
             updateCategorySelectionUi();
         };
         selectedCategorySource.observe(getViewLifecycleOwner(), selectedCategoryObserver);
+    }
+
+    private void resolveCategoryFromOcrHintIfNeeded() {
+        if (TextUtils.isEmpty(ocrDraftCategoryHint) || !TextUtils.isEmpty(selectedCategoryId)) {
+            return;
+        }
+        clearOcrCategoryPrefillObserver();
+        ocrCategoryPrefillSource = viewModel.getExpenseCategories();
+        ocrCategoryPrefillObserver = categories -> {
+            String matchedCategoryId = resolveCategoryIdFromHint(categories, ocrDraftCategoryHint);
+            if (TextUtils.isEmpty(matchedCategoryId)) {
+                return;
+            }
+            selectedCategoryId = matchedCategoryId;
+            loadSelectedCategory();
+            clearOcrCategoryPrefillObserver();
+        };
+        ocrCategoryPrefillSource.observe(getViewLifecycleOwner(), ocrCategoryPrefillObserver);
+    }
+
+    private void clearOcrCategoryPrefillObserver() {
+        if (ocrCategoryPrefillSource != null && ocrCategoryPrefillObserver != null) {
+            ocrCategoryPrefillSource.removeObserver(ocrCategoryPrefillObserver);
+        }
+        ocrCategoryPrefillSource = null;
+        ocrCategoryPrefillObserver = null;
+    }
+
+    @Nullable
+    private String resolveCategoryIdFromHint(@Nullable List<CategoryEntity> categories, @Nullable String categoryHint) {
+        if (categories == null || categories.isEmpty() || TextUtils.isEmpty(categoryHint)) {
+            return null;
+        }
+        String normalizedHint = normalizeLookupValue(categoryHint);
+        if (TextUtils.isEmpty(normalizedHint)) {
+            return null;
+        }
+
+        CategoryEntity partialCandidate = null;
+        for (CategoryEntity category : categories) {
+            String normalizedName = normalizeLookupValue(category.getName());
+            if (normalizedHint.equals(normalizedName)) {
+                return category.getId();
+            }
+            boolean overlaps = normalizedName.contains(normalizedHint)
+                    || normalizedHint.contains(normalizedName);
+            if (!overlaps) {
+                continue;
+            }
+            if (partialCandidate != null && !partialCandidate.getId().equals(category.getId())) {
+                return null;
+            }
+            partialCandidate = category;
+        }
+        return partialCandidate != null ? partialCandidate.getId() : null;
+    }
+
+    @NonNull
+    private String normalizeLookupValue(@Nullable String value) {
+        if (value == null) {
+            return "";
+        }
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .replace('đ', 'd')
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private void updateCategorySelectionUi() {
@@ -1144,6 +1224,7 @@ public class AddEditTransactionFragment extends Fragment {
         if (selectedCategorySource != null && selectedCategoryObserver != null) {
             selectedCategorySource.removeObserver(selectedCategoryObserver);
         }
+        clearOcrCategoryPrefillObserver();
         clearReceiptScanWorkObservation();
         dismissScanSourceDialog();
         loadingHelper.dismiss();
