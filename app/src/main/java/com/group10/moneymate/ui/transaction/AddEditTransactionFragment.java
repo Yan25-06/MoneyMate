@@ -19,7 +19,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
 import androidx.core.graphics.ColorUtils;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
@@ -133,15 +136,14 @@ public class AddEditTransactionFragment extends Fragment {
         super.onCreate(savedInstanceState);
         galleryPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
-                this::handleGalleryImageSelected
-        );
+                this::handleGalleryImageSelected);
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         binding = FragmentAddEditTransactionBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -152,11 +154,11 @@ public class AddEditTransactionFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
 
         AddEditTransactionFragmentArgs args = AddEditTransactionFragmentArgs.fromBundle(
-                getArguments() != null ? getArguments() : new Bundle()
-        );
+                getArguments() != null ? getArguments() : new Bundle());
         transactionId = args.getTransactionId();
         ocrDraftId = args.getOcrDraftId();
 
+        setupInsets();
         setupToolbar();
         setupTypeToggle();
         setupCategoryPickerRow();
@@ -169,13 +171,13 @@ public class AddEditTransactionFragment extends Fragment {
         observeWallets();
 
         if (transactionId != null) {
-            binding.tvToolbarTitle.setText(R.string.transaction_edit_title);
+            binding.topAppBar.setTitle(R.string.transaction_edit_title);
             binding.btnSave.setText(R.string.btn_update);
             updateScanEntryVisibility();
             loadExistingTransaction();
         } else {
             // Add mode: chọn EXPENSE mặc định, ngày hôm nay
-            binding.tvToolbarTitle.setText(R.string.add_transaction);
+            binding.topAppBar.setTitle(R.string.add_transaction);
             binding.btnSave.setText(R.string.btn_save);
             binding.toggleType.check(R.id.btn_expense);
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
@@ -188,7 +190,7 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void setupToolbar() {
-        binding.btnCloseScreen.setOnClickListener(v -> {
+        binding.topAppBar.setNavigationOnClickListener(v -> {
             if (isSaving) {
                 return;
             }
@@ -196,11 +198,31 @@ public class AddEditTransactionFragment extends Fragment {
         });
     }
 
+    private void setupInsets() {
+        final int initialAppBarTopPadding = binding.appBarLayout.getPaddingTop();
+        final int initialScrollBottomPadding = binding.scrollContent.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            binding.appBarLayout.setPadding(
+                    binding.appBarLayout.getPaddingLeft(),
+                    initialAppBarTopPadding + systemBars.top,
+                    binding.appBarLayout.getPaddingRight(),
+                    binding.appBarLayout.getPaddingBottom());
+            binding.scrollContent.setPadding(
+                    binding.scrollContent.getPaddingLeft(),
+                    binding.scrollContent.getPaddingTop(),
+                    binding.scrollContent.getPaddingRight(),
+                    initialScrollBottomPadding + systemBars.bottom);
+            return insets;
+        });
+    }
+
     // ─── Type Toggle ──────────────────────────────────────────────────────────
 
     private void setupTypeToggle() {
         binding.toggleType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            if (!isChecked || isLoadingEdit) return;
+            if (!isChecked || isLoadingEdit)
+                return;
             if (checkedId == R.id.btn_expense) {
                 currentType = Constants.TYPE_EXPENSE;
                 isDebtTabSelected = false;
@@ -224,8 +246,8 @@ public class AddEditTransactionFragment extends Fragment {
 
     private void setupCategoryPickerRow() {
         binding.layoutCategoryPicker.setOnClickListener(v -> {
-            AddEditTransactionFragmentDirections.ActionAddEditTransactionFragmentToTransactionCategoryPickerFragment action =
-                    AddEditTransactionFragmentDirections.actionAddEditTransactionFragmentToTransactionCategoryPickerFragment();
+            AddEditTransactionFragmentDirections.ActionAddEditTransactionFragmentToTransactionCategoryPickerFragment action = AddEditTransactionFragmentDirections
+                    .actionAddEditTransactionFragmentToTransactionCategoryPickerFragment();
             action.setSelectedCategoryId(selectedCategoryId);
             action.setTransactionType(resolvePickerTransactionType());
             Navigation.findNavController(v).navigate(action);
@@ -243,8 +265,7 @@ public class AddEditTransactionFragment extends Fragment {
                     date -> {
                         selectedTimestamp = TimeWindowUtils.startOfDayLocalDateUtc(date);
                         binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
-                    }
-            );
+                    });
         });
         binding.btnPrevDate.setOnClickListener(v -> shiftSelectedDate(-1));
         binding.btnNextDate.setOnClickListener(v -> shiftSelectedDate(1));
@@ -303,8 +324,8 @@ public class AddEditTransactionFragment extends Fragment {
     private void showScanSourceChooser() {
         dismissScanSourceDialog();
 
-        DialogTransactionScanSourceBinding dialogBinding =
-                DialogTransactionScanSourceBinding.inflate(getLayoutInflater());
+        DialogTransactionScanSourceBinding dialogBinding = DialogTransactionScanSourceBinding
+                .inflate(getLayoutInflater());
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         dialog.setContentView(dialogBinding.getRoot());
         dialogBinding.tvScanSourceSubtitle.setText(resolvePreScanSourceSubtitle());
@@ -312,8 +333,8 @@ public class AddEditTransactionFragment extends Fragment {
         dialogBinding.btnScanFromCamera.setOnClickListener(v -> {
             selectedReceiptInputSource = IMAGE_INPUT_SOURCE_CAMERA;
             dialog.dismiss();
-            NavDirections action =
-                    AddEditTransactionFragmentDirections.actionAddEditTransactionFragmentToCameraFragment();
+            NavDirections action = AddEditTransactionFragmentDirections
+                    .actionAddEditTransactionFragmentToCameraFragment();
             Navigation.findNavController(binding.getRoot()).navigate(action);
         });
         dialogBinding.btnScanFromGallery.setOnClickListener(v -> {
@@ -359,8 +380,8 @@ public class AddEditTransactionFragment extends Fragment {
         startReceiptPreparationUi(R.string.transaction_scan_gallery_loading);
         receiptImageExecutor.execute(() -> {
             try {
-                FileUtils.ReceiptImageCopyResult copyResult =
-                        FileUtils.copyReceiptImageToInternalStorage(appContext, sourceUri);
+                FileUtils.ReceiptImageCopyResult copyResult = FileUtils.copyReceiptImageToInternalStorage(appContext,
+                        sourceUri);
                 mainExecutor.execute(() -> finishGalleryImportSuccess(copyResult));
             } catch (FileUtils.InvalidReceiptImageException exception) {
                 mainExecutor.execute(() -> finishGalleryImportError(R.string.transaction_scan_gallery_invalid_image));
@@ -401,7 +422,7 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void applySelectedReceiptImage(@NonNull String imagePath,
-                                           @NonNull String imageUri) {
+            @NonNull String imageUri) {
         selectedReceiptImagePath = imagePath;
         selectedReceiptImageUri = imageUri;
         enqueueReceiptScan(imagePath, imageUri);
@@ -418,8 +439,7 @@ public class AddEditTransactionFragment extends Fragment {
                         applySelectedReceiptImage(imagePath, imageUri);
                     }
                     getParentFragmentManager().clearFragmentResult(CameraFragment.REQUEST_KEY_CAPTURED_IMAGE);
-                }
-        );
+                });
     }
 
     private void enqueueReceiptScan(@NonNull String imagePath, @NonNull String imageUri) {
@@ -462,15 +482,14 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void navigateToTransactionConfirmation(@NonNull Data outputData) {
-        AddEditTransactionFragmentDirections.ActionAddEditTransactionFragmentToTransactionConfirmationFragment action =
-                AddEditTransactionFragmentDirections.actionAddEditTransactionFragmentToTransactionConfirmationFragment();
+        AddEditTransactionFragmentDirections.ActionAddEditTransactionFragmentToTransactionConfirmationFragment action = AddEditTransactionFragmentDirections
+                .actionAddEditTransactionFragmentToTransactionConfirmationFragment();
         action.setImagePath(outputData.getString(ReceiptScanContract.KEY_IMAGE_PATH));
         action.setImageUri(outputData.getString(ReceiptScanContract.KEY_IMAGE_URI));
         action.setAmount(outputData.getString(ReceiptScanContract.KEY_AMOUNT));
         action.setTimestamp(outputData.getLong(
                 ReceiptScanContract.KEY_TIMESTAMP,
-                ReceiptScanContract.UNKNOWN_TIMESTAMP
-        ));
+                ReceiptScanContract.UNKNOWN_TIMESTAMP));
         action.setMerchant(outputData.getString(ReceiptScanContract.KEY_MERCHANT));
         action.setCategoryHint(outputData.getString(ReceiptScanContract.KEY_CATEGORY_HINT));
         action.setNoteHint(outputData.getString(ReceiptScanContract.KEY_NOTE_HINT));
@@ -480,8 +499,7 @@ public class AddEditTransactionFragment extends Fragment {
         action.setImageInputSource(selectedReceiptInputSource);
         action.setConfidence(outputData.getInt(
                 ReceiptScanContract.KEY_CONFIDENCE,
-                ReceiptScanContract.CONFIDENCE_LOW
-        ));
+                ReceiptScanContract.CONFIDENCE_LOW));
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }
 
@@ -577,13 +595,11 @@ public class AddEditTransactionFragment extends Fragment {
                 requireContext(),
                 Constants.TYPE_INCOME.equals(getEffectiveTypeForUi())
                         ? R.color.transfer_blue
-                        : R.color.transaction_expense_accent
-        );
+                        : R.color.transaction_expense_accent);
         binding.etAmount.setTextColor(accentColor);
         binding.viewAmountAccent.setBackgroundColor(accentColor);
         binding.btnSave.setBackgroundTintList(ColorStateList.valueOf(
-                ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)
-        ));
+                ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)));
     }
 
     private void updateTypeToggleAppearance() {
@@ -595,30 +611,28 @@ public class AddEditTransactionFragment extends Fragment {
     }
 
     private void styleTypeButton(@NonNull com.google.android.material.button.MaterialButton button,
-                                 boolean selected,
-                                 boolean expenseButton) {
+            boolean selected,
+            boolean expenseButton) {
         int backgroundColor = ContextCompat.getColor(
                 requireContext(),
                 selected
-                        ? (expenseButton ? R.color.transaction_expense_soft : R.color.statistics_period_selected_background)
-                        : R.color.white
-        );
+                        ? (expenseButton ? R.color.transaction_expense_soft
+                                : R.color.statistics_period_selected_background)
+                        : R.color.white);
         int textColor = ContextCompat.getColor(
                 requireContext(),
                 selected
                         ? (expenseButton ? R.color.transaction_expense_accent : R.color.transfer_blue)
-                        : R.color.transaction_muted_text
-        );
+                        : R.color.transaction_muted_text);
         button.setBackgroundTintList(ColorStateList.valueOf(backgroundColor));
         button.setStrokeColor(ColorStateList.valueOf(
-                ContextCompat.getColor(requireContext(), R.color.transaction_border)
-        ));
+                ContextCompat.getColor(requireContext(), R.color.transaction_border)));
         button.setTextColor(textColor);
         button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
     }
 
     private void styleDebtButton(@NonNull com.google.android.material.button.MaterialButton button,
-                                 boolean selected) {
+            boolean selected) {
         int accentColor = ContextCompat.getColor(requireContext(), R.color.budget_warning_orange);
         int backgroundColor = selected
                 ? ColorUtils.setAlphaComponent(accentColor, 28)
@@ -628,8 +642,7 @@ public class AddEditTransactionFragment extends Fragment {
                 : ContextCompat.getColor(requireContext(), R.color.transaction_muted_text);
         button.setBackgroundTintList(ColorStateList.valueOf(backgroundColor));
         button.setStrokeColor(ColorStateList.valueOf(
-                ContextCompat.getColor(requireContext(), R.color.transaction_border)
-        ));
+                ContextCompat.getColor(requireContext(), R.color.transaction_border)));
         button.setTextColor(textColor);
         button.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
     }
@@ -654,8 +667,7 @@ public class AddEditTransactionFragment extends Fragment {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 R.layout.item_wallet_dropdown,
-                buildWalletNames(displayWallets)
-        );
+                buildWalletNames(displayWallets));
         binding.dropdownWallet.setAdapter(adapter);
         binding.dropdownWallet.setOnItemClickListener((parent, view, position, id) -> {
             if (position >= 0 && position < walletList.size()) {
@@ -784,8 +796,7 @@ public class AddEditTransactionFragment extends Fragment {
         int iconRes = IconProvider.resolveCategoryIconByType(
                 requireContext(),
                 selectedIconName,
-                getEffectiveTypeForUi()
-        );
+                getEffectiveTypeForUi());
         binding.ivCategoryIcon.setImageResource(iconRes);
     }
 
@@ -932,9 +943,11 @@ public class AddEditTransactionFragment extends Fragment {
 
     private void loadExistingTransaction() {
         viewModel.getTransactionById(transactionId).observe(getViewLifecycleOwner(), transaction -> {
-            if (transaction == null) return;
+            if (transaction == null)
+                return;
             // Chỉ populate lần đầu
-            if (originalTransaction != null) return;
+            if (originalTransaction != null)
+                return;
             originalTransaction = transaction;
             isLoadingEdit = true;
 
@@ -968,7 +981,8 @@ public class AddEditTransactionFragment extends Fragment {
             if (isSaving) {
                 return;
             }
-            if (!validateForm()) return;
+            if (!validateForm())
+                return;
 
             String amountStr = Objects.requireNonNull(binding.etAmount.getText()).toString().trim();
             double amount = CurrencyFormatter.parseFormattedAmount(amountStr);
@@ -1010,20 +1024,22 @@ public class AddEditTransactionFragment extends Fragment {
                 updated.setTimestamp(selectedTimestamp);
                 updated.setSyncStatus(SyncStatus.PENDING_UPLOAD);
                 updated.setUpdatedAt(System.currentTimeMillis());
-                viewModel.updateTransaction(updated, new com.group10.moneymate.data.repository.TransactionRepository.WriteCallback() {
-                    @Override
-                    public void onSuccess() {
-                        finishSavingAndNavigateUp();
-                    }
+                viewModel.updateTransaction(updated,
+                        new com.group10.moneymate.data.repository.TransactionRepository.WriteCallback() {
+                            @Override
+                            public void onSuccess() {
+                                finishSavingAndNavigateUp();
+                            }
 
-                    @Override
-                    public void onError(@NonNull Throwable throwable) {
-                        stopSavingUi();
-                        if (isAdded()) {
-                            Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+                            @Override
+                            public void onError(@NonNull Throwable throwable) {
+                                stopSavingUi();
+                                if (isAdded()) {
+                                    Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT)
+                                            .show();
+                                }
+                            }
+                        });
             } else {
                 // Add mode
                 TransactionEntity transaction = new TransactionEntity();
@@ -1068,19 +1084,18 @@ public class AddEditTransactionFragment extends Fragment {
                                 () -> {
                                     startSavingUi();
                                     performInsertTransaction(transaction);
-                                }
-                        );
+                                });
                     }
 
                     @Override
                     public void onError(@NonNull Throwable throwable) {
                         stopSavingUi();
                         if (isAdded()) {
-                            Toast.makeText(requireContext(), R.string.transaction_scan_duplicate_check_failed, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireContext(), R.string.transaction_scan_duplicate_check_failed,
+                                    Toast.LENGTH_SHORT).show();
                         }
                     }
-                }
-        );
+                });
     }
 
     private void performInsertTransaction(@NonNull TransactionEntity transaction) {
@@ -1102,8 +1117,7 @@ public class AddEditTransactionFragment extends Fragment {
 
     @NonNull
     private TransactionRepository.OcrDuplicateCandidate buildDuplicateCandidate(
-            @NonNull TransactionEntity transaction
-    ) {
+            @NonNull TransactionEntity transaction) {
         String candidateId = !TextUtils.isEmpty(ocrDraftId)
                 ? ocrDraftId
                 : transaction.getId();
@@ -1112,12 +1126,11 @@ public class AddEditTransactionFragment extends Fragment {
                 selectedReceiptImagePath,
                 transaction.getAmount(),
                 transaction.getTimestamp(),
-                transaction.getNote()
-        );
+                transaction.getNote());
     }
 
     private void showDuplicateConfirmationDialog(@NonNull String message,
-                                                 @NonNull Runnable onConfirm) {
+            @NonNull Runnable onConfirm) {
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.transaction_scan_duplicate_title)
                 .setMessage(message)
@@ -1145,7 +1158,7 @@ public class AddEditTransactionFragment extends Fragment {
         }
         boolean enabled = !isSaving && !isPreparingReceiptImage;
         binding.btnSave.setEnabled(enabled);
-        binding.btnCloseScreen.setEnabled(enabled);
+        binding.topAppBar.setEnabled(enabled);
         binding.fabScanTransaction.setEnabled(enabled);
         updateScanEntryVisibility();
     }
@@ -1184,7 +1197,8 @@ public class AddEditTransactionFragment extends Fragment {
 
     private boolean validateForm() {
         String amountStr = binding.etAmount.getText() != null
-                ? binding.etAmount.getText().toString().trim() : "";
+                ? binding.etAmount.getText().toString().trim()
+                : "";
 
         if (TextUtils.isEmpty(amountStr)) {
             Toast.makeText(requireContext(), R.string.error_amount_required, Toast.LENGTH_SHORT).show();
@@ -1210,7 +1224,8 @@ public class AddEditTransactionFragment extends Fragment {
         }
 
         String walletName = binding.dropdownWallet.getText() != null
-                ? binding.dropdownWallet.getText().toString().trim() : "";
+                ? binding.dropdownWallet.getText().toString().trim()
+                : "";
         if (TextUtils.isEmpty(walletName)) {
             Toast.makeText(requireContext(), R.string.error_wallet_required, Toast.LENGTH_SHORT).show();
             return false;

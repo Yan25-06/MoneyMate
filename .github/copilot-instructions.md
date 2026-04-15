@@ -6,23 +6,23 @@
 
 ## 1. THÔNG TIN DỰ ÁN
 
-| Key | Value |
-|-----|-------|
-| **Tên ứng dụng** | MoneyMate |
-| **Package name** | `com.group10.moneymate` |
-| **Ngôn ngữ** | **Java** (KHÔNG dùng Kotlin) |
-| **Min SDK** | 29 (Android 10) |
-| **Target/Compile SDK** | 36 |
-| **Build system** | Gradle Kotlin DSL (`build.gradle.kts`) |
-| **Version catalog** | `gradle/libs.versions.toml` |
-| **Kiến trúc** | **MVVM + Repository Pattern** |
-| **DI** | Manual DI qua `AppContainer` (KHÔNG dùng Hilt/Dagger) |
-| **Database** | Room (offline-first, sync with Firestore) |
-| **Auth** | Firebase Auth (Email/Password) + Passcode offline |
-| **Cloud** | Firebase Firestore (backup/sync) |
-| **Navigation** | Jetpack Navigation Component + Safe Args |
-| **UI Binding** | ViewBinding (KHÔNG dùng DataBinding expressions) |
-| **AI Feature** | Google Gemini API (`BuildConfig.GEMINI_API_KEY`) |
+| Key                    | Value                                                 |
+| ---------------------- | ----------------------------------------------------- |
+| **Tên ứng dụng**       | MoneyMate                                             |
+| **Package name**       | `com.group10.moneymate`                               |
+| **Ngôn ngữ**           | **Java** (KHÔNG dùng Kotlin)                          |
+| **Min SDK**            | 29 (Android 10)                                       |
+| **Target/Compile SDK** | 36                                                    |
+| **Build system**       | Gradle Kotlin DSL (`build.gradle.kts`)                |
+| **Version catalog**    | `gradle/libs.versions.toml`                           |
+| **Kiến trúc**          | **MVVM + Repository Pattern**                         |
+| **DI**                 | Manual DI qua `AppContainer` (KHÔNG dùng Hilt/Dagger) |
+| **Database**           | Room (offline-first, sync with Firestore)             |
+| **Auth**               | Firebase Auth (Email/Password) + Passcode offline     |
+| **Cloud**              | Firebase Firestore (backup/sync)                      |
+| **Navigation**         | Jetpack Navigation Component + Safe Args              |
+| **UI Binding**         | ViewBinding (KHÔNG dùng DataBinding expressions)      |
+| **AI Feature**         | Google Gemini API (`BuildConfig.GEMINI_API_KEY`)      |
 
 ---
 
@@ -30,15 +30,15 @@
 
 ### 3.1 Ngôn ngữ & Style
 
-| Quy tắc | Chi tiết |
-|----------|----------|
-| **Chỉ dùng Java** | TUYỆT ĐỐI KHÔNG generate Kotlin. Toàn bộ project là Java. |
-| **Naming convention** | Class: `PascalCase`, method/variable: `camelCase`, constant: `UPPER_SNAKE_CASE`, layout XML: `snake_case` |
-| **Field prefix** | Entity fields dùng `camelCase` trong Java, `snake_case` trong `@ColumnInfo(name = "...")` |
-| **Getter/Setter** | Dùng standard Java getter/setter (KHÔNG dùng Lombok) |
-| **No wildcard imports** | KHÔNG dùng `import java.util.*`, phải import cụ thể |
-| **String resources** | Mọi text hiển thị cho user PHẢI nằm trong `res/values/strings.xml`, KHÔNG hard-code string |
-| **ViewBinding** | Dùng `FragmentXxxBinding` / `ActivityXxxBinding`. KHÔNG dùng `findViewById()` |
+| Quy tắc                 | Chi tiết                                                                                                  |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Chỉ dùng Java**       | TUYỆT ĐỐI KHÔNG generate Kotlin. Toàn bộ project là Java.                                                 |
+| **Naming convention**   | Class: `PascalCase`, method/variable: `camelCase`, constant: `UPPER_SNAKE_CASE`, layout XML: `snake_case` |
+| **Field prefix**        | Entity fields dùng `camelCase` trong Java, `snake_case` trong `@ColumnInfo(name = "...")`                 |
+| **Getter/Setter**       | Dùng standard Java getter/setter (KHÔNG dùng Lombok)                                                      |
+| **No wildcard imports** | KHÔNG dùng `import java.util.*`, phải import cụ thể                                                       |
+| **String resources**    | Mọi text hiển thị cho user PHẢI nằm trong `res/values/strings.xml`, KHÔNG hard-code string                |
+| **ViewBinding**         | Dùng `FragmentXxxBinding` / `ActivityXxxBinding`. KHÔNG dùng `findViewById()`                             |
 
 ### 3.2 Kiến trúc MVVM
 
@@ -47,69 +47,69 @@ Fragment/Activity  →  ViewModel  →  Repository  →  DAO / Remote
      (UI)            (LiveData)     (data logic)    (Room / Firebase)
 ```
 
-| Layer | Quy tắc |
-|-------|---------|
-| **Fragment/Activity** | Chỉ observe LiveData và handle UI events. KHÔNG chứa business logic. |
-| **ViewModel** | Expose `LiveData`/`MutableLiveData`. Gọi Repository methods. KHÔNG giữ reference đến Context/View. |
-| **Repository** | Cầu nối giữa ViewModel và data sources. Xử lý logic chọn data source (local/remote). |
-| **DAO** | Room DAO interface. Query annotation. KHÔNG chứa logic. |
+| Layer                 | Quy tắc                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| **Fragment/Activity** | Chỉ observe LiveData và handle UI events. KHÔNG chứa business logic.                               |
+| **ViewModel**         | Expose `LiveData`/`MutableLiveData`. Gọi Repository methods. KHÔNG giữ reference đến Context/View. |
+| **Repository**        | Cầu nối giữa ViewModel và data sources. Xử lý logic chọn data source (local/remote).               |
+| **DAO**               | Room DAO interface. Query annotation. KHÔNG chứa logic.                                            |
 
 ### 3.3 Room Database
 
-| Quy tắc | Chi tiết |
-|----------|----------|
-| **Primary Key** | Tất cả entity dùng `String id` (UUID) làm PK. Generate bằng `UUID.randomUUID().toString()` |
-| **Soft delete** | Mọi entity có field `is_deleted` (boolean) và `sync_status` (int). Khi xóa: set `is_deleted=true`, `sync_status=PENDING_DELETE` |
-| **Timestamps** | Mọi entity có `created_at` và `updated_at` (dạng `long`, epoch millis) |
-| **User scoped** | Mọi entity (trừ User) có `user_id` FK. Mọi query PHẢI filter theo `user_id`. |
-| **LiveData return** | DAO query trả về `LiveData<List<T>>` cho list, `LiveData<T>` cho single item |
-| **Sync queries** | Cần query đồng bộ (non-LiveData) cho background work: suffix `Sync`, e.g., `getByIdSync()` |
-| **Write operations** | Chạy trên `AppDatabase.databaseWriteExecutor` (thread pool), KHÔNG chạy trên main thread |
+| Quy tắc              | Chi tiết                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Primary Key**      | Tất cả entity dùng `String id` (UUID) làm PK. Generate bằng `UUID.randomUUID().toString()`                                      |
+| **Soft delete**      | Mọi entity có field `is_deleted` (boolean) và `sync_status` (int). Khi xóa: set `is_deleted=true`, `sync_status=PENDING_DELETE` |
+| **Timestamps**       | Mọi entity có `created_at` và `updated_at` (dạng `long`, epoch millis)                                                          |
+| **User scoped**      | Mọi entity (trừ User) có `user_id` FK. Mọi query PHẢI filter theo `user_id`.                                                    |
+| **LiveData return**  | DAO query trả về `LiveData<List<T>>` cho list, `LiveData<T>` cho single item                                                    |
+| **Sync queries**     | Cần query đồng bộ (non-LiveData) cho background work: suffix `Sync`, e.g., `getByIdSync()`                                      |
+| **Write operations** | Chạy trên `AppDatabase.databaseWriteExecutor` (thread pool), KHÔNG chạy trên main thread                                        |
 
 ### 3.4 Offline-First & Sync
 
-| Quy tắc | Chi tiết |
-|----------|----------|
-| **Local first** | Mọi thao tác CRUD ghi vào Room trước. Cloud sync là secondary. |
-| **SyncStatus** | `SYNCED=0`: đã sync. `PENDING_UPLOAD=1`: cần upload. `PENDING_DELETE=2`: cần xóa trên cloud. |
-| **Khi INSERT/UPDATE** | Set `sync_status = PENDING_UPLOAD`, `updated_at = System.currentTimeMillis()` |
-| **Khi DELETE** | Set `is_deleted = true`, `sync_status = PENDING_DELETE` (soft delete) |
-| **SyncWorker** | WorkManager periodic task upload pending records → Firestore → set `sync_status = SYNCED` |
+| Quy tắc               | Chi tiết                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| **Local first**       | Mọi thao tác CRUD ghi vào Room trước. Cloud sync là secondary.                               |
+| **SyncStatus**        | `SYNCED=0`: đã sync. `PENDING_UPLOAD=1`: cần upload. `PENDING_DELETE=2`: cần xóa trên cloud. |
+| **Khi INSERT/UPDATE** | Set `sync_status = PENDING_UPLOAD`, `updated_at = System.currentTimeMillis()`                |
+| **Khi DELETE**        | Set `is_deleted = true`, `sync_status = PENDING_DELETE` (soft delete)                        |
+| **SyncWorker**        | WorkManager periodic task upload pending records → Firestore → set `sync_status = SYNCED`    |
 
 ### 3.5 Navigation
 
-| Quy tắc | Chi tiết |
-|----------|----------|
-| **Navigation graphs** | `nav_auth.xml` (login flow), `nav_main.xml` (home flow with BottomNav) |
-| **Arguments** | Truyền argument giữa fragments qua `<argument>` tag trong nav graph. Nullable string dùng `app:nullable="true"` và `android:defaultValue="@null"` |
-| **Directions class** | Navigate bằng `XxxFragmentDirections.actionXxxToYyy(args)` hoặc `navigate(R.id.action_xxx, bundle)` |
-| **Activity structure** | `LoginActivity` → host `nav_auth.xml`. `HomeActivity` → host `nav_main.xml` với BottomNavigationView |
-| **Add/Edit pattern** | Dùng nullable argument (e.g. `transactionId`, `categoryId`): null = Add mode, non-null = Edit mode |
+| Quy tắc                | Chi tiết                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Navigation graphs**  | `nav_auth.xml` (login flow), `nav_main.xml` (home flow with BottomNav)                                                                            |
+| **Arguments**          | Truyền argument giữa fragments qua `<argument>` tag trong nav graph. Nullable string dùng `app:nullable="true"` và `android:defaultValue="@null"` |
+| **Directions class**   | Navigate bằng `XxxFragmentDirections.actionXxxToYyy(args)` hoặc `navigate(R.id.action_xxx, bundle)`                                               |
+| **Activity structure** | `LoginActivity` → host `nav_auth.xml`. `HomeActivity` → host `nav_main.xml` với BottomNavigationView                                              |
+| **Add/Edit pattern**   | Dùng nullable argument (e.g. `transactionId`, `categoryId`): null = Add mode, non-null = Edit mode                                                |
 
 ### 3.6 UI & Layout
 
-| Quy tắc | Chi tiết |
-|----------|----------|
-| **Material Design 3** | Dùng Material Components (`com.google.android.material`). Theme kế thừa `Theme.Material3.*` |
-| **Layout naming** | Activity: `activity_xxx.xml`. Fragment: `fragment_xxx.xml`. Item: `item_xxx.xml` |
-| **ID naming** | Format: `type_description`. VD: `tv_amount`, `btn_save`, `et_note`, `rv_transactions`, `fab_add` |
-| **RecyclerView** | Dùng `ListAdapter` + `DiffUtil.ItemCallback` cho tất cả danh sách |
-| **ViewHolder** | Luôn khai báo `static class ViewHolder` để tránh visibility scope warning và memory leak |
-| **Dark mode** | Support qua `values/` và `values-night/`. Dùng `?attr/colorXxx` thay vì hard-code color |
-| **Empty state** | Mọi màn hình list PHẢI có `tv_empty` hiển thị khi danh sách rỗng |
-| **Status bar** | RecyclerView dùng `paddingTop` + `clipToPadding="false"` để tránh che status bar |
-| **Back navigation** | Mọi màn hình Add/Edit PHẢI có `MaterialToolbar` với `navigationIcon` (thường là `outline_close_24` hoặc `outline_arrow_back_24`). Gán listener trong Fragment: `binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp())` |
-| **Toolbar title động** | Add/Edit fragment PHẢI cập nhật title của toolbar theo mode: `binding.topAppBar.setTitle(isEditMode ? R.string.edit_xxx : R.string.add_xxx)` |
+| Quy tắc                | Chi tiết                                                                                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Material Design 3**  | Dùng Material Components (`com.google.android.material`). Theme kế thừa `Theme.Material3.*`                                                                                                                                                                        |
+| **Layout naming**      | Activity: `activity_xxx.xml`. Fragment: `fragment_xxx.xml`. Item: `item_xxx.xml`                                                                                                                                                                                   |
+| **ID naming**          | Format: `type_description`. VD: `tv_amount`, `btn_save`, `et_note`, `rv_transactions`, `fab_add`                                                                                                                                                                   |
+| **RecyclerView**       | Dùng `ListAdapter` + `DiffUtil.ItemCallback` cho tất cả danh sách                                                                                                                                                                                                  |
+| **ViewHolder**         | Luôn khai báo `static class ViewHolder` để tránh visibility scope warning và memory leak                                                                                                                                                                           |
+| **Dark mode**          | Support qua `values/` và `values-night/`. Dùng `?attr/colorXxx` thay vì hard-code color                                                                                                                                                                            |
+| **Empty state**        | Mọi màn hình list PHẢI có `tv_empty` hiển thị khi danh sách rỗng                                                                                                                                                                                                   |
+| **Status bar**         | RecyclerView dùng `paddingTop` + `clipToPadding="false"` để tránh che status bar                                                                                                                                                                                   |
+| **Back navigation**    | Mọi màn hình Add/Edit PHẢI có `MaterialToolbar` với `navigationIcon` (thường là `outline_close_24` hoặc `outline_arrow_back_24`). Gán listener trong Fragment: `binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp())` |
+| **Toolbar title động** | Add/Edit fragment PHẢI cập nhật title của toolbar theo mode: `binding.topAppBar.setTitle(isEditMode ? R.string.edit_xxx : R.string.add_xxx)`                                                                                                                       |
 
 ### 3.7 LiveData & Observer
 
-| Quy tắc | Chi tiết |
-|----------|----------|
-| **Observe lifecycle** | Luôn dùng `getViewLifecycleOwner()` trong Fragment (KHÔNG dùng `this`) |
-| **Null binding** | Set `binding = null` trong `onDestroyView()` để tránh memory leak |
-| **Observer riêng** | Khi cần switch giữa nhiều LiveData (e.g. filter type), dùng `Observer` field riêng + `removeObserver()` trước khi observe LiveData mới — KHÔNG gọi `observe()` mới mỗi lần |
-| **switchMap** | Dùng `Transformations.switchMap()` trong ViewModel khi LiveData phụ thuộc vào MutableLiveData khác |
-| **UI flag** | Dùng boolean flag (e.g. `isLoadingEdit`) để block listener khi đang populate form từ DB, tránh side effect |
+| Quy tắc               | Chi tiết                                                                                                                                                                   |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Observe lifecycle** | Luôn dùng `getViewLifecycleOwner()` trong Fragment (KHÔNG dùng `this`)                                                                                                     |
+| **Null binding**      | Set `binding = null` trong `onDestroyView()` để tránh memory leak                                                                                                          |
+| **Observer riêng**    | Khi cần switch giữa nhiều LiveData (e.g. filter type), dùng `Observer` field riêng + `removeObserver()` trước khi observe LiveData mới — KHÔNG gọi `observe()` mới mỗi lần |
+| **switchMap**         | Dùng `Transformations.switchMap()` trong ViewModel khi LiveData phụ thuộc vào MutableLiveData khác                                                                         |
+| **UI flag**           | Dùng boolean flag (e.g. `isLoadingEdit`) để block listener khi đang populate form từ DB, tránh side effect                                                                 |
 
 ### 3.8 Navigation Animations
 
@@ -117,14 +117,14 @@ Dự án có sẵn 6 animation files trong `res/anim/`. AI **PHẢI** sử dụn
 
 **Danh sách animation có sẵn:**
 
-| File | Mô tả |
-|------|-------|
-| `slide_in_right.xml` | Fragment mới trượt vào từ phải (enter khi navigate forward) |
-| `slide_out_left.xml` | Fragment cũ trượt ra bên trái (exit khi navigate forward) |
-| `slide_in_left.xml` | Fragment cũ trượt vào từ trái (popEnter khi back) |
-| `slide_out_right.xml` | Fragment mới trượt ra bên phải (popExit khi back) |
-| `slide_in_up.xml` | Fragment trượt lên từ dưới (enter cho bottom sheet / dialog style) |
-| `slide_out_down.xml` | Fragment trượt xuống (exit cho bottom sheet / dialog style) |
+| File                  | Mô tả                                                              |
+| --------------------- | ------------------------------------------------------------------ |
+| `slide_in_right.xml`  | Fragment mới trượt vào từ phải (enter khi navigate forward)        |
+| `slide_out_left.xml`  | Fragment cũ trượt ra bên trái (exit khi navigate forward)          |
+| `slide_in_left.xml`   | Fragment cũ trượt vào từ trái (popEnter khi back)                  |
+| `slide_out_right.xml` | Fragment mới trượt ra bên phải (popExit khi back)                  |
+| `slide_in_up.xml`     | Fragment trượt lên từ dưới (enter cho bottom sheet / dialog style) |
+| `slide_out_down.xml`  | Fragment trượt xuống (exit cho bottom sheet / dialog style)        |
 
 **Cách khai báo animation trong navigation graph (`nav_main.xml` / `nav_auth.xml`):**
 
@@ -150,11 +150,11 @@ Dự án có sẵn 6 animation files trong `res/anim/`. AI **PHẢI** sử dụn
 
 **Quy tắc chọn animation:**
 
-| Tình huống | Enter | Exit | PopEnter | PopExit |
-|-----------|-------|------|----------|---------|
+| Tình huống                                                 | Enter            | Exit             | PopEnter        | PopExit           |
+| ---------------------------------------------------------- | ---------------- | ---------------- | --------------- | ----------------- |
 | Navigate sang màn hình con (List → Detail, List → AddEdit) | `slide_in_right` | `slide_out_left` | `slide_in_left` | `slide_out_right` |
-| Navigate ngang giữa tab / sibling screens | `slide_in_right` | `slide_out_left` | `slide_in_left` | `slide_out_right` |
-| Màn hình dạng bottom-up (picker, confirm) | `slide_in_up` | `slide_out_down` | `slide_in_up` | `slide_out_down` |
+| Navigate ngang giữa tab / sibling screens                  | `slide_in_right` | `slide_out_left` | `slide_in_left` | `slide_out_right` |
+| Màn hình dạng bottom-up (picker, confirm)                  | `slide_in_up`    | `slide_out_down` | `slide_in_up`   | `slide_out_down`  |
 
 > ⚠️ **BẮT BUỘC:** Mọi `<action>` trong nav graph PHẢI khai báo đủ cả 4 thuộc tính animation. KHÔNG để action không có animation.
 
@@ -164,121 +164,121 @@ Dự án có sẵn 6 animation files trong `res/anim/`. AI **PHẢI** sử dụn
 
 ### 4.1 Entity: `users`
 
-| Column | Type | Note |
-|--------|------|------|
-| `id` | `TEXT PK` | Firebase UID |
-| `email` | `TEXT` | |
-| `display_name` | `TEXT` | |
-| `avatar_url` | `TEXT` | nullable |
-| `currency` | `TEXT` | default "VND" |
-| `language` | `TEXT` | default "vi" |
-| `passcode_hash` | `TEXT` | nullable, hashed passcode |
-| `updated_at` | `INTEGER` | epoch millis |
-| `sync_status` | `INTEGER` | 0/1/2 |
-| `created_at` | `INTEGER` | epoch millis |
+| Column          | Type      | Note                      |
+| --------------- | --------- | ------------------------- |
+| `id`            | `TEXT PK` | Firebase UID              |
+| `email`         | `TEXT`    |                           |
+| `display_name`  | `TEXT`    |                           |
+| `avatar_url`    | `TEXT`    | nullable                  |
+| `currency`      | `TEXT`    | default "VND"             |
+| `language`      | `TEXT`    | default "vi"              |
+| `passcode_hash` | `TEXT`    | nullable, hashed passcode |
+| `updated_at`    | `INTEGER` | epoch millis              |
+| `sync_status`   | `INTEGER` | 0/1/2                     |
+| `created_at`    | `INTEGER` | epoch millis              |
 
 ### 4.2 Entity: `wallets`
 
-| Column | Type | Note |
-|--------|------|------|
-| `id` | `TEXT PK` | UUID |
-| `user_id` | `TEXT FK→users` | |
-| `name` | `TEXT` | |
-| `balance` | `REAL` | |
-| `type` | `TEXT` | CASH / BANK / E_WALLET |
-| `color_hex` | `TEXT` | e.g. "#4CAF50" |
-| `is_excluded` | `INTEGER` | boolean, excluded from total balance |
-| `updated_at` | `INTEGER` | |
-| `sync_status` | `INTEGER` | |
-| `is_deleted` | `INTEGER` | boolean |
-| `created_at` | `INTEGER` | |
+| Column        | Type            | Note                                 |
+| ------------- | --------------- | ------------------------------------ |
+| `id`          | `TEXT PK`       | UUID                                 |
+| `user_id`     | `TEXT FK→users` |                                      |
+| `name`        | `TEXT`          |                                      |
+| `balance`     | `REAL`          |                                      |
+| `type`        | `TEXT`          | CASH / BANK / E_WALLET               |
+| `color_hex`   | `TEXT`          | e.g. "#4CAF50"                       |
+| `is_excluded` | `INTEGER`       | boolean, excluded from total balance |
+| `updated_at`  | `INTEGER`       |                                      |
+| `sync_status` | `INTEGER`       |                                      |
+| `is_deleted`  | `INTEGER`       | boolean                              |
+| `created_at`  | `INTEGER`       |                                      |
 
 ### 4.3 Entity: `categories`
 
-| Column | Type | Note |
-|--------|------|------|
-| `id` | `TEXT PK` | UUID |
-| `user_id` | `TEXT FK→users` | nullable (null = system default) |
-| `name` | `TEXT` | |
-| `icon_res_id` | `TEXT` | resource name, e.g. "ic_food" |
-| `type` | `TEXT` | INCOME / EXPENSE |
-| `is_default` | `INTEGER` | boolean |
-| `color_hex` | `TEXT` | |
-| `updated_at` | `INTEGER` | |
-| `sync_status` | `INTEGER` | |
-| `is_deleted` | `INTEGER` | boolean |
+| Column        | Type            | Note                             |
+| ------------- | --------------- | -------------------------------- |
+| `id`          | `TEXT PK`       | UUID                             |
+| `user_id`     | `TEXT FK→users` | nullable (null = system default) |
+| `name`        | `TEXT`          |                                  |
+| `icon_res_id` | `TEXT`          | resource name, e.g. "ic_food"    |
+| `type`        | `TEXT`          | INCOME / EXPENSE                 |
+| `is_default`  | `INTEGER`       | boolean                          |
+| `color_hex`   | `TEXT`          |                                  |
+| `updated_at`  | `INTEGER`       |                                  |
+| `sync_status` | `INTEGER`       |                                  |
+| `is_deleted`  | `INTEGER`       | boolean                          |
 
 ### 4.4 Entity: `transactions`
 
-| Column | Type | Note |
-|--------|------|------|
-| `id` | `TEXT PK` | UUID |
-| `user_id` | `TEXT FK→users` | denormalized cho user-scoped queries |
-| `wallet_id` | `TEXT FK→wallets` | source wallet |
-| `category_id` | `TEXT FK→categories` | |
-| `to_wallet_id` | `TEXT FK→wallets` | nullable, for TRANSFER type |
-| `debt_id` | `TEXT FK→debts` | nullable |
-| `event_id` | `TEXT FK→events` | nullable |
-| `amount` | `REAL` | always positive |
-| `type` | `TEXT` | INCOME / EXPENSE / TRANSFER |
-| `note` | `TEXT` | nullable |
-| `image_path` | `TEXT` | nullable, receipt photo path |
-| `timestamp` | `INTEGER` | epoch millis, ngày giao dịch (field thực tế trong code) |
-| `updated_at` | `INTEGER` | |
-| `sync_status` | `INTEGER` | |
-| `is_deleted` | `INTEGER` | boolean |
+| Column         | Type                 | Note                                                    |
+| -------------- | -------------------- | ------------------------------------------------------- |
+| `id`           | `TEXT PK`            | UUID                                                    |
+| `user_id`      | `TEXT FK→users`      | denormalized cho user-scoped queries                    |
+| `wallet_id`    | `TEXT FK→wallets`    | source wallet                                           |
+| `category_id`  | `TEXT FK→categories` |                                                         |
+| `to_wallet_id` | `TEXT FK→wallets`    | nullable, for TRANSFER type                             |
+| `debt_id`      | `TEXT FK→debts`      | nullable                                                |
+| `event_id`     | `TEXT FK→events`     | nullable                                                |
+| `amount`       | `REAL`               | always positive                                         |
+| `type`         | `TEXT`               | INCOME / EXPENSE / TRANSFER                             |
+| `note`         | `TEXT`               | nullable                                                |
+| `image_path`   | `TEXT`               | nullable, receipt photo path                            |
+| `timestamp`    | `INTEGER`            | epoch millis, ngày giao dịch (field thực tế trong code) |
+| `updated_at`   | `INTEGER`            |                                                         |
+| `sync_status`  | `INTEGER`            |                                                         |
+| `is_deleted`   | `INTEGER`            | boolean                                                 |
 
 > ⚠️ Lưu ý: Field ngày giao dịch tên là `timestamp` (KHÔNG phải `date`) trong `TransactionEntity` và `TransactionDao`.
 
 ### 4.5 Entity: `budgets`
 
-| Column | Type | Note |
-|--------|------|------|
-| `id` | `TEXT PK` | UUID |
-| `user_id` | `TEXT FK→users` | |
-| `category_id` | `TEXT FK→categories` | nullable (null = total budget) |
-| `limit_amount` | `REAL` | |
-| `alert_threshold` | `REAL` | 0.0–1.0 (e.g. 0.8 = warn at 80%) |
-| `month` | `INTEGER` | 1–12 |
-| `year` | `INTEGER` | e.g. 2026 |
-| `updated_at` | `INTEGER` | |
-| `sync_status` | `INTEGER` | |
-| `is_deleted` | `INTEGER` | boolean |
-| `created_at` | `INTEGER` | |
+| Column            | Type                 | Note                             |
+| ----------------- | -------------------- | -------------------------------- |
+| `id`              | `TEXT PK`            | UUID                             |
+| `user_id`         | `TEXT FK→users`      |                                  |
+| `category_id`     | `TEXT FK→categories` | nullable (null = total budget)   |
+| `limit_amount`    | `REAL`               |                                  |
+| `alert_threshold` | `REAL`               | 0.0–1.0 (e.g. 0.8 = warn at 80%) |
+| `month`           | `INTEGER`            | 1–12                             |
+| `year`            | `INTEGER`            | e.g. 2026                        |
+| `updated_at`      | `INTEGER`            |                                  |
+| `sync_status`     | `INTEGER`            |                                  |
+| `is_deleted`      | `INTEGER`            | boolean                          |
+| `created_at`      | `INTEGER`            |                                  |
 
 ### 4.6 Entity: `debts`
 
-| Column | Type | Note |
-|--------|------|------|
-| `id` | `TEXT PK` | UUID |
-| `user_id` | `TEXT FK→users` | |
-| `person_name` | `TEXT` | |
-| `type` | `TEXT` | LEND / BORROW |
-| `amount` | `REAL` | original amount |
-| `remaining_amount` | `REAL` | |
-| `status` | `TEXT` | ACTIVE / SETTLED |
-| `note` | `TEXT` | |
-| `due_date` | `INTEGER` | nullable, epoch millis |
-| `updated_at` | `INTEGER` | |
-| `sync_status` | `INTEGER` | |
-| `is_deleted` | `INTEGER` | boolean |
-| `created_at` | `INTEGER` | |
+| Column             | Type            | Note                   |
+| ------------------ | --------------- | ---------------------- |
+| `id`               | `TEXT PK`       | UUID                   |
+| `user_id`          | `TEXT FK→users` |                        |
+| `person_name`      | `TEXT`          |                        |
+| `type`             | `TEXT`          | LEND / BORROW          |
+| `amount`           | `REAL`          | original amount        |
+| `remaining_amount` | `REAL`          |                        |
+| `status`           | `TEXT`          | ACTIVE / SETTLED       |
+| `note`             | `TEXT`          |                        |
+| `due_date`         | `INTEGER`       | nullable, epoch millis |
+| `updated_at`       | `INTEGER`       |                        |
+| `sync_status`      | `INTEGER`       |                        |
+| `is_deleted`       | `INTEGER`       | boolean                |
+| `created_at`       | `INTEGER`       |                        |
 
 ### 4.7 Entity: `events`
 
-| Column | Type | Note |
-|--------|------|------|
-| `id` | `TEXT PK` | UUID |
-| `user_id` | `TEXT FK→users` | |
-| `name` | `TEXT` | |
-| `budget_amount` | `REAL` | planned budget for event |
-| `start_date` | `INTEGER` | epoch millis |
-| `end_date` | `INTEGER` | epoch millis |
-| `is_active` | `INTEGER` | boolean |
-| `updated_at` | `INTEGER` | |
-| `sync_status` | `INTEGER` | |
-| `is_deleted` | `INTEGER` | boolean |
-| `created_at` | `INTEGER` | |
+| Column          | Type            | Note                     |
+| --------------- | --------------- | ------------------------ |
+| `id`            | `TEXT PK`       | UUID                     |
+| `user_id`       | `TEXT FK→users` |                          |
+| `name`          | `TEXT`          |                          |
+| `budget_amount` | `REAL`          | planned budget for event |
+| `start_date`    | `INTEGER`       | epoch millis             |
+| `end_date`      | `INTEGER`       | epoch millis             |
+| `is_active`     | `INTEGER`       | boolean                  |
+| `updated_at`    | `INTEGER`       |                          |
+| `sync_status`   | `INTEGER`       |                          |
+| `is_deleted`    | `INTEGER`       | boolean                  |
+| `created_at`    | `INTEGER`       |                          |
 
 ---
 
@@ -297,6 +297,7 @@ container.prefsManager.getCurrency();
 > **KHÔNG** tự tạo instance Repository/DAO. Luôn lấy từ `AppContainer`.
 
 **Lưu ý:** `TransactionRepository` nhận **2 tham số** trong constructor:
+
 ```java
 // AppContainer.java
 transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao());
@@ -389,6 +390,7 @@ public class XxxListFragment extends Fragment {
 Mọi màn hình Add/Edit **PHẢI** có `MaterialToolbar` với nút điều hướng quay lại. Cấu trúc layout và Java bắt buộc:
 
 **Layout XML (`fragment_add_edit_xxx.xml`):**
+
 ```xml
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -404,7 +406,9 @@ Mọi màn hình Add/Edit **PHẢI** có `MaterialToolbar` với nút điều h�
             android:id="@+id/top_app_bar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:title="@string/add_xxx"
+            android:background="@android:color/transparent"
+            app:title="@string/add_xxx"
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge.Emphasized"
             app:navigationIcon="@drawable/outline_close_24"
             app:navigationContentDescription="@string/common_cancel" />
 
@@ -422,6 +426,7 @@ Mọi màn hình Add/Edit **PHẢI** có `MaterialToolbar` với nút điều h�
 ```
 
 **Java Fragment (`AddEditXxxFragment.java`):**
+
 ```java
 @Override
 public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -460,11 +465,11 @@ public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceStat
 
 **Quy tắc back navigation:**
 
-| Tình huống | NavigationIcon | Hành vi |
-|-----------|----------------|---------|
-| Add/Edit form | `outline_close_24` | `navigateUp()` — hủy và quay lại |
+| Tình huống          | NavigationIcon          | Hành vi                             |
+| ------------------- | ----------------------- | ----------------------------------- |
+| Add/Edit form       | `outline_close_24`      | `navigateUp()` — hủy và quay lại    |
 | Detail / sub-screen | `outline_arrow_back_24` | `navigateUp()` — quay lại màn trước |
-| Dialog / picker | `outline_close_24` | `navigateUp()` hoặc dismiss |
+| Dialog / picker     | `outline_close_24`      | `navigateUp()` hoặc dismiss         |
 
 > ⚠️ KHÔNG dùng `requireActivity().onBackPressed()`. Luôn dùng `Navigation.findNavController(v).navigateUp()`.
 
@@ -577,20 +582,20 @@ public class XxxRepository {
 
 > Tất cả versions được quản lý tập trung trong `gradle/libs.versions.toml`. KHÔNG hard-code version trong `build.gradle.kts`.
 
-| Library | Alias trong TOML | Mục đích |
-|---------|------------------|----------|
-| Room | `libs.room.runtime`, `libs.room.compiler` | Local SQLite database |
-| Firebase Auth | `libs.firebase.auth` | Email/Password authentication |
-| Firebase Firestore | `libs.firebase.firestore` | Cloud backup & sync |
-| Navigation | `libs.navigation.fragment`, `libs.navigation.ui` | Fragment navigation |
-| Lifecycle | `libs.lifecycle.viewmodel`, `libs.lifecycle.livedata` | ViewModel + LiveData |
-| Material | `libs.material` | Material Design 3 components |
-| MPAndroidChart | `libs.mpandroidchart` | PieChart, BarChart |
-| Biometric | `libs.biometric` | Fingerprint/face unlock |
-| WorkManager | `libs.workmanager` | Background sync tasks |
-| CameraX | `libs.camerax.*` | Camera for receipt scanning |
-| ML Kit | `libs.mlkit.text.recognition` | OCR text recognition |
-| Gemini AI | `libs.generativeai` | AI auto-fill transactions |
+| Library            | Alias trong TOML                                      | Mục đích                      |
+| ------------------ | ----------------------------------------------------- | ----------------------------- |
+| Room               | `libs.room.runtime`, `libs.room.compiler`             | Local SQLite database         |
+| Firebase Auth      | `libs.firebase.auth`                                  | Email/Password authentication |
+| Firebase Firestore | `libs.firebase.firestore`                             | Cloud backup & sync           |
+| Navigation         | `libs.navigation.fragment`, `libs.navigation.ui`      | Fragment navigation           |
+| Lifecycle          | `libs.lifecycle.viewmodel`, `libs.lifecycle.livedata` | ViewModel + LiveData          |
+| Material           | `libs.material`                                       | Material Design 3 components  |
+| MPAndroidChart     | `libs.mpandroidchart`                                 | PieChart, BarChart            |
+| Biometric          | `libs.biometric`                                      | Fingerprint/face unlock       |
+| WorkManager        | `libs.workmanager`                                    | Background sync tasks         |
+| CameraX            | `libs.camerax.*`                                      | Camera for receipt scanning   |
+| ML Kit             | `libs.mlkit.text.recognition`                         | OCR text recognition          |
+| Gemini AI          | `libs.generativeai`                                   | AI auto-fill transactions     |
 
 ---
 
@@ -643,26 +648,26 @@ users/{userId}/
 
 ## 13. QUAN TRỌNG — NHỮNG ĐIỀU KHÔNG ĐƯỢC LÀM
 
-| ❌ KHÔNG | ✅ THAY VÀO ĐÓ |
-|----------|-----------------|
-| Viết code Kotlin | Viết Java |
-| Dùng Hilt / Dagger | Dùng `AppContainer` manual DI |
-| Dùng `findViewById` | Dùng ViewBinding |
-| Hard-code string trong UI | Dùng `@string/xxx` |
-| Hard-code color | Dùng `?attr/colorXxx` hoặc color resource |
-| Dùng Coroutines / Flow | Dùng `LiveData` + `ExecutorService` |
-| Tạo Repository/DAO instance thủ công | Lấy từ `AppContainer` |
-| Query trên main thread | Dùng `AppDatabase.databaseWriteExecutor` |
-| Dùng `DataBinding` expressions (`@{}`) | Dùng `ViewBinding` thuần (set data trong code) |
-| Xóa cứng (hard delete) | Soft delete (`is_deleted=true`) |
-| Dùng `requireActivity().onBackPressed()` cho back navigation | Dùng `Navigation.findNavController(v).navigateUp()` |
-| Tạo `<action>` trong nav graph không có animation | Khai báo đủ 4 animation attributes cho mọi `<action>` |
-| Add/Edit fragment không có nút quay lại | Luôn thêm `MaterialToolbar` với `navigationIcon` và listener `navigateUp()` |
-| Dùng `Serializable` để truyền data | Dùng Safe Args với primitive/String |
-| Dùng deprecated APIs | Dùng API mới nhất trong min SDK 29 |
-| Gọi `observe()` mới mỗi lần switch filter | Dùng `Observer` field + `removeObserver()` |
-| Inner class `ViewHolder` không có `static` | Luôn dùng `static class ViewHolder` |
-| Set form field trực tiếp mà không block listener | Dùng flag boolean (e.g. `isLoadingEdit`) |
+| ❌ KHÔNG                                                     | ✅ THAY VÀO ĐÓ                                                              |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Viết code Kotlin                                             | Viết Java                                                                   |
+| Dùng Hilt / Dagger                                           | Dùng `AppContainer` manual DI                                               |
+| Dùng `findViewById`                                          | Dùng ViewBinding                                                            |
+| Hard-code string trong UI                                    | Dùng `@string/xxx`                                                          |
+| Hard-code color                                              | Dùng `?attr/colorXxx` hoặc color resource                                   |
+| Dùng Coroutines / Flow                                       | Dùng `LiveData` + `ExecutorService`                                         |
+| Tạo Repository/DAO instance thủ công                         | Lấy từ `AppContainer`                                                       |
+| Query trên main thread                                       | Dùng `AppDatabase.databaseWriteExecutor`                                    |
+| Dùng `DataBinding` expressions (`@{}`)                       | Dùng `ViewBinding` thuần (set data trong code)                              |
+| Xóa cứng (hard delete)                                       | Soft delete (`is_deleted=true`)                                             |
+| Dùng `requireActivity().onBackPressed()` cho back navigation | Dùng `Navigation.findNavController(v).navigateUp()`                         |
+| Tạo `<action>` trong nav graph không có animation            | Khai báo đủ 4 animation attributes cho mọi `<action>`                       |
+| Add/Edit fragment không có nút quay lại                      | Luôn thêm `MaterialToolbar` với `navigationIcon` và listener `navigateUp()` |
+| Dùng `Serializable` để truyền data                           | Dùng Safe Args với primitive/String                                         |
+| Dùng deprecated APIs                                         | Dùng API mới nhất trong min SDK 29                                          |
+| Gọi `observe()` mới mỗi lần switch filter                    | Dùng `Observer` field + `removeObserver()`                                  |
+| Inner class `ViewHolder` không có `static`                   | Luôn dùng `static class ViewHolder`                                         |
+| Set form field trực tiếp mà không block listener             | Dùng flag boolean (e.g. `isLoadingEdit`)                                    |
 
 ---
 
@@ -696,55 +701,58 @@ Trước khi output code, AI **PHẢI** tự verify:
 
 ### XML ID Naming
 
-| Prefix | Component | Ví dụ |
-|--------|-----------|-------|
-| `tv_` | TextView | `tv_amount`, `tv_wallet_name`, `tv_empty` |
-| `et_` | EditText / TextInputEditText | `et_note`, `et_amount`, `et_date` |
-| `btn_` | Button | `btn_save`, `btn_cancel`, `btn_expense`, `btn_income` |
-| `fab_` | FloatingActionButton | `fab_add` |
-| `rv_` | RecyclerView | `rv_transactions` |
-| `iv_` | ImageView | `iv_avatar`, `iv_category_icon` |
-| `til_` | TextInputLayout | `til_email` |
-| `tiet_` | TextInputEditText | `tiet_email` |
-| `sw_` | Switch | `sw_dark_mode` |
-| `cb_` | CheckBox | `cb_remember` |
-| `rb_` | RadioButton | `rb_income` |
-| `rg_` | RadioGroup | `rg_type` |
-| `sp_` | Spinner | `sp_wallet` |
-| `pb_` | ProgressBar | `pb_loading` |
-| `tb_` | Toolbar | `tb_main` |
-| `bnv_` | BottomNavigationView | `bnv_main` |
-| `tl_` | TabLayout | `tl_category_type` |
-| `vp_` | ViewPager2 | `vp_content` |
-| `cv_` | CardView | `cv_balance` |
-| `toggle_` | MaterialButtonToggleGroup | `toggle_type` |
-| `chip_group_` | ChipGroup | `chip_group_category` |
-| `dropdown_` | AutoCompleteTextView (ExposedDropdownMenu) | `dropdown_wallet` |
+| Prefix        | Component                                  | Ví dụ                                                 |
+| ------------- | ------------------------------------------ | ----------------------------------------------------- |
+| `tv_`         | TextView                                   | `tv_amount`, `tv_wallet_name`, `tv_empty`             |
+| `et_`         | EditText / TextInputEditText               | `et_note`, `et_amount`, `et_date`                     |
+| `btn_`        | Button                                     | `btn_save`, `btn_cancel`, `btn_expense`, `btn_income` |
+| `fab_`        | FloatingActionButton                       | `fab_add`                                             |
+| `rv_`         | RecyclerView                               | `rv_transactions`                                     |
+| `iv_`         | ImageView                                  | `iv_avatar`, `iv_category_icon`                       |
+| `til_`        | TextInputLayout                            | `til_email`                                           |
+| `tiet_`       | TextInputEditText                          | `tiet_email`                                          |
+| `sw_`         | Switch                                     | `sw_dark_mode`                                        |
+| `cb_`         | CheckBox                                   | `cb_remember`                                         |
+| `rb_`         | RadioButton                                | `rb_income`                                           |
+| `rg_`         | RadioGroup                                 | `rg_type`                                             |
+| `sp_`         | Spinner                                    | `sp_wallet`                                           |
+| `pb_`         | ProgressBar                                | `pb_loading`                                          |
+| `tb_`         | Toolbar                                    | `tb_main`                                             |
+| `bnv_`        | BottomNavigationView                       | `bnv_main`                                            |
+| `tl_`         | TabLayout                                  | `tl_category_type`                                    |
+| `vp_`         | ViewPager2                                 | `vp_content`                                          |
+| `cv_`         | CardView                                   | `cv_balance`                                          |
+| `toggle_`     | MaterialButtonToggleGroup                  | `toggle_type`                                         |
+| `chip_group_` | ChipGroup                                  | `chip_group_category`                                 |
+| `dropdown_`   | AutoCompleteTextView (ExposedDropdownMenu) | `dropdown_wallet`                                     |
 
 ---
 
 ## 16. HƯỚNG DẪN CHO TỪNG LOẠI TASK
 
 ### Khi AI được yêu cầu tạo feature mới:
+
 1. Tạo/update Entity nếu cần → update `AppDatabase` entities list & tăng version
 2. Tạo/update DAO interface
 3. Tạo/update Repository class → đăng ký trong `AppContainer`
 4. Tạo ViewModel (extends `AndroidViewModel`)
 5. Tạo Fragment + Layout XML:
-    - List fragment: nhớ thêm `tv_empty` cho empty state
-    - Add/Edit fragment: **PHẢI** có `MaterialToolbar` với `navigationIcon` + `setNavigationOnClickListener → navigateUp()`
+   - List fragment: nhớ thêm `tv_empty` cho empty state
+   - Add/Edit fragment: **PHẢI** có `MaterialToolbar` với `navigationIcon` + `setNavigationOnClickListener → navigateUp()`
 6. Tạo Adapter nếu có RecyclerView (`static class ViewHolder`)
 7. Thêm `<argument>` vào Navigation graph (`nav_main.xml` hoặc `nav_auth.xml`)
 8. Thêm `<action>` vào Navigation graph với **đầy đủ 4 animation** (`slide_in_right`, `slide_out_left`, `slide_in_left`, `slide_out_right`)
 9. Thêm strings vào `strings.xml` (bao gồm cả `add_xxx` và `edit_xxx` cho toolbar title)
 
 ### Khi AI được yêu cầu sửa bug:
+
 1. Xác định layer nào (UI? ViewModel? Repository? DAO?)
 2. Kiểm tra null safety, threading, lifecycle
 3. Kiểm tra Observer leak (gọi observe() nhiều lần không?)
 4. Đảm bảo không break existing patterns
 
 ### Khi AI được yêu cầu thêm query:
+
 1. Thêm method vào DAO interface
 2. Wrap trong Repository
 3. Expose qua ViewModel LiveData
@@ -787,12 +795,14 @@ public void softDeleteTransaction(TransactionEntity transaction) {
 ```
 
 **Logic `applyBalanceChange`:**
+
 - `INCOME` → cộng vào wallet
 - `EXPENSE` → trừ khỏi wallet
 - `TRANSFER` → trừ wallet nguồn (`walletId`), cộng wallet đích (`toWalletId`)
 - `reverse = true` → đảo ngược delta (dùng khi undo)
 
 **Trong AppContainer:**
+
 ```java
 transactionRepository = new TransactionRepository(database.transactionDao(), database.walletDao());
 ```

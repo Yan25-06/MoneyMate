@@ -30,7 +30,7 @@
                 <com.google.android.material.appbar.MaterialToolbar
                     android:id="@+id/tb_category"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="?attr/actionBarSize"
                     android:background="@android:color/transparent"
                     android:contentInsetStartWithNavigation="0dp"
                     android:contentInsetStart="0dp"
@@ -39,6 +39,7 @@
                     app:navigationIcon="@drawable/outline_arrow_back_24"
                     app:navigationIconTint="@color/budget_text_primary"
                     app:title="@string/category_group_title"
+                    app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge.Emphasized"
                     app:titleTextColor="@color/budget_text_primary" />
 
                 <LinearLayout
