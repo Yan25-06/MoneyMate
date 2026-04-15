@@ -29,7 +29,11 @@ public class MlKitReceiptParserBridge implements ReceiptParserBridge {
                              @NonNull Text recognizedText) throws ReceiptParsingException {
         try {
             List<String> lines = extractLines(recognizedText);
-            ReceiptData receiptData = receiptParser.parse(recognizedText.getText(), lines);
+            String rawText = recognizedText.getText();
+            if (rawText == null) {
+                rawText = "";
+            }
+            ReceiptData receiptData = receiptParser.parse(rawText, lines);
             return ParseResult.fromReceiptData(receiptData, serializeItems(receiptData.getItems()));
         } catch (RuntimeException exception) {
             throw new ReceiptParsingException(exception);

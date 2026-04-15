@@ -8,7 +8,16 @@
     <androidx.camera.view.PreviewView
         android:id="@+id/preview_camera"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        app:implementationMode="compatible"
+        app:scaleType="fillCenter" />
+
+    <View
+        android:id="@+id/view_receipt_guide"
+        android:layout_width="300dp"
+        android:layout_height="440dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_receipt_capture_guide" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -88,6 +97,61 @@
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
         android:paddingBottom="28dp">
+
+        <TextView
+            android:id="@+id/tv_camera_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_statistics_period_nav_item"
+            android:paddingStart="14dp"
+            android:paddingTop="7dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="7dp"
+            android:text="@string/transaction_scan_camera_quality_hint"
+            android:textColor="@color/statistics_text_primary"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:id="@+id/layout_camera_controls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_statistics_period_nav_item"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="6dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_exposure_down"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/transaction_scan_camera_exposure_down"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_exposure_reset"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/transaction_scan_camera_exposure_reset_action"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_exposure_up"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/transaction_scan_camera_exposure_up"
+                android:textAllCaps="false" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tv_camera_status"
