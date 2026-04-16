@@ -23,128 +23,111 @@ import com.group10.moneymate.ui.auth.LoginActivity;
 
 public class SettingsFragment extends Fragment {
 
-    private FragmentSettingsBinding binding;
-    private SettingsViewModel viewModel;
+        private FragmentSettingsBinding binding;
+        private SettingsViewModel viewModel;
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        binding = FragmentSettingsBinding.inflate(inflater, container, false);
-        return binding.getRoot();
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
-
-        setupWindowInsets();
-        setupStaticUi();
-        setupListeners();
-        observeLogout();
-    }
-
-    private void setupWindowInsets() {
-        final int initialTopPadding = binding.scrollSettings.getPaddingTop();
-        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollSettings, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            binding.scrollSettings.setPadding(
-                    binding.scrollSettings.getPaddingLeft(),
-                    initialTopPadding + systemBars.top,
-                    binding.scrollSettings.getPaddingRight(),
-                    binding.scrollSettings.getPaddingBottom()
-            );
-            return insets;
-        });
-    }
-
-    private void setupStaticUi() {
-        String[] dateFormats = getResources().getStringArray(R.array.date_formats);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                requireContext(),
-                R.layout.item_moneymate_dropdown_option,
-                dateFormats
-        );
-        binding.dropdownDateFormat.setAdapter(adapter);
-        if (dateFormats.length > 0) {
-            binding.dropdownDateFormat.setText(dateFormats[0], false);
+        @Nullable
+        @Override
+        public View onCreateView(@NonNull LayoutInflater inflater,
+                        @Nullable ViewGroup container,
+                        @Nullable Bundle savedInstanceState) {
+                binding = FragmentSettingsBinding.inflate(inflater, container, false);
+                return binding.getRoot();
         }
-        binding.dropdownDateFormat.setOnClickListener(v -> binding.dropdownDateFormat.showDropDown());
-        binding.tvVersion.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
-    }
 
-    private void setupListeners() {
-        // ── Tài khoản ─────────────────────────────────────────────────────────
-        binding.btnProfile.setOnClickListener(v ->
-                Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToProfile()
-                )
-        );
+        @Override
+        public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+                super.onViewCreated(view, savedInstanceState);
+                viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
 
-        binding.btnSecurity.setOnClickListener(v ->
-                Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToPasscode()
-                )
-        );
+                setupWindowInsets();
+                setupStaticUi();
+                setupListeners();
+                observeLogout();
+        }
 
-        // ── Quản lý dữ liệu ───────────────────────────────────────────────────
-        binding.btnWallets.setOnClickListener(v ->
-                Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToWallets()
-                )
-        );
+        private void setupWindowInsets() {
+                final int initialAppBarTopPadding = binding.appBarLayout.getPaddingTop();
+                final int initialScrollBottomPadding = binding.scrollSettings.getPaddingBottom();
+                ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
+                        Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                        binding.appBarLayout.setPadding(
+                                        binding.appBarLayout.getPaddingLeft(),
+                                        initialAppBarTopPadding + systemBars.top,
+                                        binding.appBarLayout.getPaddingRight(),
+                                        binding.appBarLayout.getPaddingBottom());
+                        binding.scrollSettings.setPadding(
+                                        binding.scrollSettings.getPaddingLeft(),
+                                        binding.scrollSettings.getPaddingTop(),
+                                        binding.scrollSettings.getPaddingRight(),
+                                        initialScrollBottomPadding + systemBars.bottom);
+                        return insets;
+                });
+        }
 
-        binding.btnCategories.setOnClickListener(v ->
-                Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToCategories()
-                )
-        );
+        private void setupStaticUi() {
+                String[] dateFormats = getResources().getStringArray(R.array.date_formats);
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                                requireContext(),
+                                R.layout.item_moneymate_dropdown_option,
+                                dateFormats);
+                binding.dropdownDateFormat.setAdapter(adapter);
+                if (dateFormats.length > 0) {
+                        binding.dropdownDateFormat.setText(dateFormats[0], false);
+                }
+                binding.dropdownDateFormat.setOnClickListener(v -> binding.dropdownDateFormat.showDropDown());
+                binding.tvVersion.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
+        }
 
-        binding.btnBudgets.setOnClickListener(v ->
-                Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToStatistics()
-                )
-        );
+        private void setupListeners() {
+                // ── Tài khoản ─────────────────────────────────────────────────────────
+                binding.btnProfile.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                                SettingsFragmentDirections.actionSettingsToProfile()));
 
-        binding.btnDebts.setOnClickListener(v ->
-                Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToDebts()
-                )
-        );
+                binding.btnSecurity.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                                SettingsFragmentDirections.actionSettingsToPasscode()));
 
-        binding.btnEvents.setOnClickListener(v ->
-                Navigation.findNavController(v).navigate(
-                        SettingsFragmentDirections.actionSettingsToEvents()
-                )
-        );
+                // ── Quản lý dữ liệu ───────────────────────────────────────────────────
+                binding.btnWallets.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                                SettingsFragmentDirections.actionSettingsToWallets()));
 
-        // ── Đăng xuất ─────────────────────────────────────────────────────────
-        binding.btnLogout.setOnClickListener(v -> onLogoutClicked());
-    }
+                binding.btnCategories.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                                SettingsFragmentDirections.actionSettingsToCategories()));
 
-    private void observeLogout() {
-        viewModel.getLogoutSuccess().observe(getViewLifecycleOwner(), logoutSuccess -> {
-            if (Boolean.TRUE.equals(logoutSuccess)) {
-                navigateToLogin();
-            }
-        });
-    }
+                binding.btnBudgets.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                                SettingsFragmentDirections.actionSettingsToStatistics()));
 
-    private void onLogoutClicked() {
-        viewModel.signOut();
-    }
+                binding.btnDebts.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                                SettingsFragmentDirections.actionSettingsToDebts()));
 
-    private void navigateToLogin() {
-        Intent intent = new Intent(requireActivity(), LoginActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-    }
+                binding.btnEvents.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                                SettingsFragmentDirections.actionSettingsToEvents()));
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding = null;
-    }
+                // ── Đăng xuất ─────────────────────────────────────────────────────────
+                binding.btnLogout.setOnClickListener(v -> onLogoutClicked());
+        }
+
+        private void observeLogout() {
+                viewModel.getLogoutSuccess().observe(getViewLifecycleOwner(), logoutSuccess -> {
+                        if (Boolean.TRUE.equals(logoutSuccess)) {
+                                navigateToLogin();
+                        }
+                });
+        }
+
+        private void onLogoutClicked() {
+                viewModel.signOut();
+        }
+
+        private void navigateToLogin() {
+                Intent intent = new Intent(requireActivity(), LoginActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+        }
+
+        @Override
+        public void onDestroyView() {
+                super.onDestroyView();
+                binding = null;
+        }
 }

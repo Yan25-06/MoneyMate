@@ -182,7 +182,6 @@
     <string name="transaction_scan_confirmation_warning_missing_amount">Thiếu số tiền</string>
     <string name="transaction_scan_confirmation_warning_missing_category">Chưa có danh mục</string>
     <string name="transaction_scan_confirmation_warning_low_confidence">Độ tin cậy thấp</string>
-    <string name="transaction_scan_confirmation_warning_separator"> • </string>
     <string name="transaction_scan_confirmation_edit_item">Chỉnh sửa</string>
     <string name="transaction_scan_confirmation_note_fallback">Giao dịch OCR cần kiểm tra</string>
     <string name="transaction_scan_confirmation_item_saved_removed">Mục đã lưu đã được gỡ khỏi danh sách chờ.</string>
@@ -212,7 +211,6 @@
     <string name="transaction_scan_permission_denied_message">Chưa có quyền camera. Hãy cấp quyền để chụp hóa đơn.</string>
     <string name="transaction_scan_camera_loading">Đang mở camera…</string>
     <string name="transaction_scan_camera_ready">Canh hóa đơn vào khung hình rồi nhấn chụp.</string>
-    <string name="transaction_scan_camera_quality_hint">Giữ hóa đơn trong khung nét, đủ sáng và không bị rung để OCR chính xác hơn.</string>
     <string name="transaction_scan_camera_focusing">Đang lấy nét tại điểm chạm…</string>
     <string name="transaction_scan_camera_focus_locked">Đã lấy nét. Bạn có thể chụp ngay.</string>
     <string name="transaction_scan_camera_exposure_down">Tối hơn</string>

@@ -12,6 +12,47 @@
         app:implementationMode="compatible"
         app:scaleType="fillCenter" />
 
+    <LinearLayout
+        android:id="@+id/layout_receipt_dim_mask"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/camera_capture_overlay_scrim" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="440dp"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/camera_capture_overlay_scrim" />
+
+            <Space
+                android:layout_width="300dp"
+                android:layout_height="match_parent" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/camera_capture_overlay_scrim" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/camera_capture_overlay_scrim" />
+    </LinearLayout>
+
     <View
         android:id="@+id/view_receipt_guide"
         android:layout_width="300dp"
@@ -22,7 +63,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:paddingStart="20dp"
         android:paddingTop="20dp"
         android:paddingEnd="20dp">
@@ -40,11 +81,12 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
             android:text="@string/transaction_scan_camera_title"
             android:textColor="@color/white"
             android:textSize="24sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:layout_gravity="center"/>
     </LinearLayout>
 
     <LinearLayout
@@ -98,20 +140,6 @@
         android:paddingEnd="24dp"
         android:paddingBottom="28dp">
 
-        <TextView
-            android:id="@+id/tv_camera_hint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_statistics_period_nav_item"
-            android:paddingStart="14dp"
-            android:paddingTop="7dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="7dp"
-            android:text="@string/transaction_scan_camera_quality_hint"
-            android:textColor="@color/statistics_text_primary"
-            android:textSize="13sp" />
-
         <LinearLayout
             android:id="@+id/layout_camera_controls"
             android:layout_width="wrap_content"
@@ -163,7 +191,7 @@
             android:paddingEnd="14dp"
             android:paddingBottom="8dp"
             android:text="@string/transaction_scan_camera_loading"
-            android:textColor="@color/statistics_text_primary"
+            android:textColor="@color/white"
             android:textSize="14sp" />
 
         <com.google.android.material.button.MaterialButton
@@ -171,7 +199,6 @@
             style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="16dp"
             android:enabled="false"
             android:text="@string/transaction_scan_capture"
             android:textAllCaps="false"
@@ -179,7 +206,7 @@
             android:textSize="18sp"
             app:backgroundTint="@color/transaction_income_accent"
             app:cornerRadius="28dp"
-            app:icon="@drawable/ic_category_camera"
+            app:icon="@drawable/outline_photo_camera_24"
             app:iconPadding="12dp"
             app:iconTint="@color/white" />
     </LinearLayout>
