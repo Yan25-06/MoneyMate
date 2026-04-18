@@ -18,33 +18,13 @@ import com.group10.moneymate.data.remote.SupabaseSyncClient;
 import com.group10.moneymate.data.remote.SupabaseToEntityMapper;
 import com.group10.moneymate.data.repository.AuthRepository;
 import com.group10.moneymate.data.repository.SyncMetadataRepository;
+import com.group10.moneymate.models.SyncStatus;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/**
- * DeltaSyncWorker — Phase 4: Pull delta từ Supabase về Room.
- *
- * Khác với InitialSyncWorker (Phase 3 — pull toàn bộ lần đầu),
- * DeltaSyncWorker chỉ kéo những bản ghi có updated_at > last_synced_at.
- *
- * Được trigger sau mỗi lần SyncWorker push thành công,
- * và theo lịch periodic để nhận thay đổi từ thiết bị khác.
- *
- * Xử lý conflict (Last Write Wins dựa theo updated_at):
- * - Pull về bản ghi remote
- * - So sánh remote.updated_at vs local.updated_at
- * - Nếu remote mới hơn → ghi đè local, set syncStatus = SYNCED
- * - Nếu local mới hơn (đang pending) → giữ nguyên local, bỏ qua remote
- *
- * Thứ tự pull giống InitialSyncWorker:
- *   wallets → categories → debts → events → budgets → transactions
- */
 public class DeltaSyncWorker extends Worker {
 
-    // Domain keys dùng namespace riêng để tránh conflict với SyncWorker checkpoint
-    // SyncWorker dùng "wallets" cho push cursor
-    // DeltaSyncWorker dùng "pull_wallets" cho pull cursor
     private static final String PULL_PREFIX = "pull_";
     public static final String DOMAIN_PULL_WALLETS = PULL_PREFIX + "wallets";
     public static final String DOMAIN_PULL_CATEGORIES = PULL_PREFIX + "categories";
@@ -81,7 +61,7 @@ public class DeltaSyncWorker extends Worker {
 
         if (userId == null || userId.trim().isEmpty()
                 || token == null || token.trim().isEmpty()) {
-            return Result.success(); // không có session, bỏ qua
+            return Result.success();
         }
 
         try {
@@ -94,37 +74,26 @@ public class DeltaSyncWorker extends Worker {
             return Result.success();
 
         } catch (SupabaseSyncClient.SyncException e) {
-            if (e.isAuthError()) {
-                return Result.failure();
-            }
-            if (getRunAttemptCount() >= MAX_ATTEMPTS - 1) {
-                return Result.failure();
-            }
+            if (e.isAuthError()) return Result.failure();
+            if (getRunAttemptCount() >= MAX_ATTEMPTS - 1) return Result.failure();
             return Result.retry();
         } catch (Exception e) {
-            if (getRunAttemptCount() >= MAX_ATTEMPTS - 1) {
-                return Result.failure();
-            }
+            if (getRunAttemptCount() >= MAX_ATTEMPTS - 1) return Result.failure();
             return Result.retry();
         }
     }
-
-    // ─── Pull logic ───────────────────────────────────────────────────────────
 
     private void pullDomain(@NonNull String checkpointDomain,
                             @NonNull String tableName,
                             @NonNull String userId,
                             @NonNull String token) throws SupabaseSyncClient.SyncException {
-        // Dùng pull_* checkpoint riêng để không ảnh hưởng push cursor của SyncWorker
         SyncMetadataEntity checkpoint = syncMetadataRepository
                 .getOrCreateCheckpoint(userId, checkpointDomain);
         long cursor = checkpoint.getLastSyncedAt();
 
         while (true) {
             JSONArray page = syncClient.fetchPage(tableName, userId, cursor, token);
-            if (page.length() == 0) {
-                return;
-            }
+            if (page.length() == 0) return;
 
             mergePage(tableName, page);
 
@@ -135,21 +104,10 @@ public class DeltaSyncWorker extends Worker {
                 syncMetadataRepository.updateCheckpoint(userId, checkpointDomain, cursor, lastId);
             }
 
-            if (page.length() < 500) {
-                return;
-            }
+            if (page.length() < 500) return;
         }
     }
 
-    /**
-     * Merge một trang dữ liệu remote vào Room với conflict resolution.
-     *
-     * Last Write Wins dựa theo updated_at:
-     * - remote.updated_at > local.updated_at → ghi đè (remote thắng)
-     * - local.updated_at >= remote.updated_at AND local.syncStatus != SYNCED
-     *   → giữ local (đang pending push, sẽ thắng ở lần sync tiếp)
-     * - local.syncStatus == SYNCED → luôn nhận remote (thiết bị này không có thay đổi mới)
-     */
     private void mergePage(@NonNull String tableName, @NonNull JSONArray page) {
         database.runInTransaction(() -> {
             for (int i = 0; i < page.length(); i++) {
@@ -199,7 +157,15 @@ public class DeltaSyncWorker extends Worker {
                 break;
             }
             case "events": {
-                database.eventDao().upsertLocal(SupabaseToEntityMapper.toEvent(row));
+                // BUG FIX: thêm shouldAcceptRemote để tránh ghi đè event đang PENDING_UPLOAD
+                // Trước đây upsert thẳng không có conflict check → event local bị xóa khi
+                // remote có updated_at cũ hơn nhưng vẫn được pull về trong delta
+                EventEntity local = database.eventDao().getByIdSync(id);
+                if (shouldAcceptRemote(local == null ? -1 : local.getUpdatedAt(),
+                        local == null ? 0 : local.getSyncStatus(),
+                        remoteUpdatedAt)) {
+                    database.eventDao().upsertLocal(SupabaseToEntityMapper.toEvent(row));
+                }
                 break;
             }
             case "budgets": {
@@ -215,8 +181,8 @@ public class DeltaSyncWorker extends Worker {
             case "transactions": {
                 TransactionEntity local = database.transactionDao().getByIdSync(id);
                 if (shouldAcceptRemote(local == null ? -1 : local.getUpdatedAt(),
-                          local == null ? 0 : local.getSyncStatus(),
-                          remoteUpdatedAt)) {
+                        local == null ? 0 : local.getSyncStatus(),
+                        remoteUpdatedAt)) {
                     database.transactionDao().upsertLocal(SupabaseToEntityMapper.toTransaction(row));
                 }
                 break;
@@ -224,30 +190,9 @@ public class DeltaSyncWorker extends Worker {
         }
     }
 
-    /**
-     * Quyết định có nên nhận bản ghi remote hay không.
-     *
-     * Nhận remote khi:
-     * 1. Không có local (localUpdatedAt == -1) → bản ghi mới từ thiết bị khác
-     * 2. Local đã synced (syncStatus == SYNCED) → remote luôn là mới nhất
-     * 3. Remote mới hơn local (kể cả khi local đang pending) → remote thắng
-     *
-     * Giữ local khi:
-     * - Local đang pending (syncStatus != SYNCED) VÀ local mới hơn hoặc bằng remote
-     *   → local chưa được push, sẽ thắng khi SyncWorker chạy
-     *
-     * @param localUpdatedAt  updated_at của local, -1 nếu không có local
-     * @param localSyncStatus sync_status của local
-     * @param remoteUpdatedAt updated_at của remote
-     */
     private boolean shouldAcceptRemote(long localUpdatedAt, int localSyncStatus, long remoteUpdatedAt) {
-        if (localUpdatedAt == -1) {
-            return true; // không có local → luôn nhận
-        }
-        if (localSyncStatus == com.group10.moneymate.models.SyncStatus.SYNCED) {
-            return true; // local đã synced → nhận remote (có thể là update từ thiết bị khác)
-        }
-        // local đang pending: chỉ nhận nếu remote mới hơn hẳn
+        if (localUpdatedAt == -1) return true;
+        if (localSyncStatus == SyncStatus.SYNCED) return true;
         return remoteUpdatedAt > localUpdatedAt;
     }
 }

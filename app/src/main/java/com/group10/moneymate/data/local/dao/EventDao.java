@@ -65,6 +65,11 @@ public interface EventDao {
     @Query("SELECT * FROM events WHERE id = :id AND is_deleted = 0")
     LiveData<EventEntity> getEventById(String id);
 
+    // BUG FIX: thêm getByIdSync() để DeltaSyncWorker có thể so sánh updated_at trước khi upsert
+    // Trước đây EventDao không có method này → DeltaSyncWorker buộc phải upsert thẳng không check conflict
+    @Query("SELECT * FROM events WHERE id = :id LIMIT 1")
+    EventEntity getByIdSync(String id);
+
     @Query("UPDATE events SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 

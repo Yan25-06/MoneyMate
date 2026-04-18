@@ -88,7 +88,7 @@ public class SettingsFragment extends Fragment {
             binding.dropdownDateFormat.setText(dateFormats[0], false);
         }
         binding.dropdownDateFormat.setOnClickListener(v -> binding.dropdownDateFormat.showDropDown());
-        binding.tvVersion.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
+        binding.tvVersion.setText(String.format("%s %s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
 
         // Trạng thái mặc định cho sync card — trước khi observe
         binding.tvSyncStatus.setText(getString(R.string.sync_status_idle));

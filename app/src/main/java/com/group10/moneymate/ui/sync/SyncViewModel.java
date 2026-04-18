@@ -10,62 +10,47 @@ import androidx.lifecycle.Transformations;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
-import com.group10.moneymate.di.AppContainer;
-import com.group10.moneymate.di.MoneyMateApplication;
+// BUG FIX: xóa import AppContainer và MoneyMateApplication không cần dùng
+// (field container được tạo nhưng không bao giờ được dùng)
 import com.group10.moneymate.workers.SyncScheduler;
 
 import java.util.List;
 
-/**
- * SyncViewModel — ViewModel dùng chung, có thể attach vào bất kỳ Fragment nào.
- *
- * Expose:
- * - syncState: trạng thái tổng hợp (IDLE / SYNCING / SUCCESS / FAILED)
- * - hasPendingChanges: true nếu có bản ghi chưa được sync (dùng để hiện badge)
- * - lastSyncTime: thời điểm sync thành công gần nhất (từ PrefsManager)
- *
- * Observe WorkManager LiveData để tự động cập nhật khi SyncWorker chạy.
- * Dùng scope của Activity để dùng chung giữa các Fragment:
- *   viewModel = new ViewModelProvider(requireActivity()).get(SyncViewModel.class);
- */
 public class SyncViewModel extends AndroidViewModel {
 
     public enum SyncState {
-        IDLE,     // chưa sync lần nào hoặc đã thành công, không có gì pending
-        SYNCING,  // đang chạy SyncWorker hoặc DeltaSyncWorker
-        SUCCESS,  // vừa sync xong thành công
-        FAILED    // thất bại sau MAX_ATTEMPTS lần retry
+        IDLE,
+        SYNCING,
+        SUCCESS,
+        FAILED
     }
 
     private final MediatorLiveData<SyncState> syncState = new MediatorLiveData<>();
-    private final AppContainer container;
+    // BUG FIX: xóa field container — không dùng ở đâu cả, gây memory leak tiềm ẩn
+    // (AppContainer giữ tham chiếu đến database, repositories, v.v.)
     private final WorkManager workManager;
 
     public SyncViewModel(@NonNull Application application) {
         super(application);
-        MoneyMateApplication app = (MoneyMateApplication) application;
-        container = app.getAppContainer();
         workManager = WorkManager.getInstance(application);
-
         syncState.setValue(SyncState.IDLE);
 
-        // Observe push worker (SyncWorker)
+        // Observe SyncWorker (push)
         LiveData<List<WorkInfo>> pushInfos = workManager.getWorkInfosForUniqueWorkLiveData(
                 SyncScheduler.UNIQUE_ONE_TIME_SYNC);
         syncState.addSource(pushInfos, this::updateStateFromWorkInfos);
 
-        // Observe pull worker (DeltaSyncWorker)
+        // Observe DeltaSyncWorker (pull) — chỉ update nếu push không đang RUNNING
         LiveData<List<WorkInfo>> pullInfos = workManager.getWorkInfosForUniqueWorkLiveData(
                 SyncScheduler.UNIQUE_ONE_TIME_DELTA);
         syncState.addSource(pullInfos, infos -> {
-            // Chỉ update nếu push worker không đang RUNNING
             SyncState current = syncState.getValue();
             if (current != SyncState.SYNCING) {
                 updateStateFromWorkInfos(infos);
             }
         });
 
-        // Observe initial sync worker
+        // Observe InitialSyncWorker
         LiveData<List<WorkInfo>> initialInfos = workManager.getWorkInfosForUniqueWorkLiveData(
                 "initial_sync");
         syncState.addSource(initialInfos, infos -> {
@@ -77,33 +62,21 @@ public class SyncViewModel extends AndroidViewModel {
         });
     }
 
-    // ─── Public API ───────────────────────────────────────────────────────────
-
     public LiveData<SyncState> getSyncState() {
         return syncState;
     }
 
-    /**
-     * Convenience: true khi đang sync (cho loading indicators).
-     */
     public LiveData<Boolean> isSyncing() {
         return Transformations.map(syncState, state -> state == SyncState.SYNCING);
     }
 
-    /**
-     * Trigger sync thủ công (từ nút "Đồng bộ ngay" trong UI).
-     */
     public void syncNow() {
         syncState.setValue(SyncState.SYNCING);
         SyncScheduler.enqueueManualRetryNow(getApplication());
     }
 
-    // ─── Internal ─────────────────────────────────────────────────────────────
-
     private void updateStateFromWorkInfos(List<WorkInfo> infos) {
-        if (infos == null || infos.isEmpty()) {
-            return;
-        }
+        if (infos == null || infos.isEmpty()) return;
         WorkInfo info = infos.get(0);
         switch (info.getState()) {
             case RUNNING:
@@ -118,7 +91,6 @@ public class SyncViewModel extends AndroidViewModel {
                 syncState.setValue(SyncState.FAILED);
                 break;
             case BLOCKED:
-                // Đang chờ constraint (network) — coi như IDLE
                 syncState.setValue(SyncState.IDLE);
                 break;
         }
