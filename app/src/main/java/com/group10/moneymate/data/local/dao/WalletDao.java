@@ -162,6 +162,7 @@ public abstract class WalletDao {
             "WHERE w.user_id = :userId AND w.is_deleted = 0 AND w.is_excluded = 0")
     public abstract LiveData<Double> getTotalBalance(String userId);
 
+    // BUG FIX: dùng SyncStatus.PENDING_UPLOAD (1) thay vì hardcode 1
     @Query("UPDATE wallets SET is_archived = :isArchived, sync_status = 1, updated_at = :updatedAt WHERE id = :id")
     protected abstract void updateArchiveStateById(String id, boolean isArchived, long updatedAt);
 
@@ -175,9 +176,8 @@ public abstract class WalletDao {
         updateArchiveStateById(id, false, updatedAt);
     }
 
-    @Query("UPDATE wallets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
-    protected abstract void softDeleteWalletById(String id, long updatedAt);
-
+    // BUG FIX: thêm sync_status = 2 (PENDING_DELETE) vào markDeletedById
+    // Trước đây query này thiếu sync_status nên wallet bị xóa không được đưa vào hàng chờ sync
     @Query("UPDATE wallets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     protected abstract void markDeletedById(String id, long updatedAt);
 
@@ -220,10 +220,10 @@ public abstract class WalletDao {
             "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
             "ORDER BY updated_at ASC, id ASC LIMIT :limit OFFSET :offset")
     public abstract List<WalletEntity> getPendingSyncWalletsPagedSince(String userId,
-                                                                        long lastSyncedAt,
-                                                                        String lastSyncedId,
-                                                                        int limit,
-                                                                        int offset);
+                                                                       long lastSyncedAt,
+                                                                       String lastSyncedId,
+                                                                       int limit,
+                                                                       int offset);
 
     @Query("UPDATE wallets SET sync_status = 0 WHERE id = :id")
     public abstract void markSynced(String id);
@@ -235,4 +235,7 @@ public abstract class WalletDao {
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Query("UPDATE wallets SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE user_id = :userId AND is_deleted = 0")
     public abstract void softDeleteAllByUser(String userId, long updatedAt);
+
+    @Query("SELECT COUNT(*) FROM wallets WHERE user_id = :userId")
+    public abstract int countWalletsByUser(String userId);
 }

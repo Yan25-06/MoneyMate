@@ -598,4 +598,7 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
             "WHERE user_id = :userId AND is_deleted = 0")
     void softDeleteAllByUser(String userId, long updatedAt);
+
+    @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
+    TransactionEntity getByIdSync(String id);
 }

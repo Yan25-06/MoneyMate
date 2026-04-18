@@ -40,6 +40,7 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.databinding.FragmentHomeBinding;
 import com.group10.moneymate.ui.main.HomeActivity;
+import com.group10.moneymate.ui.sync.SyncViewModel;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
@@ -67,6 +68,7 @@ public class HomeFragment extends Fragment {
     private HomeWalletAdapter walletAdapter;
     private HomeTopSpendingAdapter topSpendingAdapter;
     private HomeRecentTransactionAdapter recentTransactionAdapter;
+    private SyncViewModel syncViewModel;
 
     private final Map<String, CategoryEntity> categoryMap = new HashMap<>();
     private List<CategorySumDTO> monthlyTopCategories = new ArrayList<>();
@@ -118,6 +120,23 @@ public class HomeFragment extends Fragment {
         updateTrendMetricUi();
     }
 
+
+    private void observeSyncBanner() {
+        syncViewModel = new ViewModelProvider(requireActivity()).get(SyncViewModel.class);
+        syncViewModel.getSyncState().observe(getViewLifecycleOwner(), state -> {
+            // Hiện banner chỉ khi đang sync VÀ chưa có dữ liệu local
+            // (phát hiện qua viewModel.wallets being empty)
+            // Banner cần được thêm vào fragment_home.xml: id = banner_initial_sync
+            // Xem layout snippet bên dưới.
+        });
+
+        syncViewModel.isSyncing().observe(getViewLifecycleOwner(), isSyncing -> {
+//             Thêm vào fragment_home.xml: View với id banner_initial_sync
+//             if (binding.bannerInitialSync != null) {
+//                 binding.bannerInitialSync.setVisibility(isSyncing ? View.VISIBLE : View.GONE);
+//             }
+        });
+    }
     private void setupInsets() {
         final int initialTopPadding = binding.layoutBalanceHeader.getPaddingTop();
         ViewCompat.setOnApplyWindowInsetsListener(binding.scrollContent, (v, insets) -> {

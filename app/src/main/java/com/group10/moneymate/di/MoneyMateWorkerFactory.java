@@ -9,6 +9,8 @@ import androidx.work.WorkerFactory;
 import androidx.work.WorkerParameters;
 
 import com.group10.moneymate.workers.AIReceiptScannerWorker;
+import com.group10.moneymate.workers.DeltaSyncWorker;
+import com.group10.moneymate.workers.InitialSyncWorker;
 import com.group10.moneymate.workers.SyncWorker;
 
 public class MoneyMateWorkerFactory extends WorkerFactory {
@@ -24,6 +26,7 @@ public class MoneyMateWorkerFactory extends WorkerFactory {
     public ListenableWorker createWorker(@NonNull Context appContext,
                                          @NonNull String workerClassName,
                                          @NonNull WorkerParameters workerParameters) {
+        // Phase 2: Push local → Supabase
         if (SyncWorker.class.getName().equals(workerClassName)) {
             return new SyncWorker(
                     appContext,
@@ -34,6 +37,31 @@ public class MoneyMateWorkerFactory extends WorkerFactory {
                     appContainer.walletRepository,
                     appContainer.debtRepository,
                     appContainer.eventRepository,
+                    appContainer.syncMetadataRepository,
+                    appContainer.authRepository,
+                    appContainer.supabaseSyncClient
+            );
+        }
+
+        // Phase 3: Pull toàn bộ khi thiết bị mới
+        if (InitialSyncWorker.class.getName().equals(workerClassName)) {
+            return new InitialSyncWorker(
+                    appContext,
+                    workerParameters,
+                    appContainer.database,
+                    appContainer.supabaseSyncClient,
+                    appContainer.syncMetadataRepository,
+                    appContainer.authRepository
+            );
+        }
+
+        // Phase 4: Pull delta định kỳ từ Supabase
+        if (DeltaSyncWorker.class.getName().equals(workerClassName)) {
+            return new DeltaSyncWorker(
+                    appContext,
+                    workerParameters,
+                    appContainer.database,
+                    appContainer.supabaseSyncClient,
                     appContainer.syncMetadataRepository,
                     appContainer.authRepository
             );
@@ -53,4 +81,3 @@ public class MoneyMateWorkerFactory extends WorkerFactory {
         return null;
     }
 }
-

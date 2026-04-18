@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  fragment_settings.xml — Phase 4 UI
+  Thêm card "Đồng bộ dữ liệu" giữa section_data và section_display.
+  Giữ nguyên toàn bộ nội dung cũ, chỉ thêm phần được đánh dấu THÊM MỚI.
+-->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -42,6 +47,7 @@
             android:paddingEnd="18dp"
             android:paddingBottom="112dp">
 
+            <!-- ── Tài khoản ─────────────────────────────────────────────────── -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -82,7 +88,6 @@
                             app:cardBackgroundColor="#EEF4FF"
                             app:cardCornerRadius="14dp"
                             app:cardElevation="0dp">
-
                             <ImageView
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
@@ -98,7 +103,6 @@
                             android:layout_marginStart="14dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
-
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -106,7 +110,6 @@
                                 android:textColor="@color/statistics_text_primary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
-
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -146,7 +149,6 @@
                             app:cardBackgroundColor="#FFF4E8"
                             app:cardCornerRadius="14dp"
                             app:cardElevation="0dp">
-
                             <ImageView
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
@@ -162,7 +164,6 @@
                             android:layout_marginStart="14dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
-
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -170,7 +171,6 @@
                                 android:textColor="@color/statistics_text_primary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
-
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -191,6 +191,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ── Quản lý dữ liệu ──────────────────────────────────────────── -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -215,6 +216,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- Wallets, Categories, Budgets, Debts, Events — giữ nguyên -->
                     <LinearLayout
                         android:id="@+id/btn_wallets"
                         android:layout_width="match_parent"
@@ -224,37 +226,12 @@
                         android:orientation="horizontal"
                         android:paddingStart="18dp"
                         android:paddingEnd="18dp">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/outline_account_balance_wallet_24"
-                            app:tint="@color/statistics_text_secondary" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:text="@string/wallets"
-                            android:textColor="@color/statistics_text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:contentDescription="@null"
-                            android:rotation="180"
-                            android:src="@drawable/outline_arrow_back_24"
-                            app:tint="@color/statistics_text_muted" />
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="@null" android:src="@drawable/outline_account_balance_wallet_24" app:tint="@color/statistics_text_secondary" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/wallets" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:rotation="180" android:src="@drawable/outline_arrow_back_24" app:tint="@color/statistics_text_muted" />
                     </LinearLayout>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="18dp" />
+                    <com.google.android.material.divider.MaterialDivider android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="18dp" />
 
                     <LinearLayout
                         android:id="@+id/btn_categories"
@@ -265,37 +242,12 @@
                         android:orientation="horizontal"
                         android:paddingStart="18dp"
                         android:paddingEnd="18dp">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/outline_payments_24"
-                            app:tint="@color/statistics_text_secondary" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:text="@string/settings_groups_label"
-                            android:textColor="@color/statistics_text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:contentDescription="@null"
-                            android:rotation="180"
-                            android:src="@drawable/outline_arrow_back_24"
-                            app:tint="@color/statistics_text_muted" />
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="@null" android:src="@drawable/outline_payments_24" app:tint="@color/statistics_text_secondary" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/settings_groups_label" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:rotation="180" android:src="@drawable/outline_arrow_back_24" app:tint="@color/statistics_text_muted" />
                     </LinearLayout>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="18dp" />
+                    <com.google.android.material.divider.MaterialDivider android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="18dp" />
 
                     <LinearLayout
                         android:id="@+id/btn_budgets"
@@ -306,37 +258,12 @@
                         android:orientation="horizontal"
                         android:paddingStart="18dp"
                         android:paddingEnd="18dp">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/outline_bar_chart_24"
-                            app:tint="@color/statistics_text_secondary" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:text="@string/statistics"
-                            android:textColor="@color/statistics_text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:contentDescription="@null"
-                            android:rotation="180"
-                            android:src="@drawable/outline_arrow_back_24"
-                            app:tint="@color/statistics_text_muted" />
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="@null" android:src="@drawable/outline_bar_chart_24" app:tint="@color/statistics_text_secondary" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/statistics" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:rotation="180" android:src="@drawable/outline_arrow_back_24" app:tint="@color/statistics_text_muted" />
                     </LinearLayout>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="18dp" />
+                    <com.google.android.material.divider.MaterialDivider android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="18dp" />
 
                     <LinearLayout
                         android:id="@+id/btn_debts"
@@ -347,37 +274,12 @@
                         android:orientation="horizontal"
                         android:paddingStart="18dp"
                         android:paddingEnd="18dp">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/outline_receipt_24"
-                            app:tint="@color/statistics_text_secondary" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:text="@string/debts"
-                            android:textColor="@color/statistics_text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:contentDescription="@null"
-                            android:rotation="180"
-                            android:src="@drawable/outline_arrow_back_24"
-                            app:tint="@color/statistics_text_muted" />
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="@null" android:src="@drawable/outline_receipt_24" app:tint="@color/statistics_text_secondary" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/debts" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:rotation="180" android:src="@drawable/outline_arrow_back_24" app:tint="@color/statistics_text_muted" />
                     </LinearLayout>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="18dp" />
+                    <com.google.android.material.divider.MaterialDivider android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="18dp" />
 
                     <LinearLayout
                         android:id="@+id/btn_events"
@@ -388,35 +290,141 @@
                         android:orientation="horizontal"
                         android:paddingStart="18dp"
                         android:paddingEnd="18dp">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/outline_account_balance_24"
-                            app:tint="@color/statistics_text_secondary" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:text="@string/events"
-                            android:textColor="@color/statistics_text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:contentDescription="@null"
-                            android:rotation="180"
-                            android:src="@drawable/outline_arrow_back_24"
-                            app:tint="@color/statistics_text_muted" />
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="@null" android:src="@drawable/outline_account_balance_24" app:tint="@color/statistics_text_secondary" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/events" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:rotation="180" android:src="@drawable/outline_arrow_back_24" app:tint="@color/statistics_text_muted" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- THÊM MỚI: Card đồng bộ dữ liệu                              -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="@string/section_sync"
+                android:textColor="@color/statistics_text_secondary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/statistics_card_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Trạng thái và nút sync -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            app:cardBackgroundColor="#EDF7F0"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp">
+
+                            <!-- Icon đám mây khi IDLE/SUCCESS -->
+                            <ImageView
+                                android:id="@+id/iv_sync_icon"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:contentDescription="@null"
+                                android:src="@drawable/outline_history_24"
+                                app:tint="@color/income_green" />
+
+                            <!-- Spinner khi SYNCING -->
+                            <ProgressBar
+                                android:id="@+id/pb_sync_spinner"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:indeterminateTint="@color/income_green"
+                                android:visibility="gone" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/sync_cloud_title"
+                                android:textColor="@color/statistics_text_primary"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tv_sync_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/statistics_text_secondary"
+                                android:textSize="13sp"
+                                tools:text="Đồng bộ lần cuối: 14:32" />
+                        </LinearLayout>
+
+                        <!-- Badge trạng thái: SUCCESS=xanh, FAILED=đỏ, SYNCING=ẩn -->
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_sync_state"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checkable="false"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:textSize="12sp"
+                            app:chipCornerRadius="8dp"
+                            app:chipMinHeight="28dp"
+                            tools:text="Đã đồng bộ" />
+                    </LinearLayout>
+
+                    <!-- Thanh tiến trình (chỉ hiện khi SYNCING) -->
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_sync"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:indeterminate="true"
+                        android:visibility="gone"
+                        app:indicatorColor="@color/income_green"
+                        app:trackColor="@color/statistics_card_stroke" />
+
+                    <!-- Nút đồng bộ ngay -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_sync_now"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/sync_now_button"
+                        android:textAllCaps="false"
+                        app:icon="@drawable/outline_history_24"
+                        app:iconGravity="textStart" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <!-- ══════════════════════════════════════════════════════════════ -->
+
+            <!-- ── Giao diện ────────────────────────────────────────────────── -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -454,14 +462,7 @@
                             app:cardBackgroundColor="#F2F4F7"
                             app:cardCornerRadius="14dp"
                             app:cardElevation="0dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:layout_gravity="center"
-                                android:contentDescription="@null"
-                                android:src="@drawable/outline_settings_24"
-                                app:tint="@color/statistics_text_secondary" />
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/outline_settings_24" app:tint="@color/statistics_text_secondary" />
                         </com.google.android.material.card.MaterialCardView>
 
                         <LinearLayout
@@ -470,22 +471,8 @@
                             android:layout_marginStart="14dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/dark_mode"
-                                android:textColor="@color/statistics_text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/settings_dark_mode_hint"
-                                android:textColor="@color/statistics_text_secondary"
-                                android:textSize="13sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/dark_mode" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/settings_dark_mode_hint" android:textColor="@color/statistics_text_secondary" android:textSize="13sp" />
                         </LinearLayout>
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
@@ -494,27 +481,10 @@
                             android:layout_height="wrap_content" />
                     </LinearLayout>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="18dp"
-                        android:layout_marginBottom="18dp" />
+                    <com.google.android.material.divider.MaterialDivider android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:layout_marginBottom="18dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/date_format"
-                        android:textColor="@color/statistics_text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/settings_date_format_hint"
-                        android:textColor="@color/statistics_text_secondary"
-                        android:textSize="13sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/date_format" android:textColor="@color/statistics_text_primary" android:textSize="15sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/settings_date_format_hint" android:textColor="@color/statistics_text_secondary" android:textSize="13sp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MoneyMate.TextInputLayout.ExposedDropdown"
@@ -522,7 +492,6 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:hint="@string/date_format">
-
                         <AutoCompleteTextView
                             android:id="@+id/dropdown_date_format"
                             style="@style/Widget.MoneyMate.AutoCompleteTextView"
@@ -534,6 +503,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ── Đăng xuất ─────────────────────────────────────────────────── -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -550,21 +520,8 @@
                     android:orientation="vertical"
                     android:padding="18dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_logout_title"
-                        android:textColor="@color/statistics_text_primary"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/settings_logout_hint"
-                        android:textColor="@color/statistics_text_secondary"
-                        android:textSize="14sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_logout_title" android:textColor="@color/statistics_text_primary" android:textSize="17sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/settings_logout_hint" android:textColor="@color/statistics_text_secondary" android:textSize="14sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_logout"
@@ -594,4 +551,3 @@
     </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
