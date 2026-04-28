@@ -57,5 +57,6 @@
     <color name="moneymate_picker_accent">#16A34A</color>
     <color name="moneymate_picker_header_background">#F6FBF7</color>
     <color name="moneymate_menu_dialog_bg">#F3F4F6</color>
+    <color name="camera_capture_overlay_scrim">#99000000</color>
 
 </resources>

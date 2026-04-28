@@ -170,6 +170,7 @@
     <string name="transaction_scan_confirmation_rescan_camera">Chụp lại ảnh</string>
     <string name="transaction_scan_confirmation_rescan_gallery">Chọn lại ảnh</string>
     <string name="transaction_scan_confirmation_preview_unavailable">Không thể mở ảnh xem trước lúc này.</string>
+    <string name="transaction_scan_confirmation_zoom_hint">Kéo để di chuyển, chụm để phóng to/thu nhỏ, chạm đúp để đặt lại.</string>
     <string name="transaction_scan_confirmation_summary_warning">Kết quả OCR còn thiếu trường hoặc có độ tin cậy thấp. Hãy kiểm tra kỹ trước khi lưu.</string>
     <string name="transaction_scan_confirmation_receipt_preview">Ảnh hóa đơn đã quét</string>
     <string name="transaction_scan_confirmation_save_all">Lưu tất cả</string>
@@ -181,7 +182,6 @@
     <string name="transaction_scan_confirmation_warning_missing_amount">Thiếu số tiền</string>
     <string name="transaction_scan_confirmation_warning_missing_category">Chưa có danh mục</string>
     <string name="transaction_scan_confirmation_warning_low_confidence">Độ tin cậy thấp</string>
-    <string name="transaction_scan_confirmation_warning_separator"> • </string>
     <string name="transaction_scan_confirmation_edit_item">Chỉnh sửa</string>
     <string name="transaction_scan_confirmation_note_fallback">Giao dịch OCR cần kiểm tra</string>
     <string name="transaction_scan_confirmation_item_saved_removed">Mục đã lưu đã được gỡ khỏi danh sách chờ.</string>
@@ -211,6 +211,13 @@
     <string name="transaction_scan_permission_denied_message">Chưa có quyền camera. Hãy cấp quyền để chụp hóa đơn.</string>
     <string name="transaction_scan_camera_loading">Đang mở camera…</string>
     <string name="transaction_scan_camera_ready">Canh hóa đơn vào khung hình rồi nhấn chụp.</string>
+    <string name="transaction_scan_camera_focusing">Đang lấy nét tại điểm chạm…</string>
+    <string name="transaction_scan_camera_focus_locked">Đã lấy nét. Bạn có thể chụp ngay.</string>
+    <string name="transaction_scan_camera_exposure_down">Tối hơn</string>
+    <string name="transaction_scan_camera_exposure_reset_action">Auto sáng</string>
+    <string name="transaction_scan_camera_exposure_up">Sáng hơn</string>
+    <string name="transaction_scan_camera_exposure_changed">Đã chỉnh sáng mức %1$d</string>
+    <string name="transaction_scan_camera_exposure_reset">Đã đưa độ sáng về tự động.</string>
     <string name="transaction_scan_camera_unavailable">Không thể mở camera lúc này.</string>
     <string name="transaction_scan_camera_unavailable_title">Camera chưa sẵn sàng</string>
     <string name="transaction_scan_camera_unavailable_message">Thiết bị không hỗ trợ camera phù hợp hoặc camera đang bận. Bạn có thể thử lại sau.</string>

@@ -89,18 +89,24 @@ public class AddEditWalletFragment extends Fragment {
     }
 
     private void setupInsets() {
-        final int initialTopPadding = binding.scrollWalletForm.getPaddingTop();
-        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollWalletForm, (v, insets) -> {
+        final int initialAppBarTopPadding = binding.appBarLayout.getPaddingTop();
+        final int initialScrollBottomPadding = binding.scrollWalletForm.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            binding.appBarLayout.setPadding(
+                    binding.appBarLayout.getPaddingLeft(),
+                    initialAppBarTopPadding + systemBars.top,
+                    binding.appBarLayout.getPaddingRight(),
+                    binding.appBarLayout.getPaddingBottom());
             binding.scrollWalletForm.setPadding(
                     binding.scrollWalletForm.getPaddingLeft(),
-                    initialTopPadding + systemBars.top,
+                    binding.scrollWalletForm.getPaddingTop(),
                     binding.scrollWalletForm.getPaddingRight(),
-                    binding.scrollWalletForm.getPaddingBottom()
-            );
+                    initialScrollBottomPadding + systemBars.bottom);
             return insets;
         });
     }
+
     private void setupBalanceInput() {
         binding.etBalance.addTextChangedListener(new TextWatcher() {
             @Override
@@ -140,8 +146,7 @@ public class AddEditWalletFragment extends Fragment {
         ArrayAdapter<String> adapter = new NoFilterArrayAdapter(
                 requireContext(),
                 R.layout.item_moneymate_dropdown_option,
-                types
-        );
+                types);
         binding.dropdownType.setAdapter(adapter);
         binding.dropdownType.setText(types[0], false);
         binding.dropdownType.setOnClickListener(v -> binding.dropdownType.showDropDown());
@@ -151,8 +156,8 @@ public class AddEditWalletFragment extends Fragment {
         private final String[] items;
 
         NoFilterArrayAdapter(@NonNull android.content.Context context,
-                             int resource,
-                             @NonNull String[] items) {
+                int resource,
+                @NonNull String[] items) {
             super(context, resource, items);
             this.items = items;
         }
@@ -183,8 +188,8 @@ public class AddEditWalletFragment extends Fragment {
     }
 
     private void openIconPicker() {
-        AddEditWalletFragmentDirections.ActionAddEditWalletFragmentToWalletIconPickerFragment action =
-                AddEditWalletFragmentDirections.actionAddEditWalletFragmentToWalletIconPickerFragment();
+        AddEditWalletFragmentDirections.ActionAddEditWalletFragmentToWalletIconPickerFragment action = AddEditWalletFragmentDirections
+                .actionAddEditWalletFragmentToWalletIconPickerFragment();
         action.setSelectedIconName(selectedIconName);
         Navigation.findNavController(binding.getRoot()).navigate(action);
     }
@@ -212,9 +217,7 @@ public class AddEditWalletFragment extends Fragment {
                 com.group10.moneymate.utils.IconProvider.resolveWalletIcon(
                         requireContext(),
                         selectedIconName,
-                        editingWallet == null ? null : editingWallet.getType()
-                )
-        );
+                        editingWallet == null ? null : editingWallet.getType()));
     }
 
     private void loadEditingWallet(String id) {
@@ -277,7 +280,8 @@ public class AddEditWalletFragment extends Fragment {
                         public void onError(@NonNull Throwable throwable) {
                             stopSavingUi();
                             if (isAdded()) {
-                                Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                                Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT)
+                                        .show();
                             }
                         }
                     });
@@ -293,7 +297,8 @@ public class AddEditWalletFragment extends Fragment {
                         public void onError(@NonNull Throwable throwable) {
                             stopSavingUi();
                             if (isAdded()) {
-                                Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                                Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT)
+                                        .show();
                             }
                         }
                     });

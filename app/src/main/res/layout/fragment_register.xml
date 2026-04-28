@@ -15,8 +15,9 @@
             android:id="@+id/top_app_bar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorSurface"
-            android:title="@string/title_register"
+            android:background="@android:color/transparent"
+            app:title="@string/title_register"
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge.Emphasized"
             android:titleTextColor="?attr/colorOnSurface"
             app:navigationContentDescription="@string/btn_back"
             app:navigationIcon="@drawable/outline_arrow_back_24" />

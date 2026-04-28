@@ -11,6 +11,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
@@ -51,8 +54,8 @@ public class WalletTransferFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         binding = FragmentWalletTransferBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -64,6 +67,7 @@ public class WalletTransferFragment extends Fragment {
 
         String fromWalletId = WalletTransferFragmentArgs.fromBundle(getArguments()).getFromWalletId();
 
+        setupInsets();
         setupToolbar();
         setupDateControls();
         setupFeeToggle();
@@ -107,8 +111,26 @@ public class WalletTransferFragment extends Fragment {
     }
 
     private void setupToolbar() {
-        binding.btnCloseScreen.setOnClickListener(v ->
-                Navigation.findNavController(v).navigateUp());
+        binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+    }
+
+    private void setupInsets() {
+        final int initialAppBarTopPadding = binding.appBarLayout.getPaddingTop();
+        final int initialScrollBottomPadding = binding.scrollContent.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            binding.appBarLayout.setPadding(
+                    binding.appBarLayout.getPaddingLeft(),
+                    initialAppBarTopPadding + systemBars.top,
+                    binding.appBarLayout.getPaddingRight(),
+                    binding.appBarLayout.getPaddingBottom());
+            binding.scrollContent.setPadding(
+                    binding.scrollContent.getPaddingLeft(),
+                    binding.scrollContent.getPaddingTop(),
+                    binding.scrollContent.getPaddingRight(),
+                    initialScrollBottomPadding + systemBars.bottom);
+            return insets;
+        });
     }
 
     private void setupDateControls() {
@@ -136,28 +158,31 @@ public class WalletTransferFragment extends Fragment {
                 },
                 selectedDate.get(Calendar.YEAR),
                 selectedDate.get(Calendar.MONTH),
-                selectedDate.get(Calendar.DAY_OF_MONTH)
-        ).show();
+                selectedDate.get(Calendar.DAY_OF_MONTH)).show();
     }
 
     private void setupFeeToggle() {
-        binding.switchFee.setOnCheckedChangeListener((buttonView, isChecked) ->
-                binding.layoutFee.setVisibility(isChecked ? View.VISIBLE : View.GONE));
+        binding.switchFee.setOnCheckedChangeListener(
+                (buttonView, isChecked) -> binding.layoutFee.setVisibility(isChecked ? View.VISIBLE : View.GONE));
     }
 
     private void setupTextFormatters() {
         binding.etAmount.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
 
             @Override
             public void afterTextChanged(Editable editable) {
-                if (isFormattingAmount) return;
+                if (isFormattingAmount)
+                    return;
                 String digits = CurrencyFormatter.extractDigits(editable.toString());
-                if (digits.isEmpty()) return;
+                if (digits.isEmpty())
+                    return;
                 isFormattingAmount = true;
                 String formatted = CurrencyFormatter.formatInputAmount(Long.parseLong(digits));
                 binding.etAmount.setText(formatted);
@@ -168,16 +193,20 @@ public class WalletTransferFragment extends Fragment {
 
         binding.etFeeAmount.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
 
             @Override
             public void afterTextChanged(Editable editable) {
-                if (isFormattingFeeAmount) return;
+                if (isFormattingFeeAmount)
+                    return;
                 String digits = CurrencyFormatter.extractDigits(editable.toString());
-                if (digits.isEmpty()) return;
+                if (digits.isEmpty())
+                    return;
                 isFormattingFeeAmount = true;
                 String formatted = CurrencyFormatter.formatInputAmount(Long.parseLong(digits));
                 binding.etFeeAmount.setText(formatted);
@@ -296,7 +325,8 @@ public class WalletTransferFragment extends Fragment {
     private void doTransfer() {
         // Validate amount
         String amountStr = binding.etAmount.getText() != null
-                ? CurrencyFormatter.extractDigits(binding.etAmount.getText().toString().trim()) : "";
+                ? CurrencyFormatter.extractDigits(binding.etAmount.getText().toString().trim())
+                : "";
         if (amountStr.isEmpty()) {
             Toast.makeText(requireContext(), R.string.transfer_error_no_amount, Toast.LENGTH_SHORT).show();
             binding.etAmount.requestFocus();
@@ -333,7 +363,8 @@ public class WalletTransferFragment extends Fragment {
         double feeAmount = 0;
         if (hasFee) {
             String feeStr = binding.etFeeAmount.getText() != null
-                    ? CurrencyFormatter.extractDigits(binding.etFeeAmount.getText().toString().trim()) : "";
+                    ? CurrencyFormatter.extractDigits(binding.etFeeAmount.getText().toString().trim())
+                    : "";
             if (feeStr.isEmpty()) {
                 Toast.makeText(requireContext(), R.string.transfer_error_no_fee_amount, Toast.LENGTH_SHORT).show();
                 binding.etFeeAmount.requestFocus();
@@ -353,11 +384,14 @@ public class WalletTransferFragment extends Fragment {
 
         // Get notes
         String fromNote = binding.etNoteFrom.getText() != null
-                ? binding.etNoteFrom.getText().toString().trim() : "";
+                ? binding.etNoteFrom.getText().toString().trim()
+                : "";
         String toNote = binding.etNoteTo.getText() != null
-                ? binding.etNoteTo.getText().toString().trim() : "";
+                ? binding.etNoteTo.getText().toString().trim()
+                : "";
         String feeNote = binding.etFeeNote.getText() != null
-                ? binding.etFeeNote.getText().toString().trim() : "";
+                ? binding.etFeeNote.getText().toString().trim()
+                : "";
 
         long timestamp = selectedDate.getTimeInMillis();
 
@@ -377,19 +411,20 @@ public class WalletTransferFragment extends Fragment {
                 new WalletTransferViewModel.TransferCallback() {
                     @Override
                     public void onSuccess() {
-                        if (!isAdded()) return;
+                        if (!isAdded())
+                            return;
                         Toast.makeText(requireContext(), R.string.transfer_success, Toast.LENGTH_SHORT).show();
                         Navigation.findNavController(requireView()).navigateUp();
                     }
 
                     @Override
                     public void onError(@NonNull String message) {
-                        if (!isAdded()) return;
+                        if (!isAdded())
+                            return;
                         binding.btnConfirm.setEnabled(true);
                         Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
                     }
-                }
-        );
+                });
     }
 
     @Override

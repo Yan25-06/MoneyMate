@@ -147,7 +147,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:textAllCaps="false"
-                app:icon="@drawable/ic_category_camera"
+                app:icon="@drawable/outline_photo_camera_24"
                 app:iconPadding="10dp"
                 app:strokeColor="@color/transaction_border"
                 tools:text="Chụp lại ảnh" />

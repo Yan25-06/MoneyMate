@@ -251,6 +251,11 @@
             android:defaultValue="@null"
             app:nullable="true" />
         <argument
+            android:name="imageUri"
+            app:argType="string"
+            android:defaultValue="@null"
+            app:nullable="true" />
+        <argument
             android:name="amount"
             app:argType="string"
             android:defaultValue="@null"

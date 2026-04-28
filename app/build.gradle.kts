@@ -64,9 +64,22 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
+    packaging {
+        resources {
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/DEPENDENCIES"
+        }
+    }
 }
 
 dependencies {
+    constraints {
+        implementation("com.google.android.datatransport:transport-runtime:2.2.6") {
+            because("Align ML Kit transitive requirements (2.2.5/2.2.6) to a single resolved version")
+        }
+    }
+
     // AndroidX Core
     implementation(libs.appcompat)
     implementation(libs.material)
@@ -117,7 +130,7 @@ dependencies {
     implementation(libs.mlkit.text.recognition)
 
     // Gemini AI
-    implementation(libs.generativeai)
+    implementation("com.google.genai:google-genai:1.0.0")
     implementation(libs.json)
     implementation(libs.exifinterface)
 

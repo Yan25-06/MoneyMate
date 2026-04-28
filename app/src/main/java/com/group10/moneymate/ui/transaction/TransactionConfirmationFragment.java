@@ -1,16 +1,25 @@
 package com.group10.moneymate.ui.transaction;
 
 import android.content.res.ColorStateList;
+import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.graphics.PointF;
+import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -18,6 +27,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.exifinterface.media.ExifInterface;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
@@ -50,6 +60,8 @@ import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -65,6 +77,8 @@ public class TransactionConfirmationFragment extends Fragment {
     private static final int HIGH_CONFIDENCE = 2;
     private static final int MAX_THUMBNAIL_SIZE_PX = 720;
     private static final int MAX_PREVIEW_SIZE_PX = 1800;
+    private static final float PREVIEW_MAX_SCALE_MULTIPLIER = 4f;
+    private static final float PREVIEW_DOUBLE_TAP_SCALE_MULTIPLIER = 2f;
 
     private FragmentTransactionConfirmationBinding binding;
     private TransactionViewModel viewModel;
@@ -85,6 +99,8 @@ public class TransactionConfirmationFragment extends Fragment {
     private boolean isSavingAll;
     @Nullable
     private String currentImagePath;
+    @Nullable
+    private String currentImageUri;
     @Nullable
     private String currentAmount;
     @Nullable
@@ -233,6 +249,7 @@ public class TransactionConfirmationFragment extends Fragment {
 
     private void bindCurrentStateFromArgs(@NonNull TransactionConfirmationFragmentArgs args) {
         currentImagePath = args.getImagePath();
+        currentImageUri = null;
         currentAmount = args.getAmount();
         currentTimestamp = args.getTimestamp();
         currentMerchant = args.getMerchant();
@@ -250,7 +267,7 @@ public class TransactionConfirmationFragment extends Fragment {
         pendingItems.addAll(buildPendingItems());
         adapter.submitList(new ArrayList<>(pendingItems));
 
-        updateThumbnail(currentImagePath);
+        updateThumbnail(currentImagePath, currentImageUri);
         updateProcessingSource();
         updateRescanAction();
         updateSummary();
@@ -346,7 +363,7 @@ public class TransactionConfirmationFragment extends Fragment {
         }
         return warnings.isEmpty()
                 ? ""
-                : TextUtils.join(getString(R.string.transaction_scan_confirmation_warning_separator), warnings);
+                : TextUtils.join(" • ", warnings);
     }
 
     @NonNull
@@ -385,8 +402,8 @@ public class TransactionConfirmationFragment extends Fragment {
         return "";
     }
 
-    private void updateThumbnail(@Nullable String imagePath) {
-        if (TextUtils.isEmpty(imagePath)) {
+    private void updateThumbnail(@Nullable String imagePath, @Nullable String imageUri) {
+        if (TextUtils.isEmpty(imagePath) && TextUtils.isEmpty(imageUri)) {
             binding.ivReceiptThumbnail.setImageResource(R.drawable.outline_receipt_24);
             binding.ivReceiptThumbnail.setImageTintList(ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(requireContext(), R.color.transaction_income_accent)
@@ -395,7 +412,12 @@ public class TransactionConfirmationFragment extends Fragment {
             return;
         }
 
-        Bitmap thumbnailBitmap = decodeSampledBitmap(imagePath, MAX_THUMBNAIL_SIZE_PX, MAX_THUMBNAIL_SIZE_PX);
+        Bitmap thumbnailBitmap = decodeSampledBitmap(
+                imagePath,
+                imageUri,
+                MAX_THUMBNAIL_SIZE_PX,
+                MAX_THUMBNAIL_SIZE_PX
+        );
         if (thumbnailBitmap == null) {
             binding.ivReceiptThumbnail.setImageResource(R.drawable.outline_receipt_24);
             binding.ivReceiptThumbnail.setImageTintList(ColorStateList.valueOf(
@@ -405,6 +427,7 @@ public class TransactionConfirmationFragment extends Fragment {
             return;
         }
         binding.ivReceiptThumbnail.setImageBitmap(thumbnailBitmap);
+        binding.ivReceiptThumbnail.setImageTintList(null);
         binding.ivReceiptThumbnail.setOnClickListener(v -> showZoomedReceiptPreview());
     }
 
@@ -515,11 +538,11 @@ public class TransactionConfirmationFragment extends Fragment {
     private void updateRescanAction() {
         if (AddEditTransactionFragment.IMAGE_INPUT_SOURCE_CAMERA.equals(currentImageInputSource)) {
             binding.btnConfirmationRescan.setText(R.string.transaction_scan_confirmation_rescan_camera);
-            binding.btnConfirmationRescan.setIconResource(R.drawable.ic_category_camera);
+            binding.btnConfirmationRescan.setIconResource(R.drawable.outline_photo_camera_24);
             return;
         }
         binding.btnConfirmationRescan.setText(R.string.transaction_scan_confirmation_rescan_gallery);
-        binding.btnConfirmationRescan.setIconResource(R.drawable.outline_receipt_24);
+        binding.btnConfirmationRescan.setIconResource(R.drawable.outline_image_24);
     }
 
     private void updateEmptyState() {
@@ -904,6 +927,7 @@ public class TransactionConfirmationFragment extends Fragment {
 
     private void applyScanOutput(@NonNull Data outputData) {
         currentImagePath = outputData.getString(ReceiptScanContract.KEY_IMAGE_PATH);
+        currentImageUri = outputData.getString(ReceiptScanContract.KEY_IMAGE_URI);
         currentAmount = outputData.getString(ReceiptScanContract.KEY_AMOUNT);
         currentTimestamp = outputData.getLong(
                 ReceiptScanContract.KEY_TIMESTAMP,
@@ -962,39 +986,73 @@ public class TransactionConfirmationFragment extends Fragment {
     }
 
     private void showZoomedReceiptPreview() {
-        if (TextUtils.isEmpty(currentImagePath)) {
+        if (TextUtils.isEmpty(currentImagePath) && TextUtils.isEmpty(currentImageUri)) {
             return;
         }
-        Bitmap previewBitmap = decodeSampledBitmap(currentImagePath, MAX_PREVIEW_SIZE_PX, MAX_PREVIEW_SIZE_PX);
+        Bitmap previewBitmap = decodeSampledBitmap(
+                currentImagePath,
+                currentImageUri,
+                MAX_PREVIEW_SIZE_PX,
+                MAX_PREVIEW_SIZE_PX
+        );
         if (previewBitmap == null) {
             Toast.makeText(requireContext(), R.string.transaction_scan_confirmation_preview_unavailable, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        ImageView imageView = new ImageView(requireContext());
+        Dialog dialog = new Dialog(requireContext(), android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        View dialogView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_receipt_preview, null, false);
+        FrameLayout root = dialogView.findViewById(R.id.layout_preview_root);
+        ImageView imageView = dialogView.findViewById(R.id.iv_receipt_preview);
+        ImageButton closeButton = dialogView.findViewById(R.id.btn_preview_close);
+        TextView hintText = dialogView.findViewById(R.id.tv_preview_hint);
+
+        root.setOnClickListener(v -> dialog.dismiss());
+        hintText.setText(R.string.transaction_scan_confirmation_zoom_hint);
+
         imageView.setImageBitmap(previewBitmap);
-        imageView.setAdjustViewBounds(true);
-        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        bindZoomGestures(imageView);
+        imageView.setOnClickListener(v -> {
+            // Prevent root click from dismissing when the user taps the image.
+        });
 
-        FrameLayout container = new FrameLayout(requireContext());
-        int padding = (int) (24 * requireContext().getResources().getDisplayMetrics().density);
-        container.setPadding(padding, padding, padding, padding);
-        container.addView(
-                imageView,
-                new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-        );
+        closeButton.setOnClickListener(v -> dialog.dismiss());
 
-        new MaterialAlertDialogBuilder(requireContext())
-                .setView(container)
-                .setPositiveButton(R.string.btn_cancel, null)
-                .show();
+        dialog.setContentView(dialogView);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setLayout(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+            );
+        }
+        dialog.setOnDismissListener(dialogInterface -> {
+            imageView.setImageDrawable(null);
+            if (!previewBitmap.isRecycled()) {
+                previewBitmap.recycle();
+            }
+        });
+        dialog.show();
     }
 
     @Nullable
-    private Bitmap decodeSampledBitmap(@NonNull String imagePath, int reqWidth, int reqHeight) {
+    private Bitmap decodeSampledBitmap(@Nullable String imagePath,
+                                       @Nullable String imageUri,
+                                       int reqWidth,
+                                       int reqHeight) {
+        Bitmap fromPath = decodeSampledBitmapFromPath(imagePath, reqWidth, reqHeight);
+        if (fromPath != null) {
+            return fromPath;
+        }
+        return decodeSampledBitmapFromUri(imageUri, reqWidth, reqHeight);
+    }
+
+    @Nullable
+    private Bitmap decodeSampledBitmapFromPath(@Nullable String imagePath, int reqWidth, int reqHeight) {
+        if (TextUtils.isEmpty(imagePath)) {
+            return null;
+        }
+
         File imageFile = new File(imagePath);
         if (!imageFile.exists()) {
             return null;
@@ -1007,7 +1065,307 @@ public class TransactionConfirmationFragment extends Fragment {
         BitmapFactory.Options decodeOptions = new BitmapFactory.Options();
         decodeOptions.inSampleSize = calculateInSampleSize(boundsOptions, reqWidth, reqHeight);
         decodeOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        return BitmapFactory.decodeFile(imagePath, decodeOptions);
+        Bitmap decodedBitmap = BitmapFactory.decodeFile(imagePath, decodeOptions);
+        if (decodedBitmap == null) {
+            return null;
+        }
+        return applyExifOrientation(decodedBitmap, imagePath, null);
+    }
+
+    @Nullable
+    private Bitmap decodeSampledBitmapFromUri(@Nullable String imageUri, int reqWidth, int reqHeight) {
+        if (TextUtils.isEmpty(imageUri)) {
+            return null;
+        }
+
+        try {
+            Uri uri = Uri.parse(imageUri);
+
+            BitmapFactory.Options boundsOptions = new BitmapFactory.Options();
+            boundsOptions.inJustDecodeBounds = true;
+            try (InputStream boundsStream = requireContext().getContentResolver().openInputStream(uri)) {
+                if (boundsStream == null) {
+                    return null;
+                }
+                BitmapFactory.decodeStream(boundsStream, null, boundsOptions);
+            }
+
+            BitmapFactory.Options decodeOptions = new BitmapFactory.Options();
+            decodeOptions.inSampleSize = calculateInSampleSize(boundsOptions, reqWidth, reqHeight);
+            decodeOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            try (InputStream decodeStream = requireContext().getContentResolver().openInputStream(uri)) {
+                if (decodeStream == null) {
+                    return null;
+                }
+                Bitmap decodedBitmap = BitmapFactory.decodeStream(decodeStream, null, decodeOptions);
+                if (decodedBitmap == null) {
+                    return null;
+                }
+                return applyExifOrientation(decodedBitmap, null, uri);
+            }
+        } catch (IOException | IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    @NonNull
+    private Bitmap applyExifOrientation(@NonNull Bitmap sourceBitmap,
+                                        @Nullable String imagePath,
+                                        @Nullable Uri imageUri) {
+        int orientation = ExifInterface.ORIENTATION_UNDEFINED;
+
+        try {
+            if (!TextUtils.isEmpty(imagePath)) {
+                ExifInterface exifInterface = new ExifInterface(imagePath);
+                orientation = exifInterface.getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL
+                );
+            } else if (imageUri != null) {
+                try (InputStream exifStream = requireContext().getContentResolver().openInputStream(imageUri)) {
+                    if (exifStream != null) {
+                        ExifInterface exifInterface = new ExifInterface(exifStream);
+                        orientation = exifInterface.getAttributeInt(
+                                ExifInterface.TAG_ORIENTATION,
+                                ExifInterface.ORIENTATION_NORMAL
+                        );
+                    }
+                }
+            }
+        } catch (IOException exception) {
+            return sourceBitmap;
+        }
+
+        Matrix rotationMatrix = new Matrix();
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                rotationMatrix.postRotate(90f);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                rotationMatrix.postRotate(180f);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                rotationMatrix.postRotate(270f);
+                break;
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
+                rotationMatrix.preScale(-1f, 1f);
+                break;
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                rotationMatrix.preScale(1f, -1f);
+                break;
+            default:
+                break;
+        }
+
+        if (rotationMatrix.isIdentity()) {
+            return sourceBitmap;
+        }
+
+        Bitmap transformedBitmap = Bitmap.createBitmap(
+                sourceBitmap,
+                0,
+                0,
+                sourceBitmap.getWidth(),
+                sourceBitmap.getHeight(),
+                rotationMatrix,
+                true
+        );
+        if (transformedBitmap != sourceBitmap) {
+            sourceBitmap.recycle();
+        }
+        return transformedBitmap;
+    }
+
+    private void bindZoomGestures(@NonNull ImageView imageView) {
+        imageView.setScaleType(ImageView.ScaleType.MATRIX);
+        Matrix matrix = new Matrix();
+        imageView.setImageMatrix(matrix);
+
+        float[] currentScale = {1f};
+        float[] baseScale = {1f};
+        PointF lastTouch = new PointF();
+        boolean[] dragging = {false};
+
+        imageView.post(() -> {
+            if (imageView.getDrawable() == null || imageView.getWidth() == 0 || imageView.getHeight() == 0) {
+                return;
+            }
+            float drawableWidth = imageView.getDrawable().getIntrinsicWidth();
+            float drawableHeight = imageView.getDrawable().getIntrinsicHeight();
+            if (drawableWidth <= 0f || drawableHeight <= 0f) {
+                return;
+            }
+            float viewWidth = imageView.getWidth();
+            float viewHeight = imageView.getHeight();
+            float fitScale = Math.min(viewWidth / drawableWidth, viewHeight / drawableHeight);
+            float dx = (viewWidth - (drawableWidth * fitScale)) / 2f;
+            float dy = (viewHeight - (drawableHeight * fitScale)) / 2f;
+
+            matrix.reset();
+            matrix.postScale(fitScale, fitScale);
+            matrix.postTranslate(dx, dy);
+            baseScale[0] = fitScale;
+            currentScale[0] = fitScale;
+            imageView.setImageMatrix(matrix);
+        });
+
+        ScaleGestureDetector scaleDetector = new ScaleGestureDetector(
+                requireContext(),
+                new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                    @Override
+                    public boolean onScale(ScaleGestureDetector detector) {
+                        float scaleFactor = detector.getScaleFactor();
+                        float targetScale = currentScale[0] * scaleFactor;
+                        float maxScale = baseScale[0] * PREVIEW_MAX_SCALE_MULTIPLIER;
+
+                        if (targetScale < baseScale[0]) {
+                            scaleFactor = baseScale[0] / currentScale[0];
+                            targetScale = baseScale[0];
+                        } else if (targetScale > maxScale) {
+                            scaleFactor = maxScale / currentScale[0];
+                            targetScale = maxScale;
+                        }
+
+                        matrix.postScale(scaleFactor, scaleFactor, detector.getFocusX(), detector.getFocusY());
+                        constrainMatrixToBounds(imageView, matrix);
+                        currentScale[0] = targetScale;
+                        imageView.setImageMatrix(matrix);
+                        return true;
+                    }
+                }
+        );
+
+        GestureDetector gestureDetector = new GestureDetector(
+                requireContext(),
+                new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onDoubleTap(MotionEvent event) {
+                        if (event == null) {
+                            return false;
+                        }
+                        if (Math.abs(currentScale[0] - baseScale[0]) > 0.01f) {
+                            resetPreviewMatrix(imageView, matrix, currentScale, baseScale);
+                        } else {
+                            float targetScale = baseScale[0] * PREVIEW_DOUBLE_TAP_SCALE_MULTIPLIER;
+                            float scaleFactor = targetScale / currentScale[0];
+                            matrix.postScale(scaleFactor, scaleFactor, event.getX(), event.getY());
+                            constrainMatrixToBounds(imageView, matrix);
+                            currentScale[0] = targetScale;
+                        }
+                        imageView.setImageMatrix(matrix);
+                        return true;
+                    }
+                }
+        );
+
+        imageView.setOnTouchListener((v, event) -> {
+            if (event == null) {
+                return false;
+            }
+            scaleDetector.onTouchEvent(event);
+            gestureDetector.onTouchEvent(event);
+
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    lastTouch.set(event.getX(), event.getY());
+                    dragging[0] = true;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (dragging[0] && !scaleDetector.isInProgress() && currentScale[0] > (baseScale[0] + 0.01f)) {
+                        float dx = event.getX() - lastTouch.x;
+                        float dy = event.getY() - lastTouch.y;
+                        matrix.postTranslate(dx, dy);
+                        constrainMatrixToBounds(imageView, matrix);
+                        imageView.setImageMatrix(matrix);
+                        lastTouch.set(event.getX(), event.getY());
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                    imageView.performClick();
+                    dragging[0] = false;
+                    break;
+                case MotionEvent.ACTION_CANCEL:
+                    dragging[0] = false;
+                    break;
+                case MotionEvent.ACTION_POINTER_UP:
+                    if (event.getPointerCount() > 1) {
+                        int actionIndex = event.getActionIndex();
+                        int fallbackIndex = actionIndex == 0 ? 1 : 0;
+                        lastTouch.set(event.getX(fallbackIndex), event.getY(fallbackIndex));
+                    }
+                    break;
+                default:
+                    break;
+            }
+            return true;
+        });
+    }
+
+    private void resetPreviewMatrix(@NonNull ImageView imageView,
+                                    @NonNull Matrix matrix,
+                                    @NonNull float[] currentScale,
+                                    @NonNull float[] baseScale) {
+        if (imageView.getDrawable() == null || imageView.getWidth() == 0 || imageView.getHeight() == 0) {
+            return;
+        }
+        float drawableWidth = imageView.getDrawable().getIntrinsicWidth();
+        float drawableHeight = imageView.getDrawable().getIntrinsicHeight();
+        if (drawableWidth <= 0f || drawableHeight <= 0f) {
+            return;
+        }
+        float viewWidth = imageView.getWidth();
+        float viewHeight = imageView.getHeight();
+        float fitScale = Math.min(viewWidth / drawableWidth, viewHeight / drawableHeight);
+        float dx = (viewWidth - (drawableWidth * fitScale)) / 2f;
+        float dy = (viewHeight - (drawableHeight * fitScale)) / 2f;
+
+        matrix.reset();
+        matrix.postScale(fitScale, fitScale);
+        matrix.postTranslate(dx, dy);
+        baseScale[0] = fitScale;
+        currentScale[0] = fitScale;
+        imageView.setImageMatrix(matrix);
+    }
+
+    private void constrainMatrixToBounds(@NonNull ImageView imageView, @NonNull Matrix matrix) {
+        if (imageView.getDrawable() == null) {
+            return;
+        }
+
+        float viewWidth = imageView.getWidth();
+        float viewHeight = imageView.getHeight();
+        if (viewWidth <= 0f || viewHeight <= 0f) {
+            return;
+        }
+
+        RectF drawableRect = new RectF(
+                0f,
+                0f,
+                imageView.getDrawable().getIntrinsicWidth(),
+                imageView.getDrawable().getIntrinsicHeight()
+        );
+        matrix.mapRect(drawableRect);
+
+        float deltaX = 0f;
+        float deltaY = 0f;
+
+        if (drawableRect.width() <= viewWidth) {
+            deltaX = (viewWidth / 2f) - drawableRect.centerX();
+        } else if (drawableRect.left > 0f) {
+            deltaX = -drawableRect.left;
+        } else if (drawableRect.right < viewWidth) {
+            deltaX = viewWidth - drawableRect.right;
+        }
+
+        if (drawableRect.height() <= viewHeight) {
+            deltaY = (viewHeight / 2f) - drawableRect.centerY();
+        } else if (drawableRect.top > 0f) {
+            deltaY = -drawableRect.top;
+        } else if (drawableRect.bottom < viewHeight) {
+            deltaY = viewHeight - drawableRect.bottom;
+        }
+
+        matrix.postTranslate(deltaX, deltaY);
     }
 
     private int calculateInSampleSize(@NonNull BitmapFactory.Options options, int reqWidth, int reqHeight) {

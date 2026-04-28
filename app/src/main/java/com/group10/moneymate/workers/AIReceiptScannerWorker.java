@@ -250,7 +250,7 @@ public class AIReceiptScannerWorker extends Worker {
                     resolvedImage,
                     recognizedText
             );
-            parseResult = repairLocalParseResult(rawText, recognizedLines, parseResult);
+            parseResult = repairLocalParseResult(rawText, recognizedLines);
 
             long durationMs = System.currentTimeMillis() - startedAt;
             Log.i(
@@ -314,7 +314,7 @@ public class AIReceiptScannerWorker extends Worker {
         }
     }
 
-    @Nullable
+    @NonNull
     private GeminiAttemptResult tryGeminiVisionParse(@NonNull Bitmap geminiBitmap,
                                                      @Nullable Bitmap geminiEnhancedBitmap,
                                                      @NonNull List<String> allowedCategories) {
@@ -394,8 +394,7 @@ public class AIReceiptScannerWorker extends Worker {
 
     @NonNull
     private ReceiptParserBridge.ParseResult repairLocalParseResult(@NonNull String rawText,
-                                                                   @NonNull List<String> recognizedLines,
-                                                                   @NonNull ReceiptParserBridge.ParseResult fallbackResult) {
+                                                                   @NonNull List<String> recognizedLines) {
         ReceiptData localReceiptData = repairReceiptParser.parse(rawText, recognizedLines);
         String repairedAmount = extractVerifiedOcrTotal(recognizedLines);
         if (repairedAmount.isEmpty()) {
@@ -1164,9 +1163,15 @@ public class AIReceiptScannerWorker extends Worker {
             Matcher matcher = OCR_DATE_PATTERN.matcher(line);
             while (matcher.find()) {
                 try {
-                    int day = Integer.parseInt(matcher.group(1));
-                    int month = Integer.parseInt(matcher.group(2));
-                    int year = parseFlexibleYear(matcher.group(3));
+                    String dayGroup = matcher.group(1);
+                    String monthGroup = matcher.group(2);
+                    String yearGroup = matcher.group(3);
+                    if (dayGroup == null || monthGroup == null || yearGroup == null) {
+                        continue;
+                    }
+                    int day = Integer.parseInt(dayGroup);
+                    int month = Integer.parseInt(monthGroup);
+                    int year = parseFlexibleYear(yearGroup);
                     if (year < 2000 || year > maxAcceptedYear) {
                         continue;
                     }
@@ -1200,7 +1205,11 @@ public class AIReceiptScannerWorker extends Worker {
 
             Matcher textualMatcher = OCR_DATE_TEXTUAL_MONTH_PATTERN.matcher(line);
             while (textualMatcher.find()) {
-                Long parsedTimestamp = tryParseGeminiDateCandidate(textualMatcher.group(0));
+                String textualGroup = textualMatcher.group(0);
+                if (textualGroup == null) {
+                    continue;
+                }
+                Long parsedTimestamp = tryParseGeminiDateCandidate(textualGroup);
                 if (parsedTimestamp == null || !isPlausibleReceiptYear(new Date(parsedTimestamp))) {
                     continue;
                 }
@@ -1916,10 +1925,7 @@ public class AIReceiptScannerWorker extends Worker {
 
         BitmapFactory.Options decodeOptions = new BitmapFactory.Options();
         decodeOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        decodeOptions.inSampleSize = calculateInSampleSize(
-                boundsOptions.outWidth,
-                boundsOptions.outHeight
-        );
+        decodeOptions.inSampleSize = calculateInSampleSize(boundsOptions.outWidth);
 
         Bitmap bitmap;
         try {
@@ -1965,7 +1971,7 @@ public class AIReceiptScannerWorker extends Worker {
         }
     }
 
-    private int calculateInSampleSize(int width, int height) {
+    private int calculateInSampleSize(int width) {
         int sampleSize = 1;
         while ((width / sampleSize) > MAX_DECODE_BITMAP_WIDTH_PX) {
             sampleSize *= 2;

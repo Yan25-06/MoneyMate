@@ -17,7 +17,6 @@ biometric = "1.1.0"
 workmanager = "2.10.1"
 camerax = "1.4.2"
 mlkitTextRecognition = "16.0.1"
-generativeai = "0.9.0"
 fragment = "1.8.9"
 json = "20240303"
 exifinterface = "1.4.1"
@@ -77,8 +76,6 @@ camerax-view = { group = "androidx.camera", name = "camera-view", version.ref = 
 # ML Kit
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
 
-# Gemini AI
-generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
 fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 json = { group = "org.json", name = "json", version.ref = "json" }
 exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
