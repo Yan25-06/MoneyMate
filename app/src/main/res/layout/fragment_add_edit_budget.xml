@@ -327,6 +327,7 @@
             android:textAllCaps="false"
             android:textSize="18sp"
             app:backgroundTint="@color/budget_safe_green"
+            android:textColor="@color/white"
             app:cornerRadius="999dp" />
     </LinearLayout>
 
