@@ -1,35 +1,40 @@
 package com.group10.moneymate.data.repository;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.work.BackoffPolicy;
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.UserDao;
 import com.group10.moneymate.data.local.entity.UserEntity;
 import com.group10.moneymate.data.remote.SupabaseAuthHelper;
+import com.group10.moneymate.data.remote.SupabaseSyncClient;
 import com.group10.moneymate.utils.PasscodeHasher;
 import com.group10.moneymate.utils.PrefsManager;
+import com.group10.moneymate.workers.InitialSyncWorker;
+
+import java.util.concurrent.TimeUnit;
 
 /**
- * AuthRepository dùng Supabase thay Firebase.
+ * AuthRepository — Phase 3.
  *
- * THAY ĐỔI SO VỚI PHIÊN BẢN FIREBASE:
- *  - FirebaseUser → SupabaseAuthHelper.SupabaseUser trong các callback nội bộ
- *  - AuthCallback.onSuccess vẫn nhận kiểu USER_TYPE nhưng giờ là SupabaseUser
- *    (AuthViewModel không dùng object này, chỉ check onSuccess() được gọi)
- *  - linkGoogleToEmailAccount() bỏ đi vì Supabase tự động link providers cùng email
- *  - loginWithGoogle() vẫn giữ, logic đơn giản hơn (không có collision case)
- *  - mapLoginErrorKey() dùng string key giống hệt cũ → AuthViewModel không thay đổi
+ * Thay đổi so với phiên bản cũ:
+ * - Thêm getCurrentAccessToken() cho SyncWorker
+ * - handleAuthSuccess() kiểm tra thiết bị mới → enqueue InitialSyncWorker
+ * - Thiết bị mới = Room không có wallet nào NHƯNG Supabase có dữ liệu
+ * - Cần Context để enqueue WorkManager (inject qua constructor)
  */
 public class AuthRepository {
 
-    // ─── Callbacks (interface giữ nguyên 100% so với Firebase version) ────────
-
-    /**
-     * Callback auth – AuthViewModel KHÔNG dùng tham số user,
-     * chỉ cần biết onSuccess/onError. Interface giữ nguyên để không phải sửa ViewModel.
-     */
     public interface AuthCallback {
         void onSuccess(SupabaseAuthHelper.SupabaseUser user);
         void onError(String message);
@@ -45,27 +50,36 @@ public class AuthRepository {
         void onError(String message);
     }
 
-    // ─── Fields ───────────────────────────────────────────────────────────────
+    private static final String UNIQUE_INITIAL_SYNC = "initial_sync";
 
     private final SupabaseAuthHelper supabaseAuthHelper;
+    private final SupabaseSyncClient syncClient;
     private final UserDao userDao;
+    private final AppDatabase database;
     private final PrefsManager prefsManager;
+    private final Context applicationContext;
 
-    public AuthRepository(SupabaseAuthHelper supabaseAuthHelper, UserDao userDao,
-                          PrefsManager prefsManager) {
+    public AuthRepository(@NonNull SupabaseAuthHelper supabaseAuthHelper,
+                          @NonNull SupabaseSyncClient syncClient,
+                          @NonNull UserDao userDao,
+                          @NonNull AppDatabase database,
+                          @NonNull PrefsManager prefsManager,
+                          @NonNull Context applicationContext) {
         this.supabaseAuthHelper = supabaseAuthHelper;
-        this.userDao            = userDao;
-        this.prefsManager       = prefsManager;
+        this.syncClient = syncClient;
+        this.userDao = userDao;
+        this.database = database;
+        this.prefsManager = prefsManager;
+        this.applicationContext = applicationContext;
     }
 
     // ─── Auth state ───────────────────────────────────────────────────────────
 
     public boolean isLoggedIn() {
-        // Supabase không giữ session in-memory sau khi restart app.
-        // Ta dùng PrefsManager làm source of truth (giống behavior cũ).
         return prefsManager.isLoggedIn();
     }
 
+    @NonNull
     public String getCurrentUserId() {
         String localUid = prefsManager.getUid();
         if (!TextUtils.isEmpty(localUid)) return localUid;
@@ -74,14 +88,18 @@ public class AuthRepository {
     }
 
     /**
-     * Tạo UserEntity local nếu chưa có (gọi khi app khởi động sau khi đã login).
-     * Không cần network – đọc từ PrefsManager.
+     * THÊM MỚI Phase 2: Trả về access token hiện tại cho SyncWorker.
      */
+    @Nullable
+    public String getCurrentAccessToken() {
+        SupabaseAuthHelper.SupabaseUser user = supabaseAuthHelper.getCurrentUser();
+        return user != null ? user.accessToken : null;
+    }
+
     public void ensureLocalUserRecord() {
         final String localUserId = getCurrentUserId();
         if (TextUtils.isEmpty(localUserId)) return;
 
-        // Lấy thông tin từ in-memory session (có nếu vừa login), hoặc fallback null
         final SupabaseAuthHelper.SupabaseUser sessionUser = supabaseAuthHelper.getCurrentUser();
         final long now = System.currentTimeMillis();
 
@@ -121,7 +139,8 @@ public class AuthRepository {
                 new SupabaseAuthHelper.AuthCallback() {
                     @Override
                     public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
-                        handleAuthSuccess(user, trimmedName);
+                        // Đăng ký mới → không cần pull, Room đang trống là đúng
+                        handleAuthSuccess(user, trimmedName, false);
                         callback.onSuccess(user);
                     }
                     @Override
@@ -138,7 +157,8 @@ public class AuthRepository {
                 new SupabaseAuthHelper.AuthCallback() {
                     @Override
                     public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
-                        handleAuthSuccess(user);
+                        // Login → có thể là thiết bị mới, cần kiểm tra
+                        handleAuthSuccess(user, user.displayName != null ? user.displayName : "", true);
                         callback.onSuccess(user);
                     }
                     @Override
@@ -150,17 +170,12 @@ public class AuthRepository {
 
     // ─── Google Login ─────────────────────────────────────────────────────────
 
-    /**
-     * Supabase tự động link account khi cùng email → không cần xử lý collision.
-     * AuthViewModel vẫn gọi loginWithGoogle() và linkPendingGoogle() theo flow cũ,
-     * nhưng GOOGLE_LINK_REQUIRED state sẽ không bao giờ được trigger nữa.
-     */
     public void loginWithGoogle(String idToken, @NonNull final AuthCallback callback) {
         supabaseAuthHelper.signInWithGoogle(idToken,
                 new SupabaseAuthHelper.AuthCallback() {
                     @Override
                     public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
-                        handleAuthSuccess(user);
+                        handleAuthSuccess(user, user.displayName != null ? user.displayName : "", true);
                         callback.onSuccess(user);
                     }
                     @Override
@@ -170,13 +185,8 @@ public class AuthRepository {
                 });
     }
 
-    /**
-     * Giữ lại method để AuthViewModel compile được mà không cần sửa.
-     * Với Supabase, link xảy ra tự động → method này chỉ thực hiện login Google bình thường.
-     */
     public void linkGoogleToEmailAccount(String email, String password, String idToken,
                                          @NonNull final AuthCallback callback) {
-        // Supabase link tự động, chỉ cần login với Google token
         loginWithGoogle(idToken, callback);
     }
 
@@ -189,7 +199,7 @@ public class AuthRepository {
         });
     }
 
-    // ─── Passcode (không thay đổi logic) ─────────────────────────────────────
+    // ─── Passcode ─────────────────────────────────────────────────────────────
 
     public void savePasscode(String uid, String passcode) {
         String hash = PasscodeHasher.hash(passcode);
@@ -206,7 +216,7 @@ public class AuthRepository {
 
     public void verifyPasscode(String passcode, @NonNull final PasscodeCallback callback) {
         String storedHash = prefsManager.getPasscodeHash();
-        String storedUid  = prefsManager.getPasscodeUid();
+        String storedUid = prefsManager.getPasscodeUid();
         if (!TextUtils.isEmpty(storedHash) && !TextUtils.isEmpty(storedUid)) {
             if (PasscodeHasher.verify(passcode, storedHash)) {
                 prefsManager.saveUid(storedUid);
@@ -252,17 +262,24 @@ public class AuthRepository {
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
-    private void handleAuthSuccess(@NonNull SupabaseAuthHelper.SupabaseUser user) {
-        handleAuthSuccess(user, user.displayName != null ? user.displayName : "");
-    }
-
+    /**
+     * Xử lý sau khi auth thành công:
+     * 1. Lưu/cập nhật UserEntity vào Room
+     * 2. Lưu uid + isLoggedIn vào PrefsManager
+     * 3. Nếu checkForRestore=true: kiểm tra thiết bị mới → enqueue InitialSyncWorker
+     *
+     * @param checkForRestore true khi login (không phải register)
+     */
     private void handleAuthSuccess(@NonNull SupabaseAuthHelper.SupabaseUser user,
-                                   @NonNull String displayName) {
+                                   @NonNull String displayName,
+                                   boolean checkForRestore) {
         final long now = System.currentTimeMillis();
         final String resolvedName = !TextUtils.isEmpty(displayName) ? displayName
                 : (user.displayName != null ? user.displayName : "");
+        final String token = user.accessToken;
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
+            // 1. Upsert UserEntity
             UserEntity existing = userDao.getUserByIdSync(user.id);
             if (existing == null) {
                 UserEntity entity = new UserEntity();
@@ -286,10 +303,76 @@ public class AuthRepository {
                 }
                 userDao.updateUser(existing);
             }
+
+            // 2. THÊM MỚI Phase 3: phát hiện thiết bị mới và trigger initial sync
+            if (checkForRestore && token != null) {
+                maybeEnqueueInitialSync(user.id, token);
+            }
         });
 
         prefsManager.saveUid(user.id);
         prefsManager.setLoggedIn(true);
+    }
+
+    /**
+     * Kiểm tra xem có cần pull từ Supabase không.
+     *
+     * Điều kiện thiết bị mới:
+     *   - Room không có wallet nào của user này (localCount == 0)
+     *   - Supabase có ít nhất 1 wallet (remoteCount > 0)
+     *
+     * Dùng wallet làm proxy vì:
+     *   - Wallet là dependency đầu tiên trong chain
+     *   - Nếu user chưa có wallet nào thực sự thì không cần pull gì cả
+     *   - Query nhẹ (chỉ đếm)
+     *
+     * Chạy trên databaseWriteExecutor (đã ở background thread khi được gọi).
+     */
+    private void maybeEnqueueInitialSync(@NonNull String userId, @NonNull String token) {
+        // Đếm wallet local (không lọc is_deleted để tránh false positive)
+        int localCount = database.walletDao().countWalletsByUser(userId);
+
+        if (localCount > 0) {
+            // Đã có dữ liệu local → không phải thiết bị mới → SyncWorker định kỳ lo phần còn lại
+            return;
+        }
+
+        // Room trống → kiểm tra Supabase
+        int remoteCount = syncClient.countRemoteRecords("wallets", userId, token);
+
+        if (remoteCount <= 0) {
+            // Supabase cũng trống (user mới đăng ký) → không cần pull
+            return;
+        }
+
+        // Thiết bị mới xác nhận → enqueue InitialSyncWorker
+        enqueueInitialSync(userId, token);
+    }
+
+    private void enqueueInitialSync(@NonNull String userId, @NonNull String token) {
+        Data inputData = new Data.Builder()
+                .putString(InitialSyncWorker.KEY_USER_ID, userId)
+                .putString(InitialSyncWorker.KEY_TOKEN, token)
+                .build();
+
+        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(InitialSyncWorker.class)
+                .setConstraints(new Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build())
+                .setInputData(inputData)
+                .setBackoffCriteria(
+                        BackoffPolicy.EXPONENTIAL,
+                        30L,
+                        TimeUnit.SECONDS
+                )
+                .build();
+
+        WorkManager.getInstance(applicationContext)
+                .enqueueUniqueWork(
+                        UNIQUE_INITIAL_SYNC,
+                        ExistingWorkPolicy.KEEP, // không enqueue lại nếu đang chạy
+                        request
+                );
     }
 
     private String mapRegisterError(String errorKey) {

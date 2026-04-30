@@ -20,7 +20,11 @@ import java.util.UUID;
 
 /**
  * Repository for budget data.
- * Read methods trả về LiveData để UI observe trực tiếp từ Room.
+ *
+ * BUG FIX (Phase 1):
+ * - insertBudgetInternal() giờ chịu trách nhiệm sinh UUID nếu id rỗng,
+ *   vì BudgetEntity constructor không còn tự làm điều này nữa.
+ * - Đảm bảo syncStatus luôn được set đúng tại đây, không phụ thuộc constructor.
  */
 public class BudgetRepository {
     public interface WriteCallback {
@@ -226,6 +230,10 @@ public class BudgetRepository {
         }
     }
 
+    /**
+     * BUG FIX: Giờ chịu trách nhiệm sinh UUID nếu id rỗng/null,
+     * vì BudgetEntity constructor không còn tự làm điều này.
+     */
     private void insertBudgetInternal(@NonNull BudgetEntity budget) {
         long now = System.currentTimeMillis();
         if (budget.getId() == null || budget.getId().trim().isEmpty()) {
@@ -270,6 +278,8 @@ public class BudgetRepository {
 
         if (otherBudget == null) {
             BudgetEntity created = new BudgetEntity();
+            // BUG FIX: set id rõ ràng vì constructor không còn tự sinh nữa
+            created.setId(UUID.randomUUID().toString());
             created.setUserId(userId);
             created.setCategoryId(Constants.CATEGORY_ID_OTHER);
             created.setWalletId(walletId);

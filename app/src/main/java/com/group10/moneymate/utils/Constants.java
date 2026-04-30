@@ -47,47 +47,69 @@ public class Constants {
      * Các field khớp với {@link com.group10.moneymate.data.local.entity.CategoryEntity}.
      */
     public static class DefaultCategory {
+        public final String id;
         public final String name;
         public final String iconName;
         public final String type;       // TYPE_EXPENSE hoặc TYPE_INCOME
 
-        public DefaultCategory(String name, String iconName, String type) {
+        public DefaultCategory(String id, String name, String iconName, String type) {
+            this.id = id;
             this.name      = name;
             this.iconName  = iconName;
             this.type      = type;
         }
     }
 
+    // Stable UUIDs for system default categories (must match Supabase seed SQL).
+    public static final String CATEGORY_ID_EXP_FOOD = "00000000-0000-0000-0000-000000000001";
+    public static final String CATEGORY_ID_EXP_TRANSPORT = "00000000-0000-0000-0000-000000000002";
+    public static final String CATEGORY_ID_EXP_SHOPPING = "00000000-0000-0000-0000-000000000003";
+    public static final String CATEGORY_ID_EXP_ENTERTAIN = "00000000-0000-0000-0000-000000000004";
+    public static final String CATEGORY_ID_EXP_HEALTH = "00000000-0000-0000-0000-000000000005";
+    public static final String CATEGORY_ID_EXP_EDUCATION = "00000000-0000-0000-0000-000000000006";
+    public static final String CATEGORY_ID_EXP_BILL = "00000000-0000-0000-0000-000000000007";
+    public static final String CATEGORY_ID_EXP_HOUSE = "00000000-0000-0000-0000-000000000008";
+    public static final String CATEGORY_ID_EXP_TRAVEL = "00000000-0000-0000-0000-000000000009";
+    public static final String CATEGORY_ID_EXP_OTHER = "00000000-0000-0000-0000-00000000000a";
+    public static final String CATEGORY_ID_INC_SALARY = "00000000-0000-0000-0000-00000000000b";
+    public static final String CATEGORY_ID_INC_BONUS = "00000000-0000-0000-0000-00000000000c";
+    public static final String CATEGORY_ID_INC_INVEST = "00000000-0000-0000-0000-00000000000d";
+    public static final String CATEGORY_ID_INC_SALE = "00000000-0000-0000-0000-00000000000e";
+    public static final String CATEGORY_ID_INC_GIFT = "00000000-0000-0000-0000-00000000000f";
+    public static final String CATEGORY_ID_INC_OTHER = "00000000-0000-0000-0000-000000000010";
+    public static final String CATEGORY_ID_EXP_TRANSFER_OUT = "00000000-0000-0000-0000-000000000011";
+    public static final String CATEGORY_ID_INC_TRANSFER_IN = "00000000-0000-0000-0000-000000000012";
+
     /**
-     * Trả về 16 danh mục mặc định (10 Chi + 6 Thu).
+     * Trả về 18 danh mục mặc định (10 Chi + 6 Thu + 2 Chuyển khoản).
      * Dùng trong {@link com.group10.moneymate.data.repository.CategoryRepository()}.
      */
     public static List<DefaultCategory> getDefaultCategories() {
         List<DefaultCategory> list = new ArrayList<>();
 
         // ── Chi tiêu (EXPENSE) ──────────────────────────────────────────────
-        list.add(new DefaultCategory("Ăn uống",    "ic_category_food", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Di chuyển",  "ic_category_transport", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Mua sắm",    "ic_category_shopping", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Giải trí",   "ic_category_entertain", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Y tế",       "ic_category_health", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Giáo dục",   "ic_category_education", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Hoá đơn",    "ic_category_bill", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Nhà ở",      "ic_category_house", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Du lịch",    "ic_category_travel", TYPE_EXPENSE));
-        list.add(new DefaultCategory("Khác (Chi)", "ic_category_other", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_FOOD, "Ăn uống",    "ic_category_food", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_TRANSPORT, "Di chuyển",  "ic_category_transport", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_SHOPPING, "Mua sắm",    "ic_category_shopping", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_ENTERTAIN, "Giải trí",   "ic_category_entertain", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_HEALTH, "Y tế",       "ic_category_health", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_EDUCATION, "Giáo dục",   "ic_category_education", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_BILL, "Hoá đơn",    "ic_category_bill", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_HOUSE, "Nhà ở",      "ic_category_house", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_TRAVEL, "Du lịch",    "ic_category_travel", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_OTHER, "Khác (Chi)", "ic_category_other", TYPE_EXPENSE));
 
         // ── Thu nhập (INCOME) ───────────────────────────────────────────────
-        list.add(new DefaultCategory("Lương",      "ic_category_salary", TYPE_INCOME));
-        list.add(new DefaultCategory("Thưởng",     "ic_category_bonus", TYPE_INCOME));
-        list.add(new DefaultCategory("Đầu tư",     "ic_category_invest", TYPE_INCOME));
-        list.add(new DefaultCategory("Bán hàng",   "ic_category_sale", TYPE_INCOME));
-        list.add(new DefaultCategory("Quà tặng",   "ic_category_gift", TYPE_INCOME));
-        list.add(new DefaultCategory("Khác (Thu)", "ic_category_other_in", TYPE_INCOME));
+        list.add(new DefaultCategory(CATEGORY_ID_INC_SALARY, "Lương",      "ic_category_salary", TYPE_INCOME));
+        list.add(new DefaultCategory(CATEGORY_ID_INC_BONUS, "Thưởng",     "ic_category_bonus", TYPE_INCOME));
+        list.add(new DefaultCategory(CATEGORY_ID_INC_INVEST, "Đầu tư",     "ic_category_invest", TYPE_INCOME));
+        list.add(new DefaultCategory(CATEGORY_ID_INC_SALE, "Bán hàng",   "ic_category_sale", TYPE_INCOME));
+        list.add(new DefaultCategory(CATEGORY_ID_INC_GIFT, "Quà tặng",   "ic_category_gift", TYPE_INCOME));
+        list.add(new DefaultCategory(CATEGORY_ID_INC_OTHER, "Khác (Thu)", "ic_category_other_in", TYPE_INCOME));
 
         // ── Chuyển khoản ────────────────────────────────────────────────────
-        list.add(new DefaultCategory(CATEGORY_NAME_TRANSFER_OUT, "ic_category_transfer_out", TYPE_EXPENSE));
-        list.add(new DefaultCategory(CATEGORY_NAME_TRANSFER_IN,  "ic_category_transfer_in",  TYPE_INCOME));
+        list.add(new DefaultCategory(CATEGORY_ID_EXP_TRANSFER_OUT, CATEGORY_NAME_TRANSFER_OUT, "ic_category_transfer_out", TYPE_EXPENSE));
+        list.add(new DefaultCategory(CATEGORY_ID_INC_TRANSFER_IN, CATEGORY_NAME_TRANSFER_IN,  "ic_category_transfer_in",  TYPE_INCOME));
 
         return list;
     }

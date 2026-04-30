@@ -26,6 +26,7 @@ import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.data.local.migrations.Migration10To11;
 import com.group10.moneymate.data.local.migrations.Migration11To12;
 import com.group10.moneymate.data.local.migrations.Migration12To13;
+import com.group10.moneymate.data.local.migrations.Migration13To14;
 import com.group10.moneymate.data.local.migrations.Migration7To8;
 import com.group10.moneymate.data.local.migrations.Migration8To9;
 import com.group10.moneymate.data.local.migrations.Migration9To10;
@@ -34,18 +35,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Database(
-    entities = {
-        UserEntity.class,
-        WalletEntity.class,
-        CategoryEntity.class,
-        TransactionEntity.class,
-        BudgetEntity.class,
-        DebtEntity.class,
-        EventEntity.class,
-        SyncMetadataEntity.class
-    },
-    version = 13,
-    exportSchema = false
+        entities = {
+                UserEntity.class,
+                WalletEntity.class,
+                CategoryEntity.class,
+                TransactionEntity.class,
+                BudgetEntity.class,
+                DebtEntity.class,
+                EventEntity.class,
+                SyncMetadataEntity.class
+        },
+        version = 14, // BUG FIX: tăng từ 13 lên 14 cho Migration13To14
+        exportSchema = false
 )
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
@@ -67,19 +68,20 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(
-                            context.getApplicationContext(),
-                            AppDatabase.class,
-                            "moneymate_database"
-                    )
-                    .addMigrations(
-                            Migration7To8.MIGRATION_7_8,
-                            Migration8To9.MIGRATION_8_9,
-                            Migration9To10.MIGRATION_9_10,
-                            Migration10To11.MIGRATION_10_11,
-                            Migration11To12.MIGRATION_11_12,
-                            Migration12To13.MIGRATION_12_13
-                    )
-                    .build();
+                                    context.getApplicationContext(),
+                                    AppDatabase.class,
+                                    "moneymate_database"
+                            )
+                            .addMigrations(
+                                    Migration7To8.MIGRATION_7_8,
+                                    Migration8To9.MIGRATION_8_9,
+                                    Migration9To10.MIGRATION_9_10,
+                                    Migration10To11.MIGRATION_10_11,
+                                    Migration11To12.MIGRATION_11_12,
+                                    Migration12To13.MIGRATION_12_13,
+                                    Migration13To14.MIGRATION_13_14 // BUG FIX: thêm migration mới
+                            )
+                            .build();
                 }
             }
         }

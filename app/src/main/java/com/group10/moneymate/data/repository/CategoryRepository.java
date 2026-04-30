@@ -474,7 +474,16 @@ public class CategoryRepository {
                 continue;
             }
 
+            if (!defaultCategory.id.equals(existing.getId())) {
+                CategoryEntity migrated = buildDefaultCategory(defaultCategory, now);
+                migrated.setCreatedAt(existing.getCreatedAt() > 0L ? existing.getCreatedAt() : now);
+                categoryDao.upsertLocal(migrated);
+                categoryDao.remapCategoryReferencesAndDeleteOld(existing.getId(), defaultCategory.id, now);
+                existing = migrated;
+            }
+
             if (shouldRefreshDefaultCategory(existing, defaultCategory)) {
+                existing.setId(defaultCategory.id);
                 existing.setUserId(null);
                 existing.setName(defaultCategory.name);
                 existing.setIconName(resolveCategoryIconName(defaultCategory.iconName));
@@ -485,6 +494,9 @@ public class CategoryRepository {
                 existing.setDeleted(false);
                 existing.setSyncStatus(SyncStatus.SYNCED);
                 existing.setUpdatedAt(now);
+                if (existing.getCreatedAt() <= 0L) {
+                    existing.setCreatedAt(now);
+                }
                 categoryDao.upsertLocal(existing);
             }
         }
@@ -504,7 +516,7 @@ public class CategoryRepository {
     @NonNull
     private CategoryEntity buildDefaultCategory(@NonNull Constants.DefaultCategory defaultCategory, long now) {
         CategoryEntity entity = new CategoryEntity();
-        entity.setId(UUID.randomUUID().toString());
+        entity.setId(defaultCategory.id);
         entity.setUserId(null);
         entity.setName(defaultCategory.name);
         entity.setIconName(resolveCategoryIconName(defaultCategory.iconName));
@@ -512,6 +524,7 @@ public class CategoryRepository {
         entity.setWalletId(null);
         entity.setType(defaultCategory.type);
         entity.setDefault(true);
+        entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         entity.setSyncStatus(SyncStatus.SYNCED);
         entity.setDeleted(false);

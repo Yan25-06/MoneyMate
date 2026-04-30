@@ -8,6 +8,7 @@ import com.group10.moneymate.ai.receipt.MlKitReceiptParserBridge;
 import com.group10.moneymate.ai.receipt.ReceiptParserBridge;
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.remote.SupabaseAuthHelper;
+import com.group10.moneymate.data.remote.SupabaseSyncClient;
 import com.group10.moneymate.data.repository.AuthRepository;
 import com.group10.moneymate.data.repository.BudgetRepository;
 import com.group10.moneymate.data.repository.CategoryRepository;
@@ -23,7 +24,8 @@ import com.group10.moneymate.workers.SyncScheduler;
 public class AppContainer {
 
     public final AppDatabase database;
-    public final SupabaseAuthHelper supabaseAuthHelper;   // thay firebaseAuthHelper
+    public final SupabaseAuthHelper supabaseAuthHelper;
+    public final SupabaseSyncClient supabaseSyncClient;
     public final PrefsManager prefsManager;
     public final AuthRepository authRepository;
     public final UserRepository userRepository;
@@ -39,32 +41,45 @@ public class AppContainer {
     public final GeminiService geminiService;
 
     public AppContainer(Context context) {
-        database             = AppDatabase.getInstance(context);
-        prefsManager         = new PrefsManager(context);
-        syncScheduler        = new SyncScheduler(context.getApplicationContext());
-        receiptParserBridge  = new MlKitReceiptParserBridge();
-        geminiService        = new GeminiService(BuildConfig.GEMINI_API_KEY);
+        database = AppDatabase.getInstance(context);
+        prefsManager = new PrefsManager(context);
+        syncScheduler = new SyncScheduler(context.getApplicationContext());
+        receiptParserBridge = new MlKitReceiptParserBridge();
+        geminiService = new GeminiService(BuildConfig.GEMINI_API_KEY);
 
-        // Supabase – URL và ANON KEY đọc từ BuildConfig
-        // (thêm vào local.properties + build.gradle.kts, xem README migration)
-        supabaseAuthHelper   = new SupabaseAuthHelper(
+        supabaseAuthHelper = new SupabaseAuthHelper(
                 BuildConfig.SUPABASE_URL,
                 BuildConfig.SUPABASE_ANON_KEY
         );
 
-        authRepository        = new AuthRepository(supabaseAuthHelper, database.userDao(), prefsManager);
-        userRepository        = new UserRepository(database.userDao());
-        walletRepository      = new WalletRepository(database.walletDao());
-        categoryRepository    = new CategoryRepository(database.categoryDao());
+        supabaseSyncClient = new SupabaseSyncClient(
+                BuildConfig.SUPABASE_URL,
+                BuildConfig.SUPABASE_ANON_KEY
+        );
+
+        // Phase 3: AuthRepository nhận thêm syncClient, database và applicationContext
+        // để tự enqueue InitialSyncWorker khi phát hiện thiết bị mới
+        authRepository = new AuthRepository(
+                supabaseAuthHelper,
+                supabaseSyncClient,
+                database.userDao(),
+                database,
+                prefsManager,
+                context.getApplicationContext()
+        );
+
+        userRepository = new UserRepository(database.userDao());
+        walletRepository = new WalletRepository(database.walletDao());
+        categoryRepository = new CategoryRepository(database.categoryDao());
         transactionRepository = new TransactionRepository(
                 database,
                 database.transactionDao(),
                 database.walletDao(),
                 syncScheduler
         );
-        budgetRepository      = new BudgetRepository(database.budgetDao(), database, syncScheduler);
-        debtRepository        = new DebtRepository(database.debtDao());
-        eventRepository       = new EventRepository(database.eventDao());
+        budgetRepository = new BudgetRepository(database.budgetDao(), database, syncScheduler);
+        debtRepository = new DebtRepository(database.debtDao());
+        eventRepository = new EventRepository(database.eventDao());
         syncMetadataRepository = new SyncMetadataRepository(database.syncMetadataDao());
     }
 

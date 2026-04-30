@@ -53,7 +53,8 @@ import java.util.Objects;
         @Index("user_id"),
         @Index(name = "idx_transactions_wallet_deleted_type_timestamp", value = {"wallet_id", "is_deleted", "type", "timestamp"}),
         @Index(name = "index_transactions_user_deleted_timestamp_id", value = {"user_id", "is_deleted", "timestamp", "id"}),
-        @Index(name = "idx_tx_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
+        @Index(name = "idx_tx_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"}),
+        @Index(name = "idx_transactions_wallet_to_wallet_deleted", value = {"wallet_id", "to_wallet_id", "is_deleted"})
     }
 )
 public class TransactionEntity {

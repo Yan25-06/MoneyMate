@@ -222,4 +222,27 @@ public interface CategoryDao {
     @Query("SELECT * FROM categories WHERE name = :name AND type = :type " +
             "AND is_deleted = 0 AND is_default = 1 LIMIT 1")
     CategoryEntity getCategoryByNameAndTypeSync(String name, String type);
+
+    @Query("UPDATE transactions SET category_id = :newId, updated_at = :updatedAt, " +
+            "sync_status = CASE WHEN sync_status = 2 THEN 2 ELSE 1 END " +
+            "WHERE category_id = :oldId")
+    void remapTransactionCategoryId(String oldId, String newId, long updatedAt);
+
+    @Query("UPDATE budgets SET category_id = :newId, updated_at = :updatedAt, " +
+            "sync_status = CASE WHEN sync_status = 2 THEN 2 ELSE 1 END " +
+            "WHERE category_id = :oldId")
+    void remapBudgetCategoryId(String oldId, String newId, long updatedAt);
+
+    @Query("UPDATE categories SET parent_id = :newId, updated_at = :updatedAt, " +
+            "sync_status = CASE WHEN sync_status = 2 THEN 2 ELSE 1 END " +
+            "WHERE parent_id = :oldId")
+    void remapChildParentCategoryId(String oldId, String newId, long updatedAt);
+
+    @Transaction
+    default void remapCategoryReferencesAndDeleteOld(String oldId, String newId, long updatedAt) {
+        remapTransactionCategoryId(oldId, newId, updatedAt);
+        remapBudgetCategoryId(oldId, newId, updatedAt);
+        remapChildParentCategoryId(oldId, newId, updatedAt);
+        hardDeleteById(oldId);
+    }
 }

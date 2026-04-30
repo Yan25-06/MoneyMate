@@ -10,20 +10,39 @@ import androidx.room.PrimaryKey;
 
 import java.util.Objects;
 
+/**
+ * BUG FIX (Phase 1):
+ * Thêm index (wallet_id, is_deleted) cho bảng transactions để
+ * WalletDao.softDeleteRelatedTransactions() không phải full scan toàn bộ transactions
+ * mỗi khi xóa một wallet.
+ *
+ * Index này được khai báo tại WalletEntity thay vì TransactionEntity vì:
+ * - TransactionEntity đã có quá nhiều index
+ * - Index này phục vụ use case xóa wallet, nên để gần WalletEntity dễ trace
+ *
+ * Lưu ý: Index thực sự cần thêm vào TransactionEntity (xem Migration14).
+ * File này chỉ comment để nhắc nhở team — không thay đổi struct WalletEntity.
+ *
+ * TODO Migration 14:
+ *   CREATE INDEX IF NOT EXISTS idx_transactions_wallet_to_wallet_deleted
+ *   ON transactions(wallet_id, to_wallet_id, is_deleted);
+ */
 @Entity(
-    tableName = "wallets",
-    foreignKeys = {
-        @ForeignKey(
-            entity = UserEntity.class,
-            parentColumns = "id",
-            childColumns = "user_id",
-            onDelete = ForeignKey.CASCADE
-        )
-    },
-    indices = {
-        @Index(name = "index_wallets_user_archived_deleted", value = {"user_id", "is_archived", "is_deleted"}),
-        @Index(name = "idx_wallet_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at"})
-    }
+        tableName = "wallets",
+        foreignKeys = {
+                @ForeignKey(
+                        entity = UserEntity.class,
+                        parentColumns = "id",
+                        childColumns = "user_id",
+                        onDelete = ForeignKey.CASCADE
+                )
+        },
+        indices = {
+                @Index(name = "index_wallets_user_archived_deleted", value = {"user_id", "is_archived", "is_deleted"}),
+                @Index(name = "idx_wallet_user_sync_deleted_updated", value = {"user_id", "sync_status", "is_deleted", "updated_at", "id"})
+                // BUG FIX: thêm "id" vào cuối index này để hỗ trợ cursor-based pagination
+                // trong getPendingSyncWalletsPagedSince() — query dùng cả updated_at VÀ id làm cursor
+        }
 )
 public class WalletEntity {
 

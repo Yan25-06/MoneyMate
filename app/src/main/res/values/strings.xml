@@ -26,7 +26,39 @@
     <string name="dialog_link_account_confirm">Liên kết</string>
     <!-- Google OAuth Web client ID used by Google Sign-In requestIdToken() -->
     <string name="default_web_client_id">496742424416-vnn4vhu67svk924jeuceqo25f9ou3jq6.apps.googleusercontent.com</string>
+    <!-- ── Sync section label ─────────────────────────────────────────────────── -->
+    <string name="section_sync">Đồng bộ đám mây</string>
 
+    <!-- ── Sync card title ───────────────────────────────────────────────────── -->
+    <string name="sync_cloud_title">Dữ liệu đám mây</string>
+
+    <!-- ── Sync status text (trong card) ─────────────────────────────────────── -->
+    <string name="sync_status_idle">Chưa đồng bộ lần nào</string>
+    <string name="sync_status_syncing">Đang đồng bộ…</string>
+    <string name="sync_status_success">Đồng bộ lần cuối: %1$s</string>
+    <string name="sync_status_failed">Đồng bộ thất bại — kiểm tra kết nối</string>
+
+    <!-- ── Chip labels ────────────────────────────────────────────────────────── -->
+    <string name="sync_chip_idle">Chờ đồng bộ</string>
+    <string name="sync_chip_success">Đã đồng bộ</string>
+    <string name="sync_chip_failed">Lỗi đồng bộ</string>
+
+    <!-- ── Button labels ─────────────────────────────────────────────────────── -->
+    <string name="sync_now_button">Đồng bộ ngay</string>
+    <string name="sync_syncing_button">Đang đồng bộ…</string>
+    <string name="sync_retry_button">Thử lại</string>
+
+    <!-- ── Notification (dùng trong NotificationHelper) ─────────────────────── -->
+    <string name="sync_failed_notification_title">Đồng bộ thất bại</string>
+    <string name="sync_failed_notification_body">Dữ liệu chưa được lưu lên đám mây. Nhấn để thử lại.</string>
+
+    <!-- ── Snackbar (dùng trong ForegroundUiNotifier) ───────────────────────── -->
+    <string name="sync_failed_snackbar">Đồng bộ thất bại. Thử lại?</string>
+    <string name="sync_failed_snackbar_action">Thử lại</string>
+
+    <!-- ── Initial sync (hiện trong HomeFragment khi lần đầu login) ─────────── -->
+    <string name="initial_sync_banner_title">Đang khôi phục dữ liệu</string>
+    <string name="initial_sync_banner_body">Dữ liệu của bạn đang được tải về từ đám mây…</string>
     <string name="error_email_required">Vui lòng nhập email</string>
     <string name="error_email_invalid">Email không hợp lệ</string>
     <string name="error_display_name_required">Vui lòng nhập tên hiển thị</string>
