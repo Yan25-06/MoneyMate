@@ -30,6 +30,8 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
@@ -40,11 +42,14 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.ai.receipt.ReceiptScanContract;
 import com.group10.moneymate.data.local.entity.CategoryEntity;
+import com.group10.moneymate.data.local.entity.DebtEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
+import com.group10.moneymate.data.repository.DebtRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.DialogTransactionScanSourceBinding;
 import com.group10.moneymate.databinding.FragmentAddEditTransactionBinding;
+import com.group10.moneymate.databinding.ItemDebtBinding;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.utils.DateUtils;
 import com.group10.moneymate.di.MoneyMateApplication;
@@ -79,6 +84,7 @@ public class AddEditTransactionFragment extends Fragment {
 
     private FragmentAddEditTransactionBinding binding;
     private TransactionViewModel viewModel;
+    private com.group10.moneymate.ui.debt.DebtViewModel debtViewModel;
 
     // State
     private String currentType = Constants.TYPE_EXPENSE;
@@ -87,8 +93,10 @@ public class AddEditTransactionFragment extends Fragment {
     private String selectedCategoryName = null;
     private String selectedIconName = null;
     private DebtType selectedDebtType = null;
+    private String selectedLinkedDebtId = null; // for DEBT_COLLECTION / REPAYMENT
     private String selectedWalletId = null;
     private long selectedTimestamp = System.currentTimeMillis();
+    private long selectedDebtDueTimestamp = 0L;
     private List<WalletEntity> walletList = new ArrayList<>();
     private List<WalletEntity> allWalletList = new ArrayList<>();
     private List<WalletEntity> activeWalletList = new ArrayList<>();
@@ -152,6 +160,7 @@ public class AddEditTransactionFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
+        debtViewModel = new ViewModelProvider(this).get(com.group10.moneymate.ui.debt.DebtViewModel.class);
 
         AddEditTransactionFragmentArgs args = AddEditTransactionFragmentArgs.fromBundle(
                 getArguments() != null ? getArguments() : new Bundle());
@@ -163,6 +172,7 @@ public class AddEditTransactionFragment extends Fragment {
         setupTypeToggle();
         setupCategoryPickerRow();
         setupDatePicker();
+        setupDebtDueDatePicker();
         setupTextInputs();
         setupScanEntry();
         setupSaveButton();
@@ -179,7 +189,13 @@ public class AddEditTransactionFragment extends Fragment {
             // Add mode: chọn EXPENSE mặc định, ngày hôm nay
             binding.topAppBar.setTitle(R.string.add_transaction);
             binding.btnSave.setText(R.string.btn_save);
-            binding.toggleType.check(R.id.btn_expense);
+
+            String preselectedTab = getArguments() != null ? getArguments().getString("preselectedTab") : null;
+            if ("DEBT".equals(preselectedTab)) {
+                binding.toggleType.check(R.id.btn_debt);
+            } else {
+                binding.toggleType.check(R.id.btn_expense);
+            }
             binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
             updateAmountAccent();
             updateTypeToggleAppearance();
@@ -241,6 +257,7 @@ public class AddEditTransactionFragment extends Fragment {
             updateAmountAccent();
             updateTypeToggleAppearance();
             updateCategorySelectionUi();
+            updateDebtFieldsVisibility();
         });
     }
 
@@ -276,6 +293,22 @@ public class AddEditTransactionFragment extends Fragment {
                 .plusDays(dayOffset);
         selectedTimestamp = TimeWindowUtils.startOfDayLocalDateUtc(shiftedDate);
         binding.etDate.setText(DateUtils.formatDate(selectedTimestamp));
+    }
+
+    private void setupDebtDueDatePicker() {
+        binding.etDebtDueDate.setOnClickListener(v -> {
+            java.time.LocalDate initialDate = selectedDebtDueTimestamp > 0
+                    ? TimeWindowUtils.toDeviceLocalDate(selectedDebtDueTimestamp)
+                    : java.time.LocalDate.now().plusMonths(1);
+            MoneyMateDatePickerHelper.showSingleDatePicker(
+                    this,
+                    initialDate,
+                    "debt_due_date",
+                    date -> {
+                        selectedDebtDueTimestamp = TimeWindowUtils.startOfDayLocalDateUtc(date);
+                        binding.etDebtDueDate.setText(DateUtils.formatDate(selectedDebtDueTimestamp));
+                    });
+        });
     }
 
     private void setupTextInputs() {
@@ -802,9 +835,15 @@ public class AddEditTransactionFragment extends Fragment {
 
     private String getEffectiveTypeForUi() {
         if (selectedDebtType != null) {
-            return selectedDebtType == DebtType.BORROW
-                    ? Constants.TYPE_INCOME
-                    : Constants.TYPE_EXPENSE;
+            switch (selectedDebtType) {
+                case BORROW:
+                case DEBT_COLLECTION:
+                    return Constants.TYPE_INCOME;
+                case LEND:
+                case REPAYMENT:
+                default:
+                    return Constants.TYPE_EXPENSE;
+            }
         }
         return currentType;
     }
@@ -915,11 +954,131 @@ public class AddEditTransactionFragment extends Fragment {
         isManualIcon = false;
         selectedIconName = null;
         isDebtTabSelected = true;
-        currentType = debtType == DebtType.BORROW ? Constants.TYPE_INCOME : Constants.TYPE_EXPENSE;
+        switch (debtType) {
+            case BORROW:
+            case DEBT_COLLECTION:
+                currentType = Constants.TYPE_INCOME;
+                break;
+            case LEND:
+            case REPAYMENT:
+            default:
+                currentType = Constants.TYPE_EXPENSE;
+                break;
+        }
+        isLoadingEdit = true;
         binding.toggleType.check(R.id.btn_debt);
+        isLoadingEdit = false;
         updateAmountAccent();
         updateTypeToggleAppearance();
         updateCategorySelectionUi();
+        updateDebtFieldsVisibility();
+        // Show debt picker when the user picks a cashback type
+        if (debtType == DebtType.DEBT_COLLECTION || debtType == DebtType.REPAYMENT) {
+            showDebtPickerDialog(debtType);
+        }
+    }
+
+    /**
+     * One-shot dialog that lets the user pick which ongoing debt they want to settle.
+     * DEBT_COLLECTION → shows LEND debts (money I lent out, now collecting back).
+     * REPAYMENT      → shows BORROW debts (money I borrowed, now paying back).
+     */
+    private void showDebtPickerDialog(@NonNull DebtType debtType) {
+        String queryType = (debtType == DebtType.DEBT_COLLECTION)
+                ? DebtType.LEND.name()
+                : DebtType.BORROW.name();
+
+        LiveData<List<DebtEntity>> source = debtViewModel.getOngoingDebtsByType(queryType);
+        Observer<List<DebtEntity>>[] holderRef = new Observer[1];
+        holderRef[0] = debts -> {
+            source.removeObserver(holderRef[0]); // one-shot
+            if (!isAdded()) return;
+
+            if (debts == null || debts.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.debt_empty, Toast.LENGTH_SHORT).show();
+                // revert selection
+                selectedDebtType = null;
+                selectedLinkedDebtId = null;
+                updateCategorySelectionUi();
+                updateDebtFieldsVisibility();
+                return;
+            }
+
+            // Build a BottomSheetDialog with a RecyclerView using item_debt.xml
+            BottomSheetDialog sheet = new BottomSheetDialog(requireContext());
+            View sheetView = LayoutInflater.from(requireContext())
+                    .inflate(R.layout.dialog_debt_picker, null, false);
+            RecyclerView rv = sheetView.findViewById(R.id.rv_debt_picker);
+            rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+            rv.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+                @NonNull
+                @Override
+                public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                    ItemDebtBinding b = ItemDebtBinding.inflate(
+                            LayoutInflater.from(parent.getContext()), parent, false);
+                    return new RecyclerView.ViewHolder(b.getRoot()) {};
+                }
+
+                @Override
+                public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+                    DebtEntity d = debts.get(position);
+                    ItemDebtBinding b = ItemDebtBinding.bind(holder.itemView);
+
+                    // Avatar letter & Color
+                    String name = d.getPersonName();
+                    b.tvAvatarLetter.setText(name != null && !name.isEmpty()
+                            ? String.valueOf(name.charAt(0)).toUpperCase(java.util.Locale.getDefault())
+                            : "?");
+                    
+                    int badgeColor = ContextCompat.getColor(
+                            requireContext(),
+                            DebtType.LEND.name().equals(d.getType())
+                                    ? R.color.transaction_expense_accent
+                                    : R.color.transfer_blue);
+                    View avatarBg = (View) b.tvAvatarLetter.getParent();
+                    avatarBg.setBackgroundTintList(ColorStateList.valueOf(badgeColor));
+
+                    // Person name
+                    b.tvPersonName.setText(name);
+
+                    // Due date
+                    Long due = d.getDueDate();
+                    b.tvDueDate.setText(due != null && due > 0
+                            ? com.group10.moneymate.utils.DateUtils.formatDate(due)
+                            : getString(R.string.debt_no_due_date));
+
+                    // Remaining & total amounts
+                    b.tvRemainingAmount.setText(
+                            CurrencyFormatter.format(d.getRemainingAmount(), "VND"));
+                    b.tvTotalAmount.setText(
+                            CurrencyFormatter.format(d.getAmount(), "VND"));
+
+                    // Click to select
+                    holder.itemView.setOnClickListener(v -> {
+                        selectedLinkedDebtId = d.getId();
+                        selectedCategoryName = d.getPersonName();
+                        updateCategorySelectionUi();
+                        sheet.dismiss();
+                    });
+                }
+
+                @Override
+                public int getItemCount() {
+                    return debts.size();
+                }
+            });
+
+            sheet.setContentView(sheetView);
+            sheet.setOnCancelListener(dialogInterface -> {
+                selectedDebtType = null;
+                selectedLinkedDebtId = null;
+                selectedCategoryName = null;
+                updateCategorySelectionUi();
+                updateDebtFieldsVisibility();
+            });
+            sheet.show();
+        };
+        source.observe(getViewLifecycleOwner(), holderRef[0]);
     }
 
     private int resolveTypeToggleButtonId(@NonNull String type) {
@@ -929,14 +1088,34 @@ public class AddEditTransactionFragment extends Fragment {
     @NonNull
     private String resolveCategorySelectionLabel() {
         if (selectedDebtType != null) {
-            return selectedDebtType == DebtType.BORROW
-                    ? getString(R.string.debt_type_borrow)
-                    : getString(R.string.debt_type_lend);
+            switch (selectedDebtType) {
+                case LEND:
+                    return getString(R.string.debt_type_lend);
+                case BORROW:
+                    return getString(R.string.debt_type_borrow);
+                case DEBT_COLLECTION:
+                    return selectedCategoryName != null
+                            ? getString(R.string.debt_type_collection) + " — " + selectedCategoryName
+                            : getString(R.string.debt_type_collection);
+                case REPAYMENT:
+                    return selectedCategoryName != null
+                            ? getString(R.string.debt_type_repayment) + " — " + selectedCategoryName
+                            : getString(R.string.debt_type_repayment);
+            }
         }
         if (selectedCategoryName != null) {
             return selectedCategoryName;
         }
         return getString(R.string.category_pick_placeholder);
+    }
+
+    private void updateDebtFieldsVisibility() {
+        if (binding == null) {
+            return;
+        }
+        boolean isNewDebt = selectedDebtType == DebtType.LEND || selectedDebtType == DebtType.BORROW;
+        binding.layoutDebtPerson.setVisibility(isNewDebt ? View.VISIBLE : View.GONE);
+        binding.layoutDebtDueDate.setVisibility(isNewDebt ? View.VISIBLE : View.GONE);
     }
 
     // ─── Load existing transaction (Edit mode) ────────────────────────────────
@@ -1055,9 +1234,99 @@ public class AddEditTransactionFragment extends Fragment {
                 transaction.setDeleted(false);
                 transaction.setSyncStatus(SyncStatus.PENDING_UPLOAD);
                 transaction.setUpdatedAt(System.currentTimeMillis());
-                maybeInsertOcrTransaction(transaction);
+
+                // Debt creation path: LEND or BORROW creates a debt + transaction atomically
+                if (selectedDebtType == DebtType.LEND || selectedDebtType == DebtType.BORROW) {
+                    performDebtCreation(uid, transaction, amount);
+                } else if ((selectedDebtType == DebtType.DEBT_COLLECTION
+                        || selectedDebtType == DebtType.REPAYMENT)
+                        && selectedLinkedDebtId != null) {
+                    // Cashback: settle an existing debt with this transaction
+                    performCashbackFromTransaction(transaction, amount);
+                } else {
+                    maybeInsertOcrTransaction(transaction);
+                }
             }
         });
+    }
+
+    private void performDebtCreation(@NonNull String uid,
+                                      @NonNull TransactionEntity transaction,
+                                      double amount) {
+        String personName = binding.etDebtPersonName.getText() != null
+                ? binding.etDebtPersonName.getText().toString().trim()
+                : "";
+        if (personName.isEmpty()) {
+            stopSavingUi();
+            Toast.makeText(requireContext(), R.string.debt_error_person_required, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        com.group10.moneymate.data.local.entity.DebtEntity debt =
+                new com.group10.moneymate.data.local.entity.DebtEntity();
+        debt.setUserId(uid);
+        debt.setPersonName(personName);
+        debt.setType(selectedDebtType.name());
+        debt.setAmount(amount);
+        debt.setRemainingAmount(amount);
+        debt.setStatus(com.group10.moneymate.models.DebtStatus.ACTIVE.name());
+
+        // Parse due date if provided
+        String dueDateText = binding.etDebtDueDate.getText() != null
+                ? binding.etDebtDueDate.getText().toString().trim()
+                : "";
+        if (!dueDateText.isEmpty()) {
+            debt.setDueDate(selectedDebtDueTimestamp);
+        }
+
+        // Note from transaction
+        String txNote = transaction.getNote();
+        debt.setNote(txNote);
+
+        // Use DebtViewModel to create atomically
+        debtViewModel.createDebtWithTransaction(debt, transaction,
+                new DebtRepository.WriteCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), R.string.debt_created_success,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                        finishSavingAndNavigateUp();
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable throwable) {
+                        stopSavingUi();
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), R.string.common_save_failed,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
+
+    private void performCashbackFromTransaction(@NonNull TransactionEntity transaction, double amount) {
+        debtViewModel.createCashbackTransaction(selectedLinkedDebtId, amount, transaction,
+                new DebtRepository.WriteCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), R.string.debt_cashback_success,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                        finishSavingAndNavigateUp();
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable throwable) {
+                        stopSavingUi();
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), R.string.common_save_failed,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 
     private void maybeInsertOcrTransaction(@NonNull TransactionEntity transaction) {

@@ -364,42 +364,50 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/outline_calendar_today_24"
-                            app:tint="@color/transaction_muted_icon" />
-
                         <ImageButton
                             android:id="@+id/btn_prev_date"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:layout_marginStart="8dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:layout_width="42dp"
+                            android:layout_height="42dp"
+                            android:background="@drawable/bg_statistics_header_icon_button"
                             android:contentDescription="@string/statistics_previous_period"
+                            android:padding="9dp"
                             android:src="@drawable/outline_arrow_back_24"
-                            app:tint="@color/transaction_muted_icon" />
+                            app:tint="@color/transaction_income_accent" />
 
-                        <TextView
-                            android:id="@+id/tv_date"
+                        <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="@color/statistics_text_primary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:layout_marginStart="10dp"
+                            android:layout_marginEnd="10dp"
+                            android:hint="@string/date"
+                            app:boxBackgroundColor="@color/white"
+                            app:boxStrokeColor="@color/selector_transaction_field_stroke"
+                            app:hintTextColor="@color/selector_transaction_field_hint"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_date"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:focusable="false"
+                                android:gravity="center"
+                                android:inputType="none"
+                                android:maxLines="1"
+                                android:textColor="@color/transaction_income_accent"
+                                android:textStyle="bold" />
+                        </com.google.android.material.textfield.TextInputLayout>
 
                         <ImageButton
                             android:id="@+id/btn_next_date"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:layout_width="42dp"
+                            android:layout_height="42dp"
+                            android:background="@drawable/bg_statistics_header_icon_button"
                             android:contentDescription="@string/statistics_next_period"
+                            android:padding="9dp"
                             android:rotation="180"
                             android:src="@drawable/outline_arrow_back_24"
-                            app:tint="@color/transaction_muted_icon" />
+                            app:tint="@color/transaction_income_accent" />
                     </LinearLayout>
 
                     <!-- Fee toggle -->

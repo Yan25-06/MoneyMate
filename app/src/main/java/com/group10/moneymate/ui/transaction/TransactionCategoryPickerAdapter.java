@@ -178,13 +178,33 @@ public class TransactionCategoryPickerAdapter
             if (debtType == null) {
                 return;
             }
-            int iconRes = debtType == DebtType.LEND
-                    ? R.drawable.outline_attach_money_24
-                    : R.drawable.outline_account_balance_wallet_24;
+
+            int iconRes;
+            int nameRes;
+            switch (debtType) {
+                case LEND:
+                    iconRes = R.drawable.outline_attach_money_24;
+                    nameRes = R.string.debt_type_lend;
+                    break;
+                case BORROW:
+                    iconRes = R.drawable.outline_account_balance_wallet_24;
+                    nameRes = R.string.debt_type_borrow;
+                    break;
+                case DEBT_COLLECTION:
+                    iconRes = R.drawable.outline_payments_24;
+                    nameRes = R.string.debt_type_collection;
+                    break;
+                case REPAYMENT:
+                    iconRes = R.drawable.outline_credit_card_24;
+                    nameRes = R.string.debt_type_repayment;
+                    break;
+                default:
+                    iconRes = R.drawable.outline_attach_money_24;
+                    nameRes = R.string.debt_type_lend;
+                    break;
+            }
             binding.ivDebtIcon.setImageResource(iconRes);
-            binding.tvDebtName.setText(debtType == DebtType.LEND
-                    ? R.string.debt_type_lend
-                    : R.string.debt_type_borrow);
+            binding.tvDebtName.setText(nameRes);
 
             boolean selected = debtType == selectedDebtType;
             int strokeColor = context.getColor(selected

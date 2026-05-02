@@ -550,13 +550,54 @@
     <!-- Debt (Sổ nợ) -->
     <string name="debts">Sổ nợ</string>
     <string name="add_debt">Thêm khoản nợ</string>
-    <string name="hint_person_name">Tên người</string>
+    <string name="hint_person_name">Người vay/cho vay</string>
     <string name="hint_debt_amount">Số tiền</string>
     <string name="debt_type_lend">Cho vay</string>
     <string name="debt_type_borrow">Đi vay</string>
+    <string name="debt_type_collection">Thu nợ</string>
+    <string name="debt_type_repayment">Trả nợ</string>
     <string name="debt_status_active">Đang nợ</string>
     <string name="debt_status_settled">Đã trả</string>
     <string name="hint_due_date">Hạn trả</string>
+    <string name="debt_tab_need_to_pay">Cần trả</string>
+    <string name="debt_tab_need_to_collect">Cần thu</string>
+    <string name="debt_section_ongoing">Chưa trả hết</string>
+    <string name="debt_section_ongoing_collect">Chưa nhận hết</string>
+    <string name="debt_section_settled">Đã trả hết</string>
+    <string name="debt_section_settled_collect">Đã nhận hết</string>
+    <string name="debt_remaining">Còn %1$s</string>
+    <string name="debt_of_total">trong tổng số %1$s</string>
+    <string name="debt_detail_title">Chi tiết khoản nợ</string>
+    <string name="debt_action_repay">Trả nợ</string>
+    <string name="debt_action_collect">Thu nợ</string>
+    <string name="debt_transaction_list_title">Giao dịch khoản nợ</string>
+    <string name="debt_view_transactions">Danh sách giao dịch</string>
+    <string name="debt_person_borrower">Người vay</string>
+    <string name="debt_person_lender">Người cho vay</string>
+    <string name="debt_cashback_title">Nhập số tiền</string>
+    <string name="debt_cashback_hint">Số tiền</string>
+    <string name="debt_cashback_confirm">Xác nhận</string>
+    <string name="debt_cashback_max_exceeded">Số tiền không được vượt quá %1$s</string>
+    <string name="debt_cashback_success">Đã cập nhật khoản nợ</string>
+    <string name="debt_empty">Chưa có khoản nợ nào.</string>
+    <string name="debt_total_remaining">Tổng còn lại: %1$s</string>
+    <string name="debt_progress_label">%1$s / %2$s</string>
+    <string name="debt_due_date_label">Hạn trả: %1$s</string>
+    <string name="debt_no_due_date">Không có hạn trả</string>
+    <string name="debt_picker_title">Chọn khoản nợ</string>
+    <string name="debt_transaction_empty">Chưa có giao dịch nào cho khoản nợ này.</string>
+    <string name="debt_error_person_required">Vui lòng nhập tên người vay/cho vay</string>
+    <string name="debt_error_select_debt">Vui lòng chọn khoản nợ</string>
+    <string name="debt_created_success">Đã tạo khoản nợ</string>
+    <string name="debt_edit_title">Chỉnh sửa khoản nợ</string>
+    <string name="debt_delete_title">Xóa khoản nợ</string>
+    <string name="debt_delete_confirm">Bạn có chắc muốn xóa khoản nợ này? Tất cả giao dịch liên quan sẽ bị xóa.</string>
+    <string name="debt_delete_success">Đã xóa khoản nợ</string>
+    <string name="debt_edit_success">Đã cập nhật khoản nợ</string>
+    <string name="debt_edit_person_name_hint">Tên người vay/cho vay</string>
+    <string name="debt_edit_amount_hint">Số tiền nợ</string>
+    <string name="debt_edit_note_hint">Ghi chú</string>
+
 
     <!-- Event (Sự kiện) -->
     <string name="events">Sự kiện</string>

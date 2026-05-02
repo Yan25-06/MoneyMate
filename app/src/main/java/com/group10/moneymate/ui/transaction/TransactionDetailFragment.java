@@ -24,6 +24,8 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentTransactionDetailBinding;
+import com.group10.moneymate.data.repository.DebtRepository;
+import com.group10.moneymate.ui.debt.DebtViewModel;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
 
@@ -41,6 +43,7 @@ public class TransactionDetailFragment extends Fragment {
 
     private FragmentTransactionDetailBinding binding;
     private TransactionViewModel viewModel;
+    private DebtViewModel debtViewModel;
     private TransactionDetailFragmentArgs navArgs;
     @Nullable private TransactionEntity currentTransaction;
     private final Map<String, WalletEntity> walletMap = new HashMap<>();
@@ -59,6 +62,7 @@ public class TransactionDetailFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
+        debtViewModel = new ViewModelProvider(this).get(DebtViewModel.class);
         navArgs = TransactionDetailFragmentArgs.fromBundle(getArguments() != null ? getArguments() : new Bundle());
 
         bindActions();
@@ -104,8 +108,48 @@ public class TransactionDetailFragment extends Fragment {
         if (currentTransaction == null) {
             return;
         }
-        viewModel.deleteTransaction(currentTransaction);
-        Navigation.findNavController(binding.getRoot()).navigateUp();
+
+        String debtId = currentTransaction.getDebtId();
+        boolean isDebtTransaction = debtId != null && !debtId.isEmpty();
+
+        if (isDebtTransaction) {
+            // Delegate hoàn toàn cho DebtRepository để: detect giao dịch gốc, xóa atomic, recalc
+            TransactionEntity transactionToDelete = currentTransaction;
+            debtViewModel.handleDebtTransactionDelete(transactionToDelete,
+                    new DebtRepository.HandleDebtTransactionDeleteCallback() {
+                        @Override
+                        public void onSuccess(boolean wasOriginalTransaction) {
+                            if (binding == null) return;
+                            if (wasOriginalTransaction) {
+                                // Giao dịch gốc → debt đã bị xóa → back về debt list (2 cấp)
+                                androidx.navigation.NavController navController =
+                                        Navigation.findNavController(binding.getRoot());
+                                // Pop back 2 lần: transactionDetail → debtTransactionList → debtDetail
+                                // Hoặc pop về debtListFragment trực tiếp nếu trong back stack
+                                if (!navController.popBackStack(R.id.debtListFragment, false)) {
+                                    // Fallback: back 2 levels manually
+                                    navController.popBackStack();
+                                    if (navController.getCurrentDestination() != null) {
+                                        navController.popBackStack();
+                                    }
+                                }
+                            } else {
+                                Navigation.findNavController(binding.getRoot()).navigateUp();
+                            }
+                        }
+
+                        @Override
+                        public void onError(@NonNull Throwable throwable) {
+                            if (getContext() != null) {
+                                Toast.makeText(getContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+        } else {
+            // Giao dịch thông thường (không thuộc debt)
+            viewModel.deleteTransaction(currentTransaction);
+            Navigation.findNavController(binding.getRoot()).navigateUp();
+        }
     }
 
     private void shareTransaction() {

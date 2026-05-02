@@ -39,7 +39,7 @@ public class WalletTransferViewModel extends AndroidViewModel {
     private String transferCategoryOutId;
     private String transferCategoryInId;
 
-    private final MutableLiveData<Boolean> categoriesReady = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> categoriesReady = new MutableLiveData<>();
 
     public WalletTransferViewModel(@NonNull Application application) {
         super(application);
@@ -55,10 +55,10 @@ public class WalletTransferViewModel extends AndroidViewModel {
      */
     private void resolveTransferCategories() {
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            CategoryEntity outCategory = container.categoryRepository.getCategoryByNameAndTypeSync(
-                    Constants.CATEGORY_NAME_TRANSFER_OUT, Constants.TYPE_EXPENSE);
-            CategoryEntity inCategory = container.categoryRepository.getCategoryByNameAndTypeSync(
-                    Constants.CATEGORY_NAME_TRANSFER_IN, Constants.TYPE_INCOME);
+            CategoryEntity outCategory = container.database.categoryDao().getCategoryByIdSync(
+                    Constants.CATEGORY_ID_EXP_TRANSFER_OUT);
+            CategoryEntity inCategory = container.database.categoryDao().getCategoryByIdSync(
+                    Constants.CATEGORY_ID_INC_TRANSFER_IN);
             if (outCategory != null) {
                 transferCategoryOutId = outCategory.getId();
             }

@@ -36,6 +36,12 @@ public class Constants {
     public static final String CATEGORY_NAME_TRANSFER_OUT = "Tiền chuyển đi";
     public static final String CATEGORY_NAME_TRANSFER_IN = "Tiền chuyển đến";
 
+    // ─── Debt ─────────────────────────────────────────────────────────────────
+    public static final String CATEGORY_NAME_LEND = "Cho vay";
+    public static final String CATEGORY_NAME_BORROW = "Đi vay";
+    public static final String CATEGORY_NAME_COLLECTION = "Thu nợ";
+    public static final String CATEGORY_NAME_REPAYMENT = "Trả nợ";
+
     // ─── Passcode ─────────────────────────────────────────────────────────────
     public static final int PASSCODE_MAX_ATTEMPTS    = 3;
     public static final int PASSCODE_LOCKOUT_SECONDS = 30;

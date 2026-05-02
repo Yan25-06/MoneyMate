@@ -66,14 +66,27 @@ public interface DebtDao {
     @Query("SELECT * FROM debts WHERE user_id = :userId AND type = :type AND is_deleted = 0 ORDER BY updated_at DESC")
     LiveData<List<DebtEntity>> getDebtsByType(String userId, String type);
 
+    @Query("SELECT * FROM debts WHERE user_id = :userId AND type = :type AND status = :status AND is_deleted = 0 ORDER BY updated_at DESC")
+    LiveData<List<DebtEntity>> getDebtsByTypeAndStatus(String userId, String type, String status);
+
+    @Query("SELECT * FROM debts WHERE user_id = :userId AND type = :type AND status = 'ACTIVE' AND is_deleted = 0 ORDER BY updated_at DESC")
+    LiveData<List<DebtEntity>> getOngoingDebtsByType(String userId, String type);
+
+    @Query("SELECT * FROM debts WHERE user_id = :userId AND type = :type AND status = 'ACTIVE' AND is_deleted = 0 ORDER BY updated_at DESC")
+    List<DebtEntity> getOngoingDebtsByTypeSync(String userId, String type);
+
     @Query("SELECT * FROM debts WHERE user_id = :userId AND status = :status AND is_deleted = 0 ORDER BY updated_at DESC")
     LiveData<List<DebtEntity>> getDebtsByStatus(String userId, String status);
 
     @Query("SELECT * FROM debts WHERE id = :id AND is_deleted = 0")
     LiveData<DebtEntity> getDebtById(String id);
 
-    @Query("SELECT * FROM debts WHERE id = :id LIMIT 1")
+    @Query("SELECT * FROM debts WHERE id = :id AND is_deleted = 0 LIMIT 1")
     DebtEntity getByIdSync(String id);
+
+    @Query("UPDATE debts SET remaining_amount = :remainingAmount, status = :status, " +
+            "sync_status = 1, updated_at = :updatedAt WHERE id = :id")
+    void updateRemainingAmount(String id, double remainingAmount, String status, long updatedAt);
 
     @Query("UPDATE debts SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
@@ -85,11 +98,11 @@ public interface DebtDao {
     @Query("SELECT * FROM debts WHERE user_id = :userId AND sync_status != 0 " +
             "AND (updated_at > :lastSyncedAt OR (updated_at = :lastSyncedAt AND id > :lastSyncedId)) " +
             "ORDER BY updated_at ASC, id ASC LIMIT :limit OFFSET :offset")
-    List<DebtEntity> getPendingSyncDebtsPagedSince(String userId,
-                                                   long lastSyncedAt,
-                                                   String lastSyncedId,
-                                                   int limit,
-                                                   int offset);
+    List<DebtEntity> getPendingSyncPagedSince(String userId,
+            long lastSyncedAt,
+            String lastSyncedId,
+            int limit,
+            int offset);
 
     @Query("UPDATE debts SET sync_status = 0 WHERE id = :id")
     void markSynced(String id);
