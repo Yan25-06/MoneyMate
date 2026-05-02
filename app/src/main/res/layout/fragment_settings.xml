@@ -294,8 +294,26 @@
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/events" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
                         <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:rotation="180" android:src="@drawable/outline_arrow_back_24" app:tint="@color/statistics_text_muted" />
                     </LinearLayout>
+
+                    <com.google.android.material.divider.MaterialDivider android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="18dp" />
+
+                    <!-- Thông báo -->
+                    <LinearLayout
+                        android:id="@+id/btn_notifications"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp">
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:contentDescription="@null" android:src="@drawable/outline_notifications_24" app:tint="@color/statistics_text_secondary" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:text="@string/notif_settings_title" android:textColor="@color/statistics_text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:rotation="180" android:src="@drawable/outline_arrow_back_24" app:tint="@color/statistics_text_muted" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
 
             <!-- ══════════════════════════════════════════════════════════════ -->
             <!-- THÊM MỚI: Card đồng bộ dữ liệu                              -->

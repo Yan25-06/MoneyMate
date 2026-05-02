@@ -40,6 +40,16 @@ public class HomeActivity extends AppCompatActivity {
             R.id.settingsFragment
     ));
 
+    private final androidx.activity.result.ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    com.group10.moneymate.utils.NotificationPreferenceManager.getInstance(this).setGlobalEnabled(true);
+                    com.group10.moneymate.workers.NotificationScheduler.scheduleAll(this);
+                } else {
+                    com.group10.moneymate.utils.NotificationPreferenceManager.getInstance(this).setGlobalEnabled(false);
+                }
+            });
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +60,17 @@ public class HomeActivity extends AppCompatActivity {
         setupNavigation();
         applyWindowInsets();
         setupContentInsets();
+
+        requestNotificationPermission();
+    }
+
+    private void requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
     }
 
     private void setupNavigation() {

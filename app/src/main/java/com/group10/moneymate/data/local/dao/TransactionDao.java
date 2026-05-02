@@ -552,6 +552,25 @@ public interface TransactionDao {
             "WHERE t.user_id = :userId AND t.type = 'EXPENSE' AND t.category_id = :categoryId AND t.timestamp BETWEEN :startDate AND :endDate AND t.is_deleted = 0")
     double getTotalExpenseByCategorySync(String userId, String categoryId, long startDate, long endDate);
 
+    /**
+     * Tính tổng chi tiêu theo danh mục và ví (hoặc tất cả ví nếu walletId = null).
+     * Dùng cho BudgetCheckerReceiver: kiểm tra ngân sách đang active.
+     */
+    @Query("SELECT COALESCE(SUM(t.amount), 0.0) FROM transactions t " +
+            "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
+            "WHERE t.user_id = :userId " +
+            "AND t.type = 'EXPENSE' " +
+            "AND t.is_deleted = 0 " +
+            "AND (:categoryId IS NULL OR t.category_id = :categoryId) " +
+            "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
+            "AND t.timestamp BETWEEN :startDate AND :endDate")
+    double getTotalExpenseByCategoryAndWalletSync(String userId,
+                                                  String categoryId,
+                                                  String walletId,
+                                                  long startDate,
+                                                  long endDate);
+
+
     @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE id = :id")
     void softDelete(String id, long updatedAt);
 

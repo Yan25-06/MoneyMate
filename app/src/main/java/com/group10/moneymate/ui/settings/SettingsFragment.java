@@ -117,6 +117,9 @@ public class SettingsFragment extends Fragment {
         binding.btnEvents.setOnClickListener(v -> Navigation.findNavController(v).navigate(
                 SettingsFragmentDirections.actionSettingsToEvents()));
 
+        binding.btnNotifications.setOnClickListener(v -> Navigation.findNavController(v).navigate(
+                SettingsFragmentDirections.actionSettingsToNotifications()));
+
         // THÊM MỚI: Nút đồng bộ ngay
         binding.btnSyncNow.setOnClickListener(v -> {
             syncViewModel.syncNow();

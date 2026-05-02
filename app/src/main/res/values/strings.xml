@@ -654,9 +654,49 @@
     <string name="sync_failed_message">Không thể đồng bộ dữ liệu sau nhiều lần thử. Hãy thử lại.</string>
     <string name="sync_retry_action">Thử lại</string>
 
-    <!-- Friendly login failure messages -->
     <string name="error_auth_user_not_found">Tài khoản không tồn tại. Vui lòng kiểm tra lại email.</string>
     <string name="error_auth_wrong_password">Mật khẩu không đúng. Vui lòng thử lại.</string>
     <string name="error_auth_network_timeout">Kết nối mạng không ổn định. Vui lòng thử lại.</string>
     <string name="error_auth_login_failed">Không thể đăng nhập. Vui lòng thử lại sau.</string>
+
+    <!-- ── Notification System ──────────────────────────────────────────────── -->
+    <!-- Notification Channels -->
+    <string name="notif_channel_daily_entry_name">Nhắc nhập liệu</string>
+    <string name="notif_channel_daily_entry_desc">Nhắc bạn ghi lại thu chi hằng ngày</string>
+    <string name="notif_channel_debt_name">Khoản nợ đến hạn</string>
+    <string name="notif_channel_debt_desc">Thông báo khi có khoản nợ đến hạn thanh toán hôm nay</string>
+    <string name="notif_channel_budget_name">Cảnh báo ngân sách</string>
+    <string name="notif_channel_budget_desc">Thông báo khi chi tiêu sắp hoặc đã vượt ngưỡng ngân sách</string>
+
+    <!-- Daily Entry notification -->
+    <string name="notif_daily_entry_title">Đừng quên ghi lại thu chi hôm nay 📝</string>
+    <string name="notif_daily_entry_text">Bạn đã ghi lại tất cả giao dịch hôm nay chưa? Mở MoneyMate để cập nhật sổ tài chính.</string>
+
+    <!-- Debt notification -->
+    <string name="notif_debt_title">Khoản nợ đến hạn hôm nay 💰</string>
+    <string name="notif_debt_type_borrow">Khoản vay</string>
+    <string name="notif_debt_type_lend">Khoản cho vay</string>
+    <string name="notif_debt_text_single">%1$s với %2$s — còn lại %3$s. Đừng quên thanh toán hôm nay!</string>
+    <string name="notif_debt_text_multiple">Bạn có %1$d khoản nợ đến hạn hôm nay. Mở MoneyMate để xem chi tiết.</string>
+
+    <!-- Budget notification -->
+    <string name="notif_budget_warning_title">Ngân sách sắp vượt ngưỡng ⚠️</string>
+    <string name="notif_budget_exceeded_title">Ngân sách đã vượt giới hạn 🚨</string>
+    <string name="notif_budget_warning_item">• %1$s: đã dùng %2$d%% trong tổng %3$s\n</string>
+    <string name="notif_budget_exceeded_item">• %1$s: đã chi %2$s / %3$s — ĐÃ VƯỢT!\n</string>
+
+    <!-- Settings UI -->
+    <string name="notif_settings_title">Thông báo</string>
+    <string name="notif_global_label">Thông báo tổng thể</string>
+    <string name="notif_global_hint">Bật/tắt tất cả thông báo của ứng dụng</string>
+    <string name="notif_section_daily">NHẮC NHẬP LIỆU</string>
+    <string name="notif_section_debt">NHẮC KHOẢN NỢ</string>
+    <string name="notif_section_budget">CẢNH BÁO NGÂN SÁCH</string>
+    <string name="notif_daily_toggle_label">Nhắc nhập liệu hằng ngày</string>
+    <string name="notif_debt_toggle_label">Nhắc khoản nợ đến hạn</string>
+    <string name="notif_budget_toggle_label">Cảnh báo ngân sách vượt ngưỡng</string>
+    <string name="notif_time_label">Thời gian thông báo</string>
+    <string name="notif_budget_threshold_label">Ngưỡng cảnh báo</string>
+    <string name="notif_budget_threshold_hint">Thông báo khi đã sử dụng ít nhất x% ngân sách</string>
 </resources>
+
