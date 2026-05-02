@@ -583,6 +583,15 @@ public interface TransactionDao {
                                                                 int limit,
                                                                 int offset);
 
+    @Query("SELECT * FROM transactions WHERE debt_id = :debtId AND is_deleted = 0 ORDER BY timestamp DESC")
+    LiveData<List<TransactionEntity>> getTransactionsByDebtId(String debtId);
+
+    @Query("SELECT * FROM transactions WHERE debt_id = :debtId AND is_deleted = 0")
+    List<TransactionEntity> getTransactionsByDebtIdSync(String debtId);
+
+    @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt WHERE debt_id = :debtId AND is_deleted = 0")
+    void softDeleteByDebtId(String debtId, long updatedAt);
+
     @Query("UPDATE transactions SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
             "WHERE user_id = :userId AND is_deleted = 0")
     void softDeleteAllByUser(String userId, long updatedAt);

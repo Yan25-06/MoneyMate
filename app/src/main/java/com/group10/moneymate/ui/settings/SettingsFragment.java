@@ -246,7 +246,7 @@ public class SettingsFragment extends Fragment {
                 chip.setVisibility(View.VISIBLE);
                 chip.setText(getString(R.string.sync_chip_success));
                 chip.setChipBackgroundColorResource(R.color.green_500);
-                chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.income_green));
+                chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
                 break;
             case FAILED:
                 chip.setVisibility(View.VISIBLE);

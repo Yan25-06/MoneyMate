@@ -80,6 +80,8 @@ public class TransactionCategoryPickerViewModel extends AndroidViewModel {
         List<TransactionCategoryPickerItem> debtItems = new ArrayList<>();
         debtItems.add(TransactionCategoryPickerItem.forDebt(DebtType.LEND));
         debtItems.add(TransactionCategoryPickerItem.forDebt(DebtType.BORROW));
+        debtItems.add(TransactionCategoryPickerItem.forDebt(DebtType.DEBT_COLLECTION));
+        debtItems.add(TransactionCategoryPickerItem.forDebt(DebtType.REPAYMENT));
         return debtItems;
     }
 

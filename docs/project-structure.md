@@ -157,7 +157,9 @@ com.group10.moneymate/
     │   └── WalletViewModel.java
     ├── debt/
     │   ├── DebtListFragment.java
-    │   ├── AddEditDebtFragment.java
+    │   ├── DebtDetailFragment.java
+    │   ├── DebtTransactionListFragment.java
+    │   ├── DebtListAdapter.java
     │   └── DebtViewModel.java
     ├── event/
     │   ├── EventListFragment.java
@@ -229,7 +231,8 @@ res/layout/
 ├── fragment_wallet_icon_picker.xml
 ├── fragment_add_edit_wallet.xml
 ├── fragment_debt_list.xml
-├── fragment_add_edit_debt.xml
+├── fragment_debt_detail.xml
+├── fragment_debt_transaction_list.xml
 ├── fragment_event_list.xml
 ├── fragment_add_edit_event.xml
 ├── fragment_statistics.xml

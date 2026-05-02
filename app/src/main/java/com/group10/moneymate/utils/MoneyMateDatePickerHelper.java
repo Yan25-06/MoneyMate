@@ -23,7 +23,6 @@ public final class MoneyMateDatePickerHelper {
                 .toInstant()
                 .toEpochMilli();
         MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
-                .setTheme(R.style.ThemeOverlay_MoneyMate_MaterialDatePicker)
                 .setSelection(selection)
                 .build();
         picker.addOnPositiveButtonClickListener(value -> {

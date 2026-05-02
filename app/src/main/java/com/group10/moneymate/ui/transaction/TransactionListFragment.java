@@ -314,7 +314,7 @@ public class TransactionListFragment extends Fragment {
     @NonNull
     private TransactionTimeBucket resolveBucket(@NonNull Map<String, TransactionTimeBucket> grouped,
                                                 @NonNull TransactionEntity transaction) {
-        LocalDate date = TimeWindowUtils.toUtcLocalDate(transaction.getTimestamp());
+        LocalDate date = TimeWindowUtils.toDeviceLocalDate(transaction.getTimestamp());
         boolean groupByMonth = shouldGroupByMonth();
         String key = groupByMonth
                 ? String.format(Locale.US, "%04d-%02d", date.getYear(), date.getMonthValue())
@@ -764,7 +764,7 @@ public class TransactionListFragment extends Fragment {
                 );
             }
 
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
+            LocalDate today = LocalDate.now(java.time.ZoneId.systemDefault());
             String title;
             if (anchorDate.equals(today)) {
                 title = getString(R.string.statistics_today);

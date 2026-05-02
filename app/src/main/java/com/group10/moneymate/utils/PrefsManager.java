@@ -149,6 +149,18 @@ public class PrefsManager {
         prefs.edit().putBoolean(Constants.PREF_HIDE_BALANCE, hide).apply();
     }
 
+    // ─── Last Used Wallet ─────────────────────────────────────────────────────
+
+    private static final String KEY_LAST_USED_WALLET_ID = "last_used_wallet_id";
+
+    public String getLastUsedWalletId() {
+        return prefs.getString(KEY_LAST_USED_WALLET_ID, null);
+    }
+
+    public void saveLastUsedWalletId(String walletId) {
+        prefs.edit().putString(KEY_LAST_USED_WALLET_ID, walletId).apply();
+    }
+
     // ─── Clear ────────────────────────────────────────────────────────────────
 
     public void clearAll() {

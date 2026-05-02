@@ -911,4 +911,52 @@
         android:label="@string/title_passcode"
         tools:layout="@layout/fragment_passcode" />
 
+    <!-- Debt Management -->
+    <fragment
+        android:id="@+id/debtListFragment"
+        android:name="com.group10.moneymate.ui.debt.DebtListFragment"
+        android:label="@string/debts"
+        tools:layout="@layout/fragment_debt_list">
+        <action
+            android:id="@+id/action_debtList_to_debtDetail"
+            app:destination="@id/debtDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_debtList_to_addEditTransaction"
+            app:destination="@id/addEditTransactionFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/debtDetailFragment"
+        android:name="com.group10.moneymate.ui.debt.DebtDetailFragment"
+        android:label="@string/debt_detail_title"
+        tools:layout="@layout/fragment_debt_detail">
+        <argument
+            android:name="debtId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_debtDetail_to_debtTransactionList"
+            app:destination="@id/debtTransactionListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/debtTransactionListFragment"
+        android:name="com.group10.moneymate.ui.debt.DebtTransactionListFragment"
+        android:label="@string/debt_transaction_list_title"
+        tools:layout="@layout/fragment_debt_transaction_list">
+        <argument
+            android:name="debtId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_debtTransactionList_to_transactionDetail"
+            app:destination="@id/transactionDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
 </navigation>

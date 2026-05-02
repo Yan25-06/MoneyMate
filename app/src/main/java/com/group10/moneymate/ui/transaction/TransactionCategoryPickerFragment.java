@@ -244,7 +244,7 @@ public class TransactionCategoryPickerFragment extends Fragment {
         );
         previous.getSavedStateHandle().set(RESULT_CATEGORY_ID, null);
         previous.getSavedStateHandle().set(RESULT_ALL_CATEGORIES, false);
-        previous.getSavedStateHandle().set(RESULT_CATEGORY_TYPE, resolveDebtTransactionType(debtType));
+        previous.getSavedStateHandle().set(RESULT_CATEGORY_TYPE, TransactionCategoryPickerViewModel.TYPE_DEBT);
     }
 
     private void handleCategorySelection(@NonNull NavBackStackEntry previous,
@@ -259,7 +259,18 @@ public class TransactionCategoryPickerFragment extends Fragment {
 
     @NonNull
     private String resolveDebtTransactionType(@Nullable DebtType debtType) {
-        return debtType == DebtType.BORROW ? Constants.TYPE_INCOME : Constants.TYPE_EXPENSE;
+        if (debtType == null) {
+            return Constants.TYPE_EXPENSE;
+        }
+        switch (debtType) {
+            case BORROW:
+            case DEBT_COLLECTION:
+                return Constants.TYPE_INCOME;
+            case LEND:
+            case REPAYMENT:
+            default:
+                return Constants.TYPE_EXPENSE;
+        }
     }
 
     @Override

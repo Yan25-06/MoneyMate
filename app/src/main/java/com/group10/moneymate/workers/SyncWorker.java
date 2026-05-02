@@ -61,16 +61,16 @@ public class SyncWorker extends Worker {
     private final SupabaseSyncClient syncClient;
 
     public SyncWorker(@NonNull Context context,
-                      @NonNull WorkerParameters workerParameters,
-                      @NonNull TransactionRepository transactionRepository,
-                      @NonNull BudgetRepository budgetRepository,
-                      @NonNull CategoryRepository categoryRepository,
-                      @NonNull WalletRepository walletRepository,
-                      @NonNull DebtRepository debtRepository,
-                      @NonNull EventRepository eventRepository,
-                      @NonNull SyncMetadataRepository syncMetadataRepository,
-                      @NonNull AuthRepository authRepository,
-                      @NonNull SupabaseSyncClient syncClient) {
+            @NonNull WorkerParameters workerParameters,
+            @NonNull TransactionRepository transactionRepository,
+            @NonNull BudgetRepository budgetRepository,
+            @NonNull CategoryRepository categoryRepository,
+            @NonNull WalletRepository walletRepository,
+            @NonNull DebtRepository debtRepository,
+            @NonNull EventRepository eventRepository,
+            @NonNull SyncMetadataRepository syncMetadataRepository,
+            @NonNull AuthRepository authRepository,
+            @NonNull SupabaseSyncClient syncClient) {
         super(context, workerParameters);
         this.transactionRepository = transactionRepository;
         this.budgetRepository = budgetRepository;
@@ -147,13 +147,14 @@ public class SyncWorker extends Worker {
                 notifySyncFailure();
                 return Result.failure();
             }
-            Log.w(TAG, "doWork: Retrying sync after unexpected exception (attempt " + (getRunAttemptCount() + 1) + "/" + MAX_ATTEMPTS + ")");
+            Log.w(TAG, "doWork: Retrying sync after unexpected exception (attempt " + (getRunAttemptCount() + 1) + "/"
+                    + MAX_ATTEMPTS + ")");
             return Result.retry();
         }
     }
 
     private void syncWallets(@NonNull String userId,
-                             @NonNull String token) throws SupabaseSyncClient.SyncException {
+            @NonNull String token) throws SupabaseSyncClient.SyncException {
         Log.d(TAG, "syncWallets: Starting wallet sync for userId=" + userId);
 
         SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(
@@ -176,7 +177,8 @@ public class SyncWorker extends Worker {
 
             for (WalletEntity wallet : pending) {
                 try {
-                    Log.d(TAG, "syncWallets: Syncing wallet id=" + wallet.getId() + ", syncStatus=" + wallet.getSyncStatus());
+                    Log.d(TAG, "syncWallets: Syncing wallet id=" + wallet.getId() + ", syncStatus="
+                            + wallet.getSyncStatus());
                     JSONArray arr = new JSONArray();
                     arr.put(EntityToSupabaseMapper.fromWallet(wallet));
                     syncClient.upsert(DOMAIN_WALLETS, arr, token);
@@ -204,7 +206,7 @@ public class SyncWorker extends Worker {
     }
 
     private void syncCategories(@NonNull String userId,
-                                @NonNull String token) throws SupabaseSyncClient.SyncException {
+            @NonNull String token) throws SupabaseSyncClient.SyncException {
         Log.d(TAG, "syncCategories: Starting category sync for userId=" + userId);
 
         SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(
@@ -227,7 +229,8 @@ public class SyncWorker extends Worker {
 
             for (CategoryEntity category : pending) {
                 try {
-                    Log.d(TAG, "syncCategories: Syncing category id=" + category.getId() + ", syncStatus=" + category.getSyncStatus());
+                    Log.d(TAG, "syncCategories: Syncing category id=" + category.getId() + ", syncStatus="
+                            + category.getSyncStatus());
                     JSONArray arr = new JSONArray();
                     arr.put(EntityToSupabaseMapper.fromCategory(category));
                     syncClient.upsert(DOMAIN_CATEGORIES, arr, token);
@@ -255,7 +258,7 @@ public class SyncWorker extends Worker {
     }
 
     private void syncDebts(@NonNull String userId,
-                           @NonNull String token) throws SupabaseSyncClient.SyncException {
+            @NonNull String token) throws SupabaseSyncClient.SyncException {
         Log.d(TAG, "syncDebts: Starting debt sync for userId=" + userId);
 
         SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(
@@ -306,7 +309,7 @@ public class SyncWorker extends Worker {
     }
 
     private void syncEvents(@NonNull String userId,
-                            @NonNull String token) throws SupabaseSyncClient.SyncException {
+            @NonNull String token) throws SupabaseSyncClient.SyncException {
         Log.d(TAG, "syncEvents: Starting event sync for userId=" + userId);
 
         SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(
@@ -329,7 +332,8 @@ public class SyncWorker extends Worker {
 
             for (EventEntity event : pending) {
                 try {
-                    Log.d(TAG, "syncEvents: Syncing event id=" + event.getId() + ", syncStatus=" + event.getSyncStatus());
+                    Log.d(TAG,
+                            "syncEvents: Syncing event id=" + event.getId() + ", syncStatus=" + event.getSyncStatus());
                     JSONArray arr = new JSONArray();
                     arr.put(EntityToSupabaseMapper.fromEvent(event));
                     syncClient.upsert(DOMAIN_EVENTS, arr, token);
@@ -357,7 +361,7 @@ public class SyncWorker extends Worker {
     }
 
     private void syncBudgets(@NonNull String userId,
-                             @NonNull String token) throws SupabaseSyncClient.SyncException {
+            @NonNull String token) throws SupabaseSyncClient.SyncException {
         Log.d(TAG, "syncBudgets: Starting budget sync for userId=" + userId);
 
         SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(
@@ -380,7 +384,8 @@ public class SyncWorker extends Worker {
 
             for (BudgetEntity budget : pending) {
                 try {
-                    Log.d(TAG, "syncBudgets: Syncing budget id=" + budget.getId() + ", syncStatus=" + budget.getSyncStatus());
+                    Log.d(TAG, "syncBudgets: Syncing budget id=" + budget.getId() + ", syncStatus="
+                            + budget.getSyncStatus());
                     JSONArray arr = new JSONArray();
                     arr.put(EntityToSupabaseMapper.fromBudget(budget));
                     syncClient.upsert(DOMAIN_BUDGETS, arr, token);
@@ -408,7 +413,7 @@ public class SyncWorker extends Worker {
     }
 
     private void syncTransactions(@NonNull String userId,
-                                  @NonNull String token) throws SupabaseSyncClient.SyncException {
+            @NonNull String token) throws SupabaseSyncClient.SyncException {
         Log.d(TAG, "syncTransactions: Starting transaction sync for userId=" + userId);
 
         SyncMetadataEntity checkpoint = syncMetadataRepository.getOrCreateCheckpoint(
@@ -427,11 +432,13 @@ public class SyncWorker extends Worker {
                 return;
             }
 
-            Log.d(TAG, "syncTransactions: Batch " + (++batchCount) + " - Processing " + pending.size() + " transactions");
+            Log.d(TAG,
+                    "syncTransactions: Batch " + (++batchCount) + " - Processing " + pending.size() + " transactions");
 
             for (TransactionEntity tx : pending) {
                 try {
-                    Log.d(TAG, "syncTransactions: Syncing transaction id=" + tx.getId() + ", syncStatus=" + tx.getSyncStatus());
+                    Log.d(TAG, "syncTransactions: Syncing transaction id=" + tx.getId() + ", syncStatus="
+                            + tx.getSyncStatus());
                     JSONArray arr = new JSONArray();
                     arr.put(EntityToSupabaseMapper.fromTransaction(tx));
                     syncClient.upsert(DOMAIN_TRANSACTIONS, arr, token);
@@ -470,7 +477,8 @@ public class SyncWorker extends Worker {
 
     private boolean isAppInForeground(@NonNull Context context) {
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if (am == null) return false;
+        if (am == null)
+            return false;
         ActivityManager.RunningAppProcessInfo info = new ActivityManager.RunningAppProcessInfo();
         ActivityManager.getMyMemoryState(info);
         return info.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND

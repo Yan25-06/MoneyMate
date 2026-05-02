@@ -1,6 +1,5 @@
 package com.group10.moneymate.ui.wallet;
 
-import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,15 +21,16 @@ import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentWalletTransferBinding;
 import com.group10.moneymate.utils.CurrencyFormatter;
+import com.group10.moneymate.utils.DateUtils;
+import com.group10.moneymate.utils.MoneyMateDatePickerHelper;
+import com.group10.moneymate.utils.TimeWindowUtils;
 
 import android.text.Editable;
 import android.text.TextWatcher;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
+import java.time.LocalDate;
 
 /**
  * Fragment cho màn hình chuyển tiền giữa 2 ví.
@@ -44,12 +44,10 @@ public class WalletTransferFragment extends Fragment {
     private final List<WalletEntity> walletList = new ArrayList<>();
     private WalletEntity selectedFromWallet;
     private WalletEntity selectedToWallet;
-    private final Calendar selectedDate = Calendar.getInstance();
+    private LocalDate selectedDate = LocalDate.now();
 
     private boolean isFormattingAmount;
     private boolean isFormattingFeeAmount;
-
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 
     @Nullable
     @Override
@@ -134,31 +132,34 @@ public class WalletTransferFragment extends Fragment {
     }
 
     private void setupDateControls() {
-        binding.tvDate.setText(dateFormat.format(selectedDate.getTime()));
+        updateDateField();
 
-        binding.tvDate.setOnClickListener(v -> showDatePicker());
+        binding.etDate.setOnClickListener(v -> showDatePicker());
 
         binding.btnPrevDate.setOnClickListener(v -> {
-            selectedDate.add(Calendar.DAY_OF_MONTH, -1);
-            binding.tvDate.setText(dateFormat.format(selectedDate.getTime()));
+            selectedDate = selectedDate.minusDays(1);
+            updateDateField();
         });
 
         binding.btnNextDate.setOnClickListener(v -> {
-            selectedDate.add(Calendar.DAY_OF_MONTH, 1);
-            binding.tvDate.setText(dateFormat.format(selectedDate.getTime()));
+            selectedDate = selectedDate.plusDays(1);
+            updateDateField();
         });
     }
 
     private void showDatePicker() {
-        new DatePickerDialog(
-                requireContext(),
-                (datePicker, year, month, dayOfMonth) -> {
-                    selectedDate.set(year, month, dayOfMonth);
-                    binding.tvDate.setText(dateFormat.format(selectedDate.getTime()));
-                },
-                selectedDate.get(Calendar.YEAR),
-                selectedDate.get(Calendar.MONTH),
-                selectedDate.get(Calendar.DAY_OF_MONTH)).show();
+        MoneyMateDatePickerHelper.showSingleDatePicker(
+                this,
+                selectedDate,
+                "wallet_transfer_single_date",
+                date -> {
+                    selectedDate = date;
+                    updateDateField();
+                });
+    }
+
+    private void updateDateField() {
+        binding.etDate.setText(DateUtils.formatDate(TimeWindowUtils.startOfDayLocalDateUtc(selectedDate)));
     }
 
     private void setupFeeToggle() {
@@ -393,7 +394,7 @@ public class WalletTransferFragment extends Fragment {
                 ? binding.etFeeNote.getText().toString().trim()
                 : "";
 
-        long timestamp = selectedDate.getTimeInMillis();
+        long timestamp = TimeWindowUtils.startOfDayLocalDateUtc(selectedDate);
 
         // Disable button to prevent double-click
         binding.btnConfirm.setEnabled(false);
