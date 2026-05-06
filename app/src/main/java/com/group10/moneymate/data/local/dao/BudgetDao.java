@@ -129,4 +129,16 @@ public interface BudgetDao {
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Query("DELETE FROM budgets WHERE id = :id")
     void hardDeleteById(String id);
+
+    /**
+     * Lấy tất cả ngân sách đang active (start_date <= now <= end_date) của user.
+     * Dùng cho BudgetCheckerReceiver.
+     */
+    @Query("SELECT * FROM budgets " +
+            "WHERE user_id = :userId " +
+            "AND is_deleted = 0 " +
+            "AND start_date <= :now " +
+            "AND end_date >= :now")
+    List<BudgetEntity> getActiveBudgetsSync(String userId, long now);
 }
+

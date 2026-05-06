@@ -114,4 +114,18 @@ public interface DebtDao {
     @Query("UPDATE debts SET is_deleted = 1, sync_status = 2, updated_at = :updatedAt " +
             "WHERE user_id = :userId AND is_deleted = 0")
     void softDeleteAllByUser(String userId, long updatedAt);
+
+    /**
+     * Lấy các khoản nợ ACTIVE có ngày đến hạn nằm trong khoảng [startOfDay, endOfDay].
+     * Dùng cho DebtReminderReceiver (chỉ nhắc khoản nợ hết hạn đúng hôm nay).
+     */
+    @Query("SELECT * FROM debts " +
+            "WHERE user_id = :userId " +
+            "AND is_deleted = 0 " +
+            "AND status = 'ACTIVE' " +
+            "AND due_date IS NOT NULL " +
+            "AND due_date >= :startOfDay " +
+            "AND due_date <= :endOfDay " +
+            "ORDER BY due_date ASC")
+    List<DebtEntity> getDebtsDueTodaySync(String userId, long startOfDay, long endOfDay);
 }

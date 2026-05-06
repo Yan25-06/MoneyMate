@@ -9,6 +9,11 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- AlarmManager exact alarms (Android 12+ requires SCHEDULE_EXACT_ALARM or USE_EXACT_ALARM) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.USE_EXACT_ALARM"
+        tools:ignore="ProtectedPermissions" />
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -74,6 +79,28 @@
             </intent-filter>
         </receiver>
 
+        <!-- ── Notification Receivers ───────────────────────────────────────── -->
+        <receiver
+            android:name=".workers.DailyEntryReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".workers.DebtReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".workers.BudgetCheckerReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".workers.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
-</manifest>
+</manifest>

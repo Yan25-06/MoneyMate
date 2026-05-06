@@ -608,7 +608,19 @@
         <action android:id="@+id/action_settings_to_debts" app:destination="@id/debtListFragment" />
         <action android:id="@+id/action_settings_to_events" app:destination="@id/eventListFragment" />
         <action android:id="@+id/action_settings_to_passcode" app:destination="@id/passcodeFragment" />
+        <action
+            android:id="@+id/action_settings_to_notifications"
+            app:destination="@id/notificationSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
+
+    <!-- Notification Settings -->
+    <fragment
+        android:id="@+id/notificationSettingsFragment"
+        android:name="com.group10.moneymate.ui.notification.NotificationSettingsFragment"
+        android:label="@string/notif_settings_title"
+        tools:layout="@layout/fragment_notification_settings" />
 
     <!-- Profile -->
     <fragment

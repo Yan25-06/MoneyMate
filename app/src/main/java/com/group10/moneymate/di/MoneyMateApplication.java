@@ -7,6 +7,8 @@ import androidx.annotation.NonNull;
 import androidx.work.Configuration;
 
 import com.group10.moneymate.utils.ForegroundUiNotifier;
+import com.group10.moneymate.utils.NotificationHelper;
+import com.group10.moneymate.workers.NotificationScheduler;
 
 /**
  * Custom Application class for MoneyMate.
@@ -24,6 +26,10 @@ public class MoneyMateApplication extends Application implements Configuration.P
         ForegroundUiNotifier.init(this);
         appContainer.bootstrapLocalData();
         appContainer.syncScheduler.ensurePeriodicSync();
+
+        // Khởi tạo kênh thông báo và lên lịch alarm
+        NotificationHelper.createNotificationChannels(this);
+        NotificationScheduler.scheduleAll(this);
     }
 
     public AppContainer getAppContainer() {
