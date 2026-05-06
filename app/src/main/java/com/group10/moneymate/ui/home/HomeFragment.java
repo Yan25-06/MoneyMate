@@ -40,6 +40,7 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.databinding.FragmentHomeBinding;
 import com.group10.moneymate.ui.main.HomeActivity;
+import com.group10.moneymate.ui.statistics.MonthlyComparisonPoint;
 import com.group10.moneymate.ui.sync.SyncViewModel;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
@@ -75,8 +76,8 @@ public class HomeFragment extends Fragment {
     private List<CategorySumDTO> weeklyTopCategories = new ArrayList<>();
     private List<TransactionEntity> recentTransactions = new ArrayList<>();
     private List<WalletWithBalance> walletItems = new ArrayList<>();
-    private List<HomeViewModel.TrendPointUiModel> expenseTrendPoints = new ArrayList<>();
-    private List<HomeViewModel.TrendPointUiModel> incomeTrendPoints = new ArrayList<>();
+    private List<MonthlyComparisonPoint> expenseTrendPoints = new ArrayList<>();
+    private List<MonthlyComparisonPoint> incomeTrendPoints = new ArrayList<>();
 
     private double currentTotalBalance = 0.0;
     private double currentMonthExpense = 0.0;
@@ -505,7 +506,7 @@ public class HomeFragment extends Fragment {
         if (binding == null) {
             return;
         }
-        List<HomeViewModel.TrendPointUiModel> points = trendMetric == TrendMetric.EXPENSE
+        List<MonthlyComparisonPoint> points = trendMetric == TrendMetric.EXPENSE
                 ? expenseTrendPoints
                 : incomeTrendPoints;
         if (points == null || points.isEmpty()) {
@@ -516,41 +517,69 @@ public class HomeFragment extends Fragment {
         }
 
         List<Entry> currentEntries = new ArrayList<>();
+        List<Entry> previousOneEntries = new ArrayList<>();
+        List<Entry> previousTwoEntries = new ArrayList<>();
+        List<Entry> previousThreeEntries = new ArrayList<>();
         List<Entry> averageEntries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
         float maxValue = 0f;
 
         for (int index = 0; index < points.size(); index++) {
-            HomeViewModel.TrendPointUiModel point = points.get(index);
+            MonthlyComparisonPoint point = points.get(index);
             currentEntries.add(new Entry(index, (float) point.getCurrentAmount()));
+            previousOneEntries.add(new Entry(index, (float) point.getPreviousOneAmount()));
+            previousTwoEntries.add(new Entry(index, (float) point.getPreviousTwoAmount()));
+            previousThreeEntries.add(new Entry(index, (float) point.getPreviousThreeAmount()));
             averageEntries.add(new Entry(index, (float) point.getAverageAmount()));
             labels.add(point.getLabel());
-            maxValue = Math.max(maxValue, (float) Math.max(point.getCurrentAmount(), point.getAverageAmount()));
+            maxValue = Math.max(maxValue, (float) Math.max(
+                    Math.max(point.getCurrentAmount(), point.getAverageAmount()),
+                    Math.max(
+                            Math.max(point.getPreviousOneAmount(), point.getPreviousTwoAmount()),
+                            point.getPreviousThreeAmount()
+                    )
+            ));
         }
 
-        HomeViewModel.TrendPointUiModel latestPoint = points.get(points.size() - 1);
+        MonthlyComparisonPoint latestPoint = points.get(points.size() - 1);
         @ColorInt int primaryColor = ContextCompat.getColor(requireContext(),
                 trendMetric == TrendMetric.EXPENSE ? R.color.expense_red : R.color.transfer_blue);
-        @ColorInt int averageColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_muted);
+        @ColorInt int averageColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
+        @ColorInt int previousOneColor = ContextCompat.getColor(requireContext(), R.color.income_green);
+        @ColorInt int previousTwoColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary);
+        @ColorInt int previousThreeColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_muted);
 
         LineDataSet currentDataSet = new LineDataSet(currentEntries, getString(R.string.home_trend_legend_current));
         currentDataSet.setColor(primaryColor);
         currentDataSet.setLineWidth(3f);
         currentDataSet.setDrawCircles(false);
         currentDataSet.setDrawValues(false);
-        currentDataSet.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
-        currentDataSet.setDrawFilled(true);
-        currentDataSet.setFillDrawable(ContextCompat.getDrawable(requireContext(),
-                trendMetric == TrendMetric.EXPENSE
-                        ? R.drawable.bg_statistics_compare_fill_red
-                        : R.drawable.bg_statistics_compare_fill_blue));
+        currentDataSet.setHighlightEnabled(false);
+        currentDataSet.setMode(LineDataSet.Mode.LINEAR);
+
+        LineDataSet previousOneDataSet = createPreviousTrendDataSet(
+                previousOneEntries,
+                getString(R.string.statistics_detail_compare_previous_one),
+                previousOneColor
+        );
+        LineDataSet previousTwoDataSet = createPreviousTrendDataSet(
+                previousTwoEntries,
+                getString(R.string.statistics_detail_compare_previous_two),
+                previousTwoColor
+        );
+        LineDataSet previousThreeDataSet = createPreviousTrendDataSet(
+                previousThreeEntries,
+                getString(R.string.statistics_detail_compare_previous_three),
+                previousThreeColor
+        );
 
         LineDataSet averageDataSet = new LineDataSet(averageEntries, getString(R.string.home_trend_legend_average));
         averageDataSet.setColor(averageColor);
-        averageDataSet.setLineWidth(2.4f);
+        averageDataSet.setLineWidth(2.2f);
         averageDataSet.setDrawCircles(false);
         averageDataSet.setDrawValues(false);
-        averageDataSet.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
+        averageDataSet.setHighlightEnabled(false);
+        averageDataSet.setMode(LineDataSet.Mode.LINEAR);
 
         List<Entry> focusEntries = new ArrayList<>();
         focusEntries.add(new Entry(points.size() - 1, (float) latestPoint.getCurrentAmount()));
@@ -563,16 +592,40 @@ public class HomeFragment extends Fragment {
         focusDataSet.setDrawValues(false);
         focusDataSet.setLineWidth(0f);
 
-        binding.chartTrendReport.setData(new LineData(averageDataSet, currentDataSet, focusDataSet));
+        LineData lineData = new LineData(
+                previousThreeDataSet,
+                previousTwoDataSet,
+                previousOneDataSet,
+                averageDataSet,
+                currentDataSet,
+                focusDataSet
+        );
+        lineData.setHighlightEnabled(false);
+        binding.chartTrendReport.setData(lineData);
         binding.chartTrendReport.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
         binding.chartTrendReport.getXAxis().setLabelCount(Math.min(labels.size(), 6), false);
         binding.chartTrendReport.getAxisLeft().setAxisMaximum(Math.max(maxValue * 1.12f, 1f));
+        binding.chartTrendReport.notifyDataSetChanged();
         binding.chartTrendReport.invalidate();
         binding.chartTrendReport.animateX(700, Easing.EaseInOutQuad);
         renderTrendSummary(latestPoint, primaryColor);
     }
 
-    private void renderTrendSummary(@NonNull HomeViewModel.TrendPointUiModel point, @ColorInt int accentColor) {
+    @NonNull
+    private LineDataSet createPreviousTrendDataSet(@NonNull List<Entry> entries,
+                                                   @NonNull String label,
+                                                   @ColorInt int color) {
+        LineDataSet dataSet = new LineDataSet(entries, label);
+        dataSet.setColor(color);
+        dataSet.setLineWidth(1.8f);
+        dataSet.setDrawCircles(false);
+        dataSet.setDrawValues(false);
+        dataSet.setHighlightEnabled(false);
+        dataSet.setMode(LineDataSet.Mode.LINEAR);
+        return dataSet;
+    }
+
+    private void renderTrendSummary(@NonNull MonthlyComparisonPoint point, @ColorInt int accentColor) {
         binding.layoutTrendSummary.getRoot().setVisibility(View.VISIBLE);
         binding.layoutTrendSummary.tvComparisonSummaryDate.setText(formatComparisonDate(point.getDateMillis()));
         binding.layoutTrendSummary.tvComparisonSummaryCurrentValue.setText(
@@ -700,6 +753,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void configureTrendChart(@NonNull LineChart chart) {
+        chart.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         chart.getDescription().setEnabled(false);
         chart.getLegend().setEnabled(false);
         chart.setNoDataText(getString(R.string.statistics_no_data));

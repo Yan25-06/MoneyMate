@@ -48,7 +48,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
     private final MediatorLiveData<Double> averagePerDay = new MediatorLiveData<>();
     private final LiveData<List<CategoryBreakdownItemUiModel>> categoryItems;
     private final MediatorLiveData<List<PeriodSummaryUiModel>> periodSummaries = new MediatorLiveData<>();
-    private final MediatorLiveData<List<ComparisonPointUiModel>> comparisonPoints = new MediatorLiveData<>();
+    private final MediatorLiveData<List<MonthlyComparisonPoint>> comparisonPoints = new MediatorLiveData<>();
     private final MutableLiveData<DrillDownUiState> drillDownState = new MutableLiveData<>(DrillDownUiState.root());
     private final MediatorLiveData<DrillCategoryRequest> childCategoryRequest = new MediatorLiveData<>();
     private final MediatorLiveData<DrillTransactionRequest> drillTransactionRequest = new MediatorLiveData<>();
@@ -293,7 +293,7 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
         return periodSummaries;
     }
 
-    public LiveData<List<ComparisonPointUiModel>> getComparisonPoints() {
+    public LiveData<List<MonthlyComparisonPoint>> getComparisonPoints() {
         return comparisonPoints;
     }
 
@@ -606,53 +606,14 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
 
         LocalDate currentMonth = toLocalDate(current.getStartDate()).withDayOfMonth(1);
         LocalDate visibleEnd = toLocalDate(boundedEndDate(current.getEndDate()));
-        int lastVisibleDay = visibleEnd.getDayOfMonth();
-
-        Map<LocalDate, Double> currentMap = toDailyAmountMap(latestComparisonCurrent);
-        Map<LocalDate, Double> prevOneMap = toDailyAmountMap(latestComparisonPrevOne);
-        Map<LocalDate, Double> prevTwoMap = toDailyAmountMap(latestComparisonPrevTwo);
-        Map<LocalDate, Double> prevThreeMap = toDailyAmountMap(latestComparisonPrevThree);
-
-        List<Map<LocalDate, Double>> previousMaps = new ArrayList<>();
-        previousMaps.add(prevOneMap);
-        previousMaps.add(prevTwoMap);
-        previousMaps.add(prevThreeMap);
-
-        List<LocalDate> previousMonths = new ArrayList<>();
-        previousMonths.add(currentMonth.minusMonths(1));
-        previousMonths.add(currentMonth.minusMonths(2));
-        previousMonths.add(currentMonth.minusMonths(3));
-
-        List<ComparisonPointUiModel> items = new ArrayList<>();
-        double currentRunning = 0d;
-        double lastAverage = 0d;
-        for (int dayOfMonth = 1; dayOfMonth <= lastVisibleDay; dayOfMonth++) {
-            LocalDate currentDate = currentMonth.withDayOfMonth(dayOfMonth);
-            currentRunning += currentMap.getOrDefault(currentDate, 0d);
-
-            double averageTotal = 0d;
-            int divisor = 0;
-            for (int index = 0; index < previousMonths.size(); index++) {
-                LocalDate month = previousMonths.get(index);
-                if (dayOfMonth > month.lengthOfMonth()) {
-                    continue;
-                }
-                LocalDate targetDate = month.withDayOfMonth(dayOfMonth);
-                Map<LocalDate, Double> monthMap = previousMaps.get(index);
-                averageTotal += sumRange(monthMap, month.withDayOfMonth(1), targetDate);
-                divisor++;
-            }
-
-            double averageValue = divisor > 0 ? averageTotal / divisor : lastAverage;
-            lastAverage = averageValue;
-            items.add(new ComparisonPointUiModel(
-                    String.format(Locale.getDefault(), "%02d/%02d", currentDate.getDayOfMonth(), currentDate.getMonthValue()),
-                    toStartMillis(currentDate),
-                    currentRunning,
-                    averageValue
-            ));
-        }
-        comparisonPoints.setValue(items);
+        comparisonPoints.setValue(MonthlyComparisonBuilder.build(
+                currentMonth,
+                visibleEnd,
+                latestComparisonCurrent,
+                latestComparisonPrevOne,
+                latestComparisonPrevTwo,
+                latestComparisonPrevThree
+        ));
     }
 
     private void detachComparisonSources() {
@@ -1241,41 +1202,6 @@ public class IncomeExpenseDetailViewModel extends ViewModel {
 
         public double getPrimaryAmount(@NonNull TransactionType type) {
             return type == TransactionType.INCOME ? incomeAmount : expenseAmount;
-        }
-    }
-
-    public static final class ComparisonPointUiModel {
-        @NonNull
-        private final String label;
-        private final long dateMillis;
-        private final double currentAmount;
-        private final double averageAmount;
-
-        public ComparisonPointUiModel(@NonNull String label,
-                                      long dateMillis,
-                                      double currentAmount,
-                                      double averageAmount) {
-            this.label = label;
-            this.dateMillis = dateMillis;
-            this.currentAmount = currentAmount;
-            this.averageAmount = averageAmount;
-        }
-
-        @NonNull
-        public String getLabel() {
-            return label;
-        }
-
-        public long getDateMillis() {
-            return dateMillis;
-        }
-
-        public double getCurrentAmount() {
-            return currentAmount;
-        }
-
-        public double getAverageAmount() {
-            return averageAmount;
         }
     }
 

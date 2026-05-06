@@ -62,7 +62,7 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
     private boolean isComparisonVisible;
     private boolean hasTrendData;
     @Nullable
-    private IncomeExpenseDetailViewModel.ComparisonPointUiModel latestComparisonPoint;
+    private MonthlyComparisonPoint latestComparisonPoint;
 
     @Nullable
     @Override
@@ -249,7 +249,7 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         binding.chartTrend.animateY(700, Easing.EaseInOutQuad);
     }
 
-    private void renderComparisonChart(@Nullable List<IncomeExpenseDetailViewModel.ComparisonPointUiModel> items) {
+    private void renderComparisonChart(@Nullable List<MonthlyComparisonPoint> items) {
         if (items == null || items.isEmpty()) {
             binding.chartComparison.clear();
             binding.chartComparison.invalidate();
@@ -260,18 +260,30 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         }
 
         List<Entry> currentEntries = new ArrayList<>();
+        List<Entry> previousOneEntries = new ArrayList<>();
+        List<Entry> previousTwoEntries = new ArrayList<>();
+        List<Entry> previousThreeEntries = new ArrayList<>();
         List<Entry> averageEntries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
         float maxValue = 0f;
         for (int index = 0; index < items.size(); index++) {
-            IncomeExpenseDetailViewModel.ComparisonPointUiModel item = items.get(index);
+            MonthlyComparisonPoint item = items.get(index);
             currentEntries.add(new Entry(index, (float) item.getCurrentAmount()));
+            previousOneEntries.add(new Entry(index, (float) item.getPreviousOneAmount()));
+            previousTwoEntries.add(new Entry(index, (float) item.getPreviousTwoAmount()));
+            previousThreeEntries.add(new Entry(index, (float) item.getPreviousThreeAmount()));
             averageEntries.add(new Entry(index, (float) item.getAverageAmount()));
             labels.add(item.getLabel());
-            maxValue = Math.max(maxValue, (float) Math.max(item.getCurrentAmount(), item.getAverageAmount()));
+            maxValue = Math.max(maxValue, (float) Math.max(
+                    Math.max(item.getCurrentAmount(), item.getAverageAmount()),
+                    Math.max(
+                            Math.max(item.getPreviousOneAmount(), item.getPreviousTwoAmount()),
+                            item.getPreviousThreeAmount()
+                    )
+            ));
         }
 
-        IncomeExpenseDetailViewModel.ComparisonPointUiModel latestPoint = items.get(items.size() - 1);
+        MonthlyComparisonPoint latestPoint = items.get(items.size() - 1);
         int primaryColor = ContextCompat.getColor(
                 requireContext(),
                 viewModel.getSelectedTransactionType() == TransactionType.INCOME
@@ -280,18 +292,35 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         );
         LineDataSet currentDataSet = new LineDataSet(currentEntries, getString(R.string.statistics_detail_compare_current));
         currentDataSet.setColor(primaryColor);
+        currentDataSet.setMode(LineDataSet.Mode.LINEAR);
         currentDataSet.setDrawCircles(false);
         currentDataSet.setLineWidth(2.8f);
-        currentDataSet.setDrawFilled(true);
-        currentDataSet.setFillColor(primaryColor);
-        currentDataSet.setFillAlpha(24);
         currentDataSet.setDrawValues(false);
+        currentDataSet.setHighlightEnabled(false);
+
+        LineDataSet previousOneDataSet = createHistoricalComparisonDataSet(
+                previousOneEntries,
+                getString(R.string.statistics_detail_compare_previous_one),
+                ContextCompat.getColor(requireContext(), R.color.income_green)
+        );
+        LineDataSet previousTwoDataSet = createHistoricalComparisonDataSet(
+                previousTwoEntries,
+                getString(R.string.statistics_detail_compare_previous_two),
+                ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary)
+        );
+        LineDataSet previousThreeDataSet = createHistoricalComparisonDataSet(
+                previousThreeEntries,
+                getString(R.string.statistics_detail_compare_previous_three),
+                ContextCompat.getColor(requireContext(), R.color.statistics_text_muted)
+        );
 
         LineDataSet averageDataSet = new LineDataSet(averageEntries, getString(R.string.statistics_detail_compare_average));
-        averageDataSet.setColor(ContextCompat.getColor(requireContext(), R.color.statistics_text_muted));
+        averageDataSet.setColor(ContextCompat.getColor(requireContext(), R.color.statistics_text_primary));
+        averageDataSet.setMode(LineDataSet.Mode.LINEAR);
         averageDataSet.setDrawCircles(false);
         averageDataSet.setLineWidth(2f);
         averageDataSet.setDrawValues(false);
+        averageDataSet.setHighlightEnabled(false);
 
         List<Entry> focusEntries = new ArrayList<>();
         focusEntries.add(new Entry(items.size() - 1, (float) latestPoint.getCurrentAmount()));
@@ -306,15 +335,40 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         focusDataSet.setCircleHoleColor(Color.WHITE);
         focusDataSet.setCircleHoleRadius(2.8f);
 
-        binding.chartComparison.setData(new LineData(averageDataSet, currentDataSet, focusDataSet));
+        LineData lineData = new LineData(
+                previousThreeDataSet,
+                previousTwoDataSet,
+                previousOneDataSet,
+                averageDataSet,
+                currentDataSet,
+                focusDataSet
+        );
+        lineData.setHighlightEnabled(false);
+        binding.chartComparison.setData(lineData);
         binding.chartComparison.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
         binding.chartComparison.getXAxis().setLabelCount(Math.min(labels.size(), 6), false);
         binding.chartComparison.getAxisLeft().setAxisMaximum(Math.max(maxValue * 1.12f, 1f));
+        binding.chartComparison.notifyDataSetChanged();
         binding.chartComparison.invalidate();
         binding.chartComparison.animateX(700, Easing.EaseInOutQuad);
         latestComparisonPoint = latestPoint;
         renderComparisonSummary(latestPoint, primaryColor);
         updateComparisonVisibility();
+    }
+
+    @NonNull
+    private LineDataSet createHistoricalComparisonDataSet(@NonNull List<Entry> entries,
+                                                          @NonNull String label,
+                                                          @ColorInt int color) {
+        LineDataSet dataSet = new LineDataSet(entries, label);
+        dataSet.setColor(color);
+        dataSet.setMode(LineDataSet.Mode.LINEAR);
+        dataSet.setDrawCircles(false);
+        dataSet.setLineWidth(1.8f);
+        dataSet.setDrawValues(false);
+        dataSet.setHighlightEnabled(false);
+        dataSet.setForm(Legend.LegendForm.LINE);
+        return dataSet;
     }
 
     private void updateComparisonVisibility() {
@@ -341,7 +395,7 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
                 : R.string.statistics_detail_compare_show));
     }
 
-    private void renderComparisonSummary(@NonNull IncomeExpenseDetailViewModel.ComparisonPointUiModel point,
+    private void renderComparisonSummary(@NonNull MonthlyComparisonPoint point,
                                          @ColorInt int accentColor) {
         binding.layoutComparisonSummary.getRoot().setVisibility(View.VISIBLE);
         binding.layoutComparisonSummary.tvComparisonSummaryDate.setText(formatComparisonDate(point.getDateMillis()));
@@ -395,6 +449,7 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
     }
 
     private void configureLineChart(@NonNull LineChart chart) {
+        chart.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         chart.getDescription().setEnabled(false);
         chart.getLegend().setEnabled(true);
         chart.getLegend().setTextColor(ContextCompat.getColor(requireContext(), R.color.statistics_text_muted));

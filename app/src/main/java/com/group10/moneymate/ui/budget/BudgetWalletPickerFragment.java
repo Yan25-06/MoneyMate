@@ -18,6 +18,7 @@ import com.group10.moneymate.R;
 import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
 import com.group10.moneymate.databinding.FragmentBudgetWalletPickerBinding;
+import com.group10.moneymate.ui.wallet.AddEditWalletFragment;
 import com.group10.moneymate.ui.wallet.WalletViewModel;
 import com.group10.moneymate.utils.CurrencyFormatter;
 
@@ -56,6 +57,7 @@ public class BudgetWalletPickerFragment extends Fragment {
 
         setupRecyclerView();
         setupActions();
+        observeWalletChangedResult();
         observeData();
         renderSelectedWallet();
     }
@@ -106,6 +108,28 @@ public class BudgetWalletPickerFragment extends Fragment {
                     value < 0d ? R.color.expense_red : R.color.statistics_text_primary
             ));
         });
+    }
+
+    private void observeWalletChangedResult() {
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        NavBackStackEntry currentBackStackEntry = navController.getCurrentBackStackEntry();
+        if (currentBackStackEntry == null) {
+            return;
+        }
+        currentBackStackEntry.getSavedStateHandle()
+                .<Boolean>getLiveData(AddEditWalletFragment.RESULT_WALLET_CHANGED)
+                .observe(getViewLifecycleOwner(), changed -> {
+                    if (!Boolean.TRUE.equals(changed)) {
+                        return;
+                    }
+                    binding.rvWallets.scrollToPosition(0);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditWalletFragment.RESULT_WALLET_CHANGED);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditWalletFragment.RESULT_WALLET_CHANGED_ID);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditWalletFragment.RESULT_WALLET_CHANGE_TYPE);
+                });
     }
 
     private void renderSelectedWallet() {

@@ -14,6 +14,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavBackStackEntry;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -91,10 +93,33 @@ public class WalletListFragment extends Fragment {
             binding.tvTotalWalletBalance.setTextColor(requireContext().getColor(
                     value < 0d ? R.color.expense_red : R.color.statistics_text_primary));
         });
+        observeWalletChangedResult();
 
         binding.topAppBar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.fabAddInline.setOnClickListener(v -> Navigation.findNavController(v).navigate(
                 WalletListFragmentDirections.actionWalletListToAddEdit()));
+    }
+
+    private void observeWalletChangedResult() {
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        NavBackStackEntry currentBackStackEntry = navController.getCurrentBackStackEntry();
+        if (currentBackStackEntry == null) {
+            return;
+        }
+        currentBackStackEntry.getSavedStateHandle()
+                .<Boolean>getLiveData(AddEditWalletFragment.RESULT_WALLET_CHANGED)
+                .observe(getViewLifecycleOwner(), changed -> {
+                    if (!Boolean.TRUE.equals(changed)) {
+                        return;
+                    }
+                    binding.rvWallets.scrollToPosition(0);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditWalletFragment.RESULT_WALLET_CHANGED);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditWalletFragment.RESULT_WALLET_CHANGED_ID);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditWalletFragment.RESULT_WALLET_CHANGE_TYPE);
+                });
     }
 
     private void setupInsets() {
@@ -124,8 +149,19 @@ public class WalletListFragment extends Fragment {
                 .setMessage(getString(R.string.delete_wallet_message, wallet.getName()))
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.delete_wallet, (dialogInterface, which) -> {
-                    viewModel.deleteWallet(wallet);
-                    Toast.makeText(requireContext(), R.string.wallet_deleted, Toast.LENGTH_SHORT).show();
+                    viewModel.deleteWallet(wallet, new com.group10.moneymate.data.repository.WalletRepository.WriteCallback() {
+                        @Override
+                        public void onSuccess() {
+                            if (isAdded()) {
+                                Toast.makeText(requireContext(), R.string.wallet_deleted, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onError(@NonNull Throwable throwable) {
+                            showWalletWriteFailed();
+                        }
+                    });
                 })
                 .show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -142,8 +178,19 @@ public class WalletListFragment extends Fragment {
                 .setMessage(getString(R.string.archive_wallet_message, wallet.getName()))
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.archive_wallet, (dialogInterface, which) -> {
-                    viewModel.archiveWallet(wallet);
-                    Toast.makeText(requireContext(), R.string.wallet_archived, Toast.LENGTH_SHORT).show();
+                    viewModel.archiveWallet(wallet, new com.group10.moneymate.data.repository.WalletRepository.WriteCallback() {
+                        @Override
+                        public void onSuccess() {
+                            if (isAdded()) {
+                                Toast.makeText(requireContext(), R.string.wallet_archived, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onError(@NonNull Throwable throwable) {
+                            showWalletWriteFailed();
+                        }
+                    });
                 })
                 .show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -160,14 +207,32 @@ public class WalletListFragment extends Fragment {
                 .setMessage(getString(R.string.restore_wallet_message, wallet.getName()))
                 .setNegativeButton(R.string.common_cancel, null)
                 .setPositiveButton(R.string.restore_wallet, (dialogInterface, which) -> {
-                    viewModel.restoreWallet(wallet);
-                    Toast.makeText(requireContext(), R.string.wallet_restored, Toast.LENGTH_SHORT).show();
+                    viewModel.restoreWallet(wallet, new com.group10.moneymate.data.repository.WalletRepository.WriteCallback() {
+                        @Override
+                        public void onSuccess() {
+                            if (isAdded()) {
+                                Toast.makeText(requireContext(), R.string.wallet_restored, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onError(@NonNull Throwable throwable) {
+                            showWalletWriteFailed();
+                        }
+                    });
                 })
                 .show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
                 .setTextColor(requireContext().getColor(R.color.transfer_blue));
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
                 .setTextColor(requireContext().getColor(R.color.statistics_text_secondary));
+    }
+
+    private void showWalletWriteFailed() {
+        if (!isAdded()) {
+            return;
+        }
+        Toast.makeText(requireContext(), R.string.common_save_failed, Toast.LENGTH_SHORT).show();
     }
 
     @Override

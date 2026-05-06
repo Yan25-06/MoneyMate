@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.TransactionDao;
@@ -47,6 +48,51 @@ public class TransactionRepository {
     public interface DuplicateCheckCallback {
         void onCompleted(@NonNull DuplicateCheckResult result);
         void onError(@NonNull Throwable throwable);
+    }
+
+    public static final class LocalWriteEvent {
+        public static final String TYPE_UPSERT = "upsert";
+        public static final String TYPE_DELETE = "delete";
+
+        @NonNull
+        private final String type;
+        @Nullable
+        private final TransactionEntity transaction;
+        @Nullable
+        private final String transactionId;
+
+        private LocalWriteEvent(@NonNull String type,
+                                @Nullable TransactionEntity transaction,
+                                @Nullable String transactionId) {
+            this.type = type;
+            this.transaction = transaction;
+            this.transactionId = transactionId;
+        }
+
+        @NonNull
+        public static LocalWriteEvent upsert(@NonNull TransactionEntity transaction) {
+            return new LocalWriteEvent(TYPE_UPSERT, transaction, transaction.getId());
+        }
+
+        @NonNull
+        public static LocalWriteEvent delete(@NonNull String transactionId) {
+            return new LocalWriteEvent(TYPE_DELETE, null, transactionId);
+        }
+
+        @NonNull
+        public String getType() {
+            return type;
+        }
+
+        @Nullable
+        public TransactionEntity getTransaction() {
+            return transaction;
+        }
+
+        @Nullable
+        public String getTransactionId() {
+            return transactionId;
+        }
     }
 
     public static final class OcrDuplicateCandidate {
@@ -180,6 +226,7 @@ public class TransactionRepository {
     @Nullable
     private final SyncScheduler syncScheduler;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final MutableLiveData<LocalWriteEvent> localWriteEvents = new MutableLiveData<>();
     // Keep updated_at strictly increasing so MAX(updated_at)-based invalidation
     // cannot miss rapid consecutive writes that land in the same millisecond.
     private static final AtomicLong LAST_WRITE_TIMESTAMP = new AtomicLong(0L);
@@ -206,8 +253,16 @@ public class TransactionRepository {
         return transactionDao.getAllTransactions(userId);
     }
 
+    public LiveData<List<TransactionEntity>> getTransactionsWindow(String userId, int limit) {
+        return transactionDao.getTransactionsWindow(userId, limit);
+    }
+
     public LiveData<Long> getTransactionInvalidationKey(String userId) {
         return transactionDao.getTransactionInvalidationKey(userId);
+    }
+
+    public LiveData<LocalWriteEvent> getLocalWriteEvents() {
+        return localWriteEvents;
     }
 
     public LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit) {
@@ -572,6 +627,11 @@ public class TransactionRepository {
                         transactionDao.upsertLocal(writeTransaction);
                     }
                 });
+                refreshLocalObservers();
+                if (!transactions.isEmpty()) {
+                    TransactionEntity latest = copyTransaction(transactions.get(transactions.size() - 1));
+                    mainHandler.post(() -> localWriteEvents.setValue(LocalWriteEvent.upsert(latest)));
+                }
                 scheduleSyncIfEnabled();
                 notifyWriteSuccess(callback);
             } catch (Exception exception) {
@@ -585,6 +645,9 @@ public class TransactionRepository {
             try {
                 prepareTransactionForWrite(transaction);
                 transactionDao.upsertLocal(transaction);
+                refreshLocalObservers();
+                TransactionEntity writtenTransaction = copyTransaction(transaction);
+                mainHandler.post(() -> localWriteEvents.setValue(LocalWriteEvent.upsert(writtenTransaction)));
                 scheduleSyncIfEnabled();
                 notifyWriteSuccess(callback);
             } catch (Exception exception) {
@@ -601,6 +664,9 @@ public class TransactionRepository {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 transactionDao.softDelete(transaction.getId(), nextWriteTimestamp());
+                refreshLocalObservers();
+                String deletedTransactionId = transaction.getId();
+                mainHandler.post(() -> localWriteEvents.setValue(LocalWriteEvent.delete(deletedTransactionId)));
                 scheduleSyncIfEnabled();
                 notifyWriteSuccess(callback);
             } catch (Exception exception) {
@@ -752,5 +818,10 @@ public class TransactionRepository {
         if (syncScheduler != null) {
             syncScheduler.scheduleOneTimeSyncDebounced();
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private void refreshLocalObservers() {
+        appDatabase.getInvalidationTracker().refreshVersionsSync();
     }
 }

@@ -16,17 +16,15 @@ import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.ui.statistics.MonthlyComparisonBuilder;
+import com.group10.moneymate.ui.statistics.MonthlyComparisonPoint;
 import com.group10.moneymate.utils.Constants;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 public class HomeViewModel extends AndroidViewModel {
 
@@ -48,8 +46,8 @@ public class HomeViewModel extends AndroidViewModel {
     private final LiveData<List<CategorySumDTO>> weeklyTopExpenseCategories;
     private final LiveData<List<CategoryEntity>> expenseCategories;
     private final LiveData<List<CategoryEntity>> incomeCategories;
-    private final MediatorLiveData<List<TrendPointUiModel>> expenseComparisonPoints = new MediatorLiveData<>();
-    private final MediatorLiveData<List<TrendPointUiModel>> incomeComparisonPoints = new MediatorLiveData<>();
+    private final MediatorLiveData<List<MonthlyComparisonPoint>> expenseComparisonPoints = new MediatorLiveData<>();
+    private final MediatorLiveData<List<MonthlyComparisonPoint>> incomeComparisonPoints = new MediatorLiveData<>();
 
     private LiveData<List<DailyTrendDTO>> expenseCurrentSource;
     private LiveData<List<DailyTrendDTO>> expensePrevOneSource;
@@ -193,7 +191,7 @@ public class HomeViewModel extends AndroidViewModel {
         );
     }
 
-    private void observeComparisonSource(@NonNull MediatorLiveData<List<TrendPointUiModel>> target,
+    private void observeComparisonSource(@NonNull MediatorLiveData<List<MonthlyComparisonPoint>> target,
                                          @NonNull LiveData<List<DailyTrendDTO>> source,
                                          @NonNull String type,
                                          int slot) {
@@ -206,57 +204,14 @@ public class HomeViewModel extends AndroidViewModel {
     private void rebuildComparisonPoints(@NonNull String type) {
         LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate visibleEnd = LocalDate.now();
-        int lastVisibleDay = visibleEnd.getDayOfMonth();
-
-        List<DailyTrendDTO> currentSource = getTrendCache(type, 0);
-        List<DailyTrendDTO> prevOneSource = getTrendCache(type, 1);
-        List<DailyTrendDTO> prevTwoSource = getTrendCache(type, 2);
-        List<DailyTrendDTO> prevThreeSource = getTrendCache(type, 3);
-
-        Map<LocalDate, Double> currentMap = toDailyAmountMap(currentSource);
-        Map<LocalDate, Double> prevOneMap = toDailyAmountMap(prevOneSource);
-        Map<LocalDate, Double> prevTwoMap = toDailyAmountMap(prevTwoSource);
-        Map<LocalDate, Double> prevThreeMap = toDailyAmountMap(prevThreeSource);
-
-        List<Map<LocalDate, Double>> previousMaps = new ArrayList<>();
-        previousMaps.add(prevOneMap);
-        previousMaps.add(prevTwoMap);
-        previousMaps.add(prevThreeMap);
-
-        List<LocalDate> previousMonths = new ArrayList<>();
-        previousMonths.add(currentMonth.minusMonths(1));
-        previousMonths.add(currentMonth.minusMonths(2));
-        previousMonths.add(currentMonth.minusMonths(3));
-
-        List<TrendPointUiModel> items = new ArrayList<>();
-        double currentRunning = 0d;
-        double lastAverage = 0d;
-        for (int dayOfMonth = 1; dayOfMonth <= lastVisibleDay; dayOfMonth++) {
-            LocalDate currentDate = currentMonth.withDayOfMonth(dayOfMonth);
-            currentRunning += currentMap.containsKey(currentDate) ? currentMap.get(currentDate) : 0d;
-
-            double averageTotal = 0d;
-            int divisor = 0;
-            for (int index = 0; index < previousMonths.size(); index++) {
-                LocalDate month = previousMonths.get(index);
-                if (dayOfMonth > month.lengthOfMonth()) {
-                    continue;
-                }
-                LocalDate targetDate = month.withDayOfMonth(dayOfMonth);
-                Map<LocalDate, Double> monthMap = previousMaps.get(index);
-                averageTotal += sumRange(monthMap, month.withDayOfMonth(1), targetDate);
-                divisor++;
-            }
-
-            double averageValue = divisor > 0 ? averageTotal / divisor : lastAverage;
-            lastAverage = averageValue;
-            items.add(new TrendPointUiModel(
-                    String.format(Locale.getDefault(), "%02d/%02d", currentDate.getDayOfMonth(), currentDate.getMonthValue()),
-                    toStartMillis(currentDate),
-                    currentRunning,
-                    averageValue
-            ));
-        }
+        List<MonthlyComparisonPoint> items = MonthlyComparisonBuilder.build(
+                currentMonth,
+                visibleEnd,
+                getTrendCache(type, 0),
+                getTrendCache(type, 1),
+                getTrendCache(type, 2),
+                getTrendCache(type, 3)
+        );
 
         if (TYPE_EXPENSE.equals(type)) {
             expenseComparisonPoints.setValue(items);
@@ -319,27 +274,6 @@ public class HomeViewModel extends AndroidViewModel {
     }
 
     @NonNull
-    private Map<LocalDate, Double> toDailyAmountMap(@NonNull List<DailyTrendDTO> source) {
-        Map<LocalDate, Double> result = new HashMap<>();
-        for (DailyTrendDTO dto : source) {
-            result.put(toLocalDate(dto.getPeriodStart()), dto.getTotalAmount());
-        }
-        return result;
-    }
-
-    private double sumRange(@NonNull Map<LocalDate, Double> dailyMap,
-                            @NonNull LocalDate startDate,
-                            @NonNull LocalDate endDate) {
-        double total = 0d;
-        LocalDate cursor = startDate;
-        while (!cursor.isAfter(endDate)) {
-            total += dailyMap.containsKey(cursor) ? dailyMap.get(cursor) : 0d;
-            cursor = cursor.plusDays(1);
-        }
-        return total;
-    }
-
-    @NonNull
     private long[] getCurrentMonthBounds() {
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.DAY_OF_MONTH, 1);
@@ -396,13 +330,6 @@ public class HomeViewModel extends AndroidViewModel {
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
-    }
-
-    @NonNull
-    private LocalDate toLocalDate(long epochMillis) {
-        return Instant.ofEpochMilli(epochMillis)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
     }
 
     private long toStartMillis(@NonNull LocalDate date) {
@@ -464,46 +391,11 @@ public class HomeViewModel extends AndroidViewModel {
         return incomeCategories;
     }
 
-    public LiveData<List<TrendPointUiModel>> getExpenseComparisonPoints() {
+    public LiveData<List<MonthlyComparisonPoint>> getExpenseComparisonPoints() {
         return expenseComparisonPoints;
     }
 
-    public LiveData<List<TrendPointUiModel>> getIncomeComparisonPoints() {
+    public LiveData<List<MonthlyComparisonPoint>> getIncomeComparisonPoints() {
         return incomeComparisonPoints;
-    }
-
-    public static final class TrendPointUiModel {
-        @NonNull
-        private final String label;
-        private final long dateMillis;
-        private final double currentAmount;
-        private final double averageAmount;
-
-        public TrendPointUiModel(@NonNull String label,
-                                 long dateMillis,
-                                 double currentAmount,
-                                 double averageAmount) {
-            this.label = label;
-            this.dateMillis = dateMillis;
-            this.currentAmount = currentAmount;
-            this.averageAmount = averageAmount;
-        }
-
-        @NonNull
-        public String getLabel() {
-            return label;
-        }
-
-        public long getDateMillis() {
-            return dateMillis;
-        }
-
-        public double getCurrentAmount() {
-            return currentAmount;
-        }
-
-        public double getAverageAmount() {
-            return averageAmount;
-        }
     }
 }

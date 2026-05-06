@@ -254,7 +254,7 @@ public class BudgetListFragment extends Fragment {
             return;
         }
         for (WalletEntity wallet : wallets) {
-            if (selectedWalletId.equals(wallet.getId())) {
+            if (selectedWalletId.equals(wallet.getId()) && !wallet.isArchived() && !wallet.isDeleted()) {
                 return;
             }
         }

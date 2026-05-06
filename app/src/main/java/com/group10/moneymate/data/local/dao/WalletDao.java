@@ -94,6 +94,24 @@ public abstract class WalletDao {
             "ORDER BY w.is_archived ASC, w.created_at ASC")
     public abstract LiveData<List<WalletWithBalance>> getAllByUserWithBalance(String userId);
 
+    @Query("SELECT w.*, " +
+            "COALESCE(w.balance, 0) + " +
+            "COALESCE((SELECT SUM(CASE " +
+            "WHEN t.type = 'INCOME' THEN t.amount " +
+            "WHEN t.type = 'EXPENSE' THEN -t.amount " +
+            "WHEN t.type = 'TRANSFER' THEN -t.amount " +
+            "ELSE 0 END) " +
+            "FROM transactions t " +
+            "WHERE t.wallet_id = w.id AND t.is_deleted = 0), 0) + " +
+            "COALESCE((SELECT SUM(t.amount) " +
+            "FROM transactions t " +
+            "WHERE t.to_wallet_id = w.id AND t.type = 'TRANSFER' AND t.is_deleted = 0), 0) " +
+            "AS current_balance " +
+            "FROM wallets w " +
+            "WHERE w.user_id = :userId AND w.is_deleted = 0 " +
+            "ORDER BY w.is_archived ASC, w.created_at ASC")
+    public abstract List<WalletWithBalance> getAllByUserWithBalanceSync(String userId);
+
     @Query("SELECT * FROM wallets WHERE user_id = :userId AND is_deleted = 0 AND is_archived = 0 ORDER BY created_at ASC")
     public abstract LiveData<List<WalletEntity>> getActiveByUser(String userId);
 
@@ -154,6 +172,23 @@ public abstract class WalletDao {
             "FROM wallets w " +
             "WHERE w.user_id = :userId AND w.is_deleted = 0 AND w.is_excluded = 0")
     public abstract LiveData<Double> getTotalBalance(String userId);
+
+    @Query("SELECT COALESCE(SUM(" +
+            "COALESCE(w.balance, 0) + " +
+            "COALESCE((SELECT SUM(CASE " +
+            "WHEN t.type = 'INCOME' THEN t.amount " +
+            "WHEN t.type = 'EXPENSE' THEN -t.amount " +
+            "WHEN t.type = 'TRANSFER' THEN -t.amount " +
+            "ELSE 0 END) " +
+            "FROM transactions t " +
+            "WHERE t.wallet_id = w.id AND t.is_deleted = 0), 0) + " +
+            "COALESCE((SELECT SUM(t.amount) " +
+            "FROM transactions t " +
+            "WHERE t.to_wallet_id = w.id AND t.type = 'TRANSFER' AND t.is_deleted = 0), 0)" +
+            "), 0) " +
+            "FROM wallets w " +
+            "WHERE w.user_id = :userId AND w.is_deleted = 0 AND w.is_excluded = 0")
+    public abstract double getTotalBalanceSync(String userId);
 
     // BUG FIX: dùng SyncStatus.PENDING_UPLOAD (1) thay vì hardcode 1
     @Query("UPDATE wallets SET is_archived = :isArchived, sync_status = 1, updated_at = :updatedAt WHERE id = :id")

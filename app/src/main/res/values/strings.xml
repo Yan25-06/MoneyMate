@@ -448,6 +448,9 @@
     <string name="statistics_detail_compare_show">Hiện biểu đồ</string>
     <string name="statistics_detail_compare_hide">Ẩn biểu đồ</string>
     <string name="statistics_detail_compare_current">Kỳ hiện tại</string>
+    <string name="statistics_detail_compare_previous_one">Tháng trước</string>
+    <string name="statistics_detail_compare_previous_two">2 tháng trước</string>
+    <string name="statistics_detail_compare_previous_three">3 tháng trước</string>
     <string name="statistics_detail_compare_average">Trung bình 3 tháng trước</string>
     <string name="statistics_detail_compare_average_value">Trung bình 3 tháng trước: %1$s</string>
     <string name="statistics_detail_mode_detail">Cơ cấu</string>

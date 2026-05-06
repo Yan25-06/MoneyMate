@@ -28,7 +28,9 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavBackStackEntry;
+import androidx.navigation.NavController;
 import androidx.navigation.NavDirections;
+import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -79,6 +81,11 @@ public class AddEditTransactionFragment extends Fragment {
     public static final String REQUEST_KEY_OCR_DRAFT_SAVED = "ocr_draft_saved";
     public static final String RESULT_KEY_OCR_DRAFT_ID = "ocr_draft_id";
     public static final String RESULT_KEY_SAVED_TRANSACTION_ID = "saved_transaction_id";
+    public static final String RESULT_TRANSACTION_CHANGED = "result_transaction_changed";
+    public static final String RESULT_TRANSACTION_CHANGED_ID = "result_transaction_changed_id";
+    public static final String RESULT_TRANSACTION_CHANGE_TYPE = "result_transaction_change_type";
+    public static final String CHANGE_TYPE_INSERT = "insert";
+    public static final String CHANGE_TYPE_UPDATE = "update";
     public static final String IMAGE_INPUT_SOURCE_CAMERA = "camera";
     public static final String IMAGE_INPUT_SOURCE_GALLERY = "gallery";
 
@@ -134,6 +141,10 @@ public class AddEditTransactionFragment extends Fragment {
     private UUID currentReceiptScanWorkId;
     private ActivityResultLauncher<String> galleryPickerLauncher;
     private final ExecutorService receiptImageExecutor = Executors.newSingleThreadExecutor();
+    @Nullable
+    private String savedTransactionId;
+    @Nullable
+    private String savedTransactionChangeType;
 
     // Edit mode
     private String transactionId = null;
@@ -1207,6 +1218,8 @@ public class AddEditTransactionFragment extends Fragment {
                         new com.group10.moneymate.data.repository.TransactionRepository.WriteCallback() {
                             @Override
                             public void onSuccess() {
+                                savedTransactionId = updated.getId();
+                                savedTransactionChangeType = CHANGE_TYPE_UPDATE;
                                 finishSavingAndNavigateUp();
                             }
 
@@ -1288,6 +1301,8 @@ public class AddEditTransactionFragment extends Fragment {
                 new DebtRepository.WriteCallback() {
                     @Override
                     public void onSuccess() {
+                        savedTransactionId = transaction.getId();
+                        savedTransactionChangeType = CHANGE_TYPE_INSERT;
                         if (isAdded()) {
                             Toast.makeText(requireContext(), R.string.debt_created_success,
                                     Toast.LENGTH_SHORT).show();
@@ -1311,6 +1326,8 @@ public class AddEditTransactionFragment extends Fragment {
                 new DebtRepository.WriteCallback() {
                     @Override
                     public void onSuccess() {
+                        savedTransactionId = transaction.getId();
+                        savedTransactionChangeType = CHANGE_TYPE_INSERT;
                         if (isAdded()) {
                             Toast.makeText(requireContext(), R.string.debt_cashback_success,
                                     Toast.LENGTH_SHORT).show();
@@ -1371,6 +1388,8 @@ public class AddEditTransactionFragment extends Fragment {
         viewModel.insertTransaction(transaction, new TransactionRepository.WriteCallback() {
             @Override
             public void onSuccess() {
+                savedTransactionId = transaction.getId();
+                savedTransactionChangeType = CHANGE_TYPE_INSERT;
                 finishSavingAndNavigateUp();
             }
 
@@ -1446,8 +1465,31 @@ public class AddEditTransactionFragment extends Fragment {
             return;
         }
         dispatchOcrDraftSavedResultIfNeeded();
+        dispatchTransactionChangedResultIfNeeded();
         stopSavingUi();
-        Navigation.findNavController(binding.getRoot()).navigateUp();
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        if (shouldOpenTransactionListAfterSave()) {
+            openTransactionList(navController);
+            return;
+        }
+        navController.navigateUp();
+    }
+
+    private boolean shouldOpenTransactionListAfterSave() {
+        return CHANGE_TYPE_INSERT.equals(savedTransactionChangeType)
+                && TextUtils.isEmpty(ocrDraftId);
+    }
+
+    private void openTransactionList(@NonNull NavController navController) {
+        boolean poppedToExistingList = navController.popBackStack(R.id.transactionListFragment, false);
+        if (poppedToExistingList) {
+            return;
+        }
+        NavOptions navOptions = new NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setPopUpTo(R.id.addEditTransactionFragment, true)
+                .build();
+        navController.navigate(R.id.transactionListFragment, null, navOptions);
     }
 
     private void dispatchOcrDraftSavedResultIfNeeded() {
@@ -1460,6 +1502,20 @@ public class AddEditTransactionFragment extends Fragment {
             result.putString(RESULT_KEY_SAVED_TRANSACTION_ID, originalTransaction.getId());
         }
         getParentFragmentManager().setFragmentResult(REQUEST_KEY_OCR_DRAFT_SAVED, result);
+    }
+
+    private void dispatchTransactionChangedResultIfNeeded() {
+        if (TextUtils.isEmpty(savedTransactionId)) {
+            return;
+        }
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        NavBackStackEntry previous = navController.getPreviousBackStackEntry();
+        if (previous == null) {
+            return;
+        }
+        previous.getSavedStateHandle().set(RESULT_TRANSACTION_CHANGED, true);
+        previous.getSavedStateHandle().set(RESULT_TRANSACTION_CHANGED_ID, savedTransactionId);
+        previous.getSavedStateHandle().set(RESULT_TRANSACTION_CHANGE_TYPE, savedTransactionChangeType);
     }
 
     // ─── Validation ───────────────────────────────────────────────────────────
