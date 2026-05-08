@@ -46,7 +46,7 @@ public class HomeViewModel extends AndroidViewModel {
     private final LiveData<List<CategorySumDTO>> monthlyTopExpenseCategories;
     private final LiveData<List<CategorySumDTO>> weeklyTopExpenseCategories;
     private final LiveData<Long> transactionInvalidationKey;
-    private final MediatorLiveData<Long> transactionRefreshSignal = new MediatorLiveData<>();
+    private final MediatorLiveData<Long> globalRefreshSignal = new MediatorLiveData<>();
     private final LiveData<List<CategoryEntity>> expenseCategories;
     private final LiveData<List<CategoryEntity>> incomeCategories;
     private final MediatorLiveData<List<MonthlyComparisonPoint>> expenseComparisonPoints = new MediatorLiveData<>();
@@ -86,58 +86,63 @@ public class HomeViewModel extends AndroidViewModel {
         userId = container.authRepository.getCurrentUserId();
         transactionRepository = container.transactionRepository;
 
-        wallets = container.walletRepository.getAllByUserWithBalance(userId);
+        transactionInvalidationKey = container.transactionRepository.getTransactionInvalidationKey(userId);
+        globalRefreshSignal.setValue(0L);
+        globalRefreshSignal.addSource(transactionInvalidationKey, value ->
+                globalRefreshSignal.setValue(value != null ? value : 0L));
+        globalRefreshSignal.addSource(transactionRepository.getLocalWriteEvents(), event ->
+                globalRefreshSignal.setValue(System.currentTimeMillis()));
+        globalRefreshSignal.addSource(container.walletRepository.getLocalWriteEvents(), event ->
+                globalRefreshSignal.setValue(System.currentTimeMillis()));
+
         expenseCategories = container.categoryRepository.getCategoriesByType(userId, TYPE_EXPENSE);
         incomeCategories = container.categoryRepository.getCategoriesByType(userId, TYPE_INCOME);
-        totalBalance = container.walletRepository.getTotalBalance(userId);
 
-        transactionInvalidationKey = container.transactionRepository.getTransactionInvalidationKey(userId);
-        transactionRefreshSignal.setValue(0L);
-        transactionRefreshSignal.addSource(transactionInvalidationKey, value ->
-                transactionRefreshSignal.setValue(value != null ? value : 0L));
-        transactionRefreshSignal.addSource(transactionRepository.getLocalWriteEvents(), event ->
-                transactionRefreshSignal.setValue(System.currentTimeMillis()));
+        wallets = Transformations.switchMap(globalRefreshSignal,
+                ignored -> container.walletRepository.getAllByUserWithBalance(userId));
+        totalBalance = Transformations.switchMap(globalRefreshSignal,
+                ignored -> container.walletRepository.getTotalBalance(userId));
 
         long[] currentMonthBounds = getCurrentMonthBounds();
         long[] previousMonthBounds = getPreviousMonthBounds();
         long[] currentWeekBounds = getCurrentWeekBounds();
         long[] previousWeekBounds = getPreviousWeekBounds();
 
-        recentTransactions = Transformations.switchMap(transactionRefreshSignal,
+        recentTransactions = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getRecentTransactions(userId, 4));
 
-        monthlyIncome = Transformations.switchMap(transactionRefreshSignal,
+        monthlyIncome = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getTotalIncome(
                         userId,
                         currentMonthBounds[0],
                         currentMonthBounds[1]
                 ));
-        monthlyExpense = Transformations.switchMap(transactionRefreshSignal,
+        monthlyExpense = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getTotalExpense(
                         userId,
                         currentMonthBounds[0],
                         currentMonthBounds[1]
                 ));
-        previousMonthlyExpense = Transformations.switchMap(transactionRefreshSignal,
+        previousMonthlyExpense = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getTotalExpense(
                         userId,
                         previousMonthBounds[0],
                         previousMonthBounds[1]
                 ));
-        weeklyExpense = Transformations.switchMap(transactionRefreshSignal,
+        weeklyExpense = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getTotalExpense(
                         userId,
                         currentWeekBounds[0],
                         currentWeekBounds[1]
                 ));
-        previousWeeklyExpense = Transformations.switchMap(transactionRefreshSignal,
+        previousWeeklyExpense = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getTotalExpense(
                         userId,
                         previousWeekBounds[0],
                         previousWeekBounds[1]
                 ));
 
-        monthlyTopExpenseCategories = Transformations.switchMap(transactionRefreshSignal,
+        monthlyTopExpenseCategories = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getCategorySums(
                         userId,
                         TYPE_EXPENSE,
@@ -145,7 +150,7 @@ public class HomeViewModel extends AndroidViewModel {
                         currentMonthBounds[1],
                         null
                 ));
-        weeklyTopExpenseCategories = Transformations.switchMap(transactionRefreshSignal,
+        weeklyTopExpenseCategories = Transformations.switchMap(globalRefreshSignal,
                 ignored -> container.transactionRepository.getCategorySums(
                         userId,
                         TYPE_EXPENSE,
@@ -185,7 +190,7 @@ public class HomeViewModel extends AndroidViewModel {
     @NonNull
     private LiveData<List<DailyTrendDTO>> buildPreviousMonthSource(@NonNull String type,
                                                                    @NonNull LocalDate month) {
-        return Transformations.switchMap(transactionRefreshSignal, ignored ->
+        return Transformations.switchMap(globalRefreshSignal, ignored ->
                 transactionRepository.getAmountTrend(
                         userId,
                         type,
@@ -200,7 +205,7 @@ public class HomeViewModel extends AndroidViewModel {
     private LiveData<List<DailyTrendDTO>> createCurrentMonthSource(@NonNull String type,
                                                                    @NonNull LocalDate currentMonth,
                                                                    @NonNull LocalDate visibleEnd) {
-        return Transformations.switchMap(transactionRefreshSignal, ignored ->
+        return Transformations.switchMap(globalRefreshSignal, ignored ->
                 transactionRepository.getAmountTrend(
                         userId,
                         type,
@@ -420,6 +425,6 @@ public class HomeViewModel extends AndroidViewModel {
     }
 
     public void requestRefresh() {
-        transactionRefreshSignal.setValue(System.currentTimeMillis());
+        globalRefreshSignal.setValue(System.currentTimeMillis());
     }
 }
