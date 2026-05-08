@@ -90,10 +90,17 @@ public class CategoryRepository {
         }
     }
 
+    @Nullable
+    private final AppDatabase appDatabase;
     private final CategoryDao categoryDao;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public CategoryRepository(CategoryDao categoryDao) {
+        this(null, categoryDao);
+    }
+
+    public CategoryRepository(@Nullable AppDatabase appDatabase, CategoryDao categoryDao) {
+        this.appDatabase = appDatabase;
         this.categoryDao = categoryDao;
     }
 
@@ -220,6 +227,7 @@ public class CategoryRepository {
                 return;
             }
             categoryDao.upsertLocal(category);
+            refreshLocalObservers();
             postValidationResult(callback, CategoryValidationResult.success());
         });
     }
@@ -233,6 +241,7 @@ public class CategoryRepository {
                 return;
             }
             categoryDao.upsertLocal(category);
+            refreshLocalObservers();
             postValidationResult(callback, CategoryValidationResult.success());
         });
     }
@@ -246,6 +255,7 @@ public class CategoryRepository {
                 return;
             }
             categoryDao.softDeleteCascade(category.getId(), System.currentTimeMillis());
+            refreshLocalObservers();
             postValidationResult(callback, CategoryValidationResult.success());
         });
     }
@@ -253,6 +263,13 @@ public class CategoryRepository {
     private void postValidationResult(@NonNull CategoryValidationCallback callback,
                                       @NonNull CategoryValidationResult result) {
         mainHandler.post(() -> callback.onCompleted(result));
+    }
+
+    @SuppressWarnings("deprecation")
+    private void refreshLocalObservers() {
+        if (appDatabase != null) {
+            appDatabase.getInvalidationTracker().refreshVersionsSync();
+        }
     }
 
     @NonNull

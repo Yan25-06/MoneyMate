@@ -69,7 +69,7 @@ public class AppContainer {
 
                 userRepository = new UserRepository(database.userDao());
                 walletRepository = new WalletRepository(database, database.walletDao());
-                categoryRepository = new CategoryRepository(database.categoryDao());
+                categoryRepository = new CategoryRepository(database, database.categoryDao());
                 transactionRepository = new TransactionRepository(
                                 database,
                                 database.transactionDao(),
