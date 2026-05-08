@@ -31,9 +31,9 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="center"
-            android:src="@drawable/ic_wallet_safe"
+            android:src="@drawable/ic_shield_lock"
             android:contentDescription="@null"
-            app:tint="@color/income_green"
+            app:tint="@color/green_500"
             tools:ignore="ContentDescription" />
     </FrameLayout>
 
