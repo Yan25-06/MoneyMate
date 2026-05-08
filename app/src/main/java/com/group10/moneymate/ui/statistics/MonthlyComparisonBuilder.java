@@ -36,28 +36,19 @@ public final class MonthlyComparisonBuilder {
         LocalDate previousThreeMonth = currentMonth.minusMonths(3);
         int lastVisibleDay = Math.min(visibleEnd.getDayOfMonth(), currentMonth.lengthOfMonth());
 
+        double prevOneFullTotal = runningTotalThroughDay(
+                previousOneMap, previousOneMonth, previousOneMonth.lengthOfMonth());
+        double prevTwoFullTotal = runningTotalThroughDay(
+                previousTwoMap, previousTwoMonth, previousTwoMonth.lengthOfMonth());
+        double prevThreeFullTotal = runningTotalThroughDay(
+                previousThreeMap, previousThreeMonth, previousThreeMonth.lengthOfMonth());
+        double fullMonthAverage = (prevOneFullTotal + prevTwoFullTotal + prevThreeFullTotal) / 3d;
+
         List<MonthlyComparisonPoint> points = new ArrayList<>();
         double currentRunning = 0d;
         for (int dayOfMonth = 1; dayOfMonth <= lastVisibleDay; dayOfMonth++) {
             LocalDate currentDate = currentMonth.withDayOfMonth(dayOfMonth);
             currentRunning += currentMap.getOrDefault(currentDate, 0d);
-
-            double previousOneRunning = runningTotalThroughDay(
-                    previousOneMap,
-                    previousOneMonth,
-                    dayOfMonth
-            );
-            double previousTwoRunning = runningTotalThroughDay(
-                    previousTwoMap,
-                    previousTwoMonth,
-                    dayOfMonth
-            );
-            double previousThreeRunning = runningTotalThroughDay(
-                    previousThreeMap,
-                    previousThreeMonth,
-                    dayOfMonth
-            );
-            double averageRunning = (previousOneRunning + previousTwoRunning + previousThreeRunning) / 3d;
 
             points.add(new MonthlyComparisonPoint(
                     String.format(Locale.getDefault(), "%02d/%02d",
@@ -65,10 +56,7 @@ public final class MonthlyComparisonBuilder {
                             currentDate.getMonthValue()),
                     TimeWindowUtils.startOfDayLocalDateUtc(currentDate),
                     currentRunning,
-                    previousOneRunning,
-                    previousTwoRunning,
-                    previousThreeRunning,
-                    averageRunning
+                    fullMonthAverage
             ));
         }
         return points;

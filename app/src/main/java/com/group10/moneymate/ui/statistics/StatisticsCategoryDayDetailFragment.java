@@ -260,27 +260,15 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         }
 
         List<Entry> currentEntries = new ArrayList<>();
-        List<Entry> previousOneEntries = new ArrayList<>();
-        List<Entry> previousTwoEntries = new ArrayList<>();
-        List<Entry> previousThreeEntries = new ArrayList<>();
         List<Entry> averageEntries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
         float maxValue = 0f;
         for (int index = 0; index < items.size(); index++) {
             MonthlyComparisonPoint item = items.get(index);
             currentEntries.add(new Entry(index, (float) item.getCurrentAmount()));
-            previousOneEntries.add(new Entry(index, (float) item.getPreviousOneAmount()));
-            previousTwoEntries.add(new Entry(index, (float) item.getPreviousTwoAmount()));
-            previousThreeEntries.add(new Entry(index, (float) item.getPreviousThreeAmount()));
             averageEntries.add(new Entry(index, (float) item.getAverageAmount()));
             labels.add(item.getLabel());
-            maxValue = Math.max(maxValue, (float) Math.max(
-                    Math.max(item.getCurrentAmount(), item.getAverageAmount()),
-                    Math.max(
-                            Math.max(item.getPreviousOneAmount(), item.getPreviousTwoAmount()),
-                            item.getPreviousThreeAmount()
-                    )
-            ));
+            maxValue = Math.max(maxValue, (float) Math.max(item.getCurrentAmount(), item.getAverageAmount()));
         }
 
         MonthlyComparisonPoint latestPoint = items.get(items.size() - 1);
@@ -290,6 +278,7 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
                         ? R.color.transfer_blue
                         : R.color.expense_red
         );
+
         LineDataSet currentDataSet = new LineDataSet(currentEntries, getString(R.string.statistics_detail_compare_current));
         currentDataSet.setColor(primaryColor);
         currentDataSet.setMode(LineDataSet.Mode.LINEAR);
@@ -297,22 +286,6 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         currentDataSet.setLineWidth(2.8f);
         currentDataSet.setDrawValues(false);
         currentDataSet.setHighlightEnabled(false);
-
-        LineDataSet previousOneDataSet = createHistoricalComparisonDataSet(
-                previousOneEntries,
-                getString(R.string.statistics_detail_compare_previous_one),
-                ContextCompat.getColor(requireContext(), R.color.income_green)
-        );
-        LineDataSet previousTwoDataSet = createHistoricalComparisonDataSet(
-                previousTwoEntries,
-                getString(R.string.statistics_detail_compare_previous_two),
-                ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary)
-        );
-        LineDataSet previousThreeDataSet = createHistoricalComparisonDataSet(
-                previousThreeEntries,
-                getString(R.string.statistics_detail_compare_previous_three),
-                ContextCompat.getColor(requireContext(), R.color.statistics_text_muted)
-        );
 
         LineDataSet averageDataSet = new LineDataSet(averageEntries, getString(R.string.statistics_detail_compare_average));
         averageDataSet.setColor(ContextCompat.getColor(requireContext(), R.color.statistics_text_primary));
@@ -336,9 +309,6 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         focusDataSet.setCircleHoleRadius(2.8f);
 
         LineData lineData = new LineData(
-                previousThreeDataSet,
-                previousTwoDataSet,
-                previousOneDataSet,
                 averageDataSet,
                 currentDataSet,
                 focusDataSet
@@ -356,20 +326,6 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         updateComparisonVisibility();
     }
 
-    @NonNull
-    private LineDataSet createHistoricalComparisonDataSet(@NonNull List<Entry> entries,
-                                                          @NonNull String label,
-                                                          @ColorInt int color) {
-        LineDataSet dataSet = new LineDataSet(entries, label);
-        dataSet.setColor(color);
-        dataSet.setMode(LineDataSet.Mode.LINEAR);
-        dataSet.setDrawCircles(false);
-        dataSet.setLineWidth(1.8f);
-        dataSet.setDrawValues(false);
-        dataSet.setHighlightEnabled(false);
-        dataSet.setForm(Legend.LegendForm.LINE);
-        return dataSet;
-    }
 
     private void updateComparisonVisibility() {
         boolean showCard = viewModel.shouldShowComparisonCard();

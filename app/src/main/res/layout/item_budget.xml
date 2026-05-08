@@ -33,8 +33,7 @@
                 android:layout_height="22dp"
                 android:layout_gravity="center"
                 android:contentDescription="@string/category"
-                android:src="@drawable/outline_account_balance_wallet_24"
-                app:tint="@color/budget_safe_green" />
+                android:src="@drawable/outline_account_balance_wallet_24" />
         </FrameLayout>
 
         <LinearLayout

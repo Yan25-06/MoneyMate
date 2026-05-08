@@ -46,16 +46,10 @@ public class MonthlyComparisonBuilderTest {
         assertEquals(2, points.size());
         MonthlyComparisonPoint dayOne = points.get(0);
         assertEquals(100d, dayOne.getCurrentAmount(), 0.001d);
-        assertEquals(10d, dayOne.getPreviousOneAmount(), 0.001d);
-        assertEquals(20d, dayOne.getPreviousTwoAmount(), 0.001d);
-        assertEquals(30d, dayOne.getPreviousThreeAmount(), 0.001d);
-        assertEquals(20d, dayOne.getAverageAmount(), 0.001d);
+        assertEquals(30d, dayOne.getAverageAmount(), 0.001d);
 
         MonthlyComparisonPoint dayTwo = points.get(1);
         assertEquals(150d, dayTwo.getCurrentAmount(), 0.001d);
-        assertEquals(15d, dayTwo.getPreviousOneAmount(), 0.001d);
-        assertEquals(30d, dayTwo.getPreviousTwoAmount(), 0.001d);
-        assertEquals(45d, dayTwo.getPreviousThreeAmount(), 0.001d);
         assertEquals(30d, dayTwo.getAverageAmount(), 0.001d);
     }
 
@@ -73,9 +67,6 @@ public class MonthlyComparisonBuilderTest {
         );
 
         MonthlyComparisonPoint dayThirtyOne = points.get(30);
-        assertEquals(300d, dayThirtyOne.getPreviousOneAmount(), 0.001d);
-        assertEquals(310d, dayThirtyOne.getPreviousTwoAmount(), 0.001d);
-        assertEquals(280d, dayThirtyOne.getPreviousThreeAmount(), 0.001d);
         assertEquals((300d + 310d + 280d) / 3d, dayThirtyOne.getAverageAmount(), 0.001d);
     }
 

@@ -362,6 +362,7 @@ public class AddEditBudgetFragment extends Fragment {
                 iconName,
                 categoryName
         ));
+        binding.ivCategoryIcon.setImageTintList(null);
         binding.categoryIconContainer.setBackgroundTintList(
                 android.content.res.ColorStateList.valueOf(
                         ContextCompat.getColor(requireContext(), android.R.color.white)

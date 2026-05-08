@@ -114,6 +114,7 @@ public class BudgetAdapter extends ListAdapter<BudgetUIModel, RecyclerView.ViewH
                     item.getCategoryIcon(),
                     item.getCategoryName()
             ));
+            binding.ivIcon.setImageTintList(null);
             binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
                     MaterialColors.getColor(binding.iconContainer,
                             com.google.android.material.R.attr.colorSurface)
