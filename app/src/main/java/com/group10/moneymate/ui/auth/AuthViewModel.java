@@ -39,7 +39,7 @@ public class AuthViewModel extends AndroidViewModel {
 
     public enum AuthState {
         IDLE, LOADING, AUTHENTICATED, LOGGED_OUT, PASSWORD_RESET_EMAIL_SENT,
-        REGISTERED_NEEDS_PASSCODE, PASSCODE_SAVED, PASSCODE_VERIFIED,
+        REGISTERED_NEEDS_PASSCODE,
         GOOGLE_LINK_REQUIRED,
         ERROR
     }
@@ -150,6 +150,7 @@ public class AuthViewModel extends AndroidViewModel {
         authRepository.register(email, password, trimmedDisplayName, new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                // Sau đăng ký → bắt buộc tạo PIN
                 authState.postValue(AuthState.REGISTERED_NEEDS_PASSCODE);
             }
             @Override
@@ -176,37 +177,11 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
 
-    // ─── Logout / Passcode ────────────────────────────────────────────────────
+    // ─── Logout ───────────────────────────────────────────────────────────────
 
     public void logout() {
         authRepository.signOut();
         authState.setValue(AuthState.LOGGED_OUT);
-    }
-
-    public void savePasscode(String uid, String passcode) {
-        authState.setValue(AuthState.LOADING);
-        authRepository.savePasscode(uid, passcode);
-        authState.setValue(AuthState.PASSCODE_SAVED);
-    }
-
-    public void verifyPasscode(String passcode) {
-        authState.setValue(AuthState.LOADING);
-        authRepository.verifyPasscode(passcode, new AuthRepository.PasscodeCallback() {
-            @Override public void onSuccess(String uid) {
-                authState.postValue(AuthState.PASSCODE_VERIFIED);
-            }
-            @Override public void onError(String message) {
-                if ("wrong_passcode".equals(message))
-                    errorMessage.postValue(getApplication().getString(R.string.error_passcode_wrong));
-                else if ("no_passcode_set".equals(message))
-                    errorMessage.postValue(getApplication().getString(R.string.error_passcode_not_set));
-                else if (!TextUtils.isEmpty(message))
-                    errorMessage.postValue(message);
-                else
-                    errorMessage.postValue(getApplication().getString(R.string.common_save_failed));
-                authState.postValue(AuthState.ERROR);
-            }
-        });
     }
 
     // ─── Error mapping ────────────────────────────────────────────────────────

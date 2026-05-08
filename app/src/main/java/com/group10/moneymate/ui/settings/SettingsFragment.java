@@ -23,7 +23,11 @@ import com.google.android.material.chip.Chip;
 import com.group10.moneymate.BuildConfig;
 import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.FragmentSettingsBinding;
+import com.group10.moneymate.di.AppContainer;
+import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.ui.auth.LoginActivity;
+import com.group10.moneymate.ui.security.PasscodeActivity;
+import com.group10.moneymate.ui.security.SecurityViewModel;
 import com.group10.moneymate.ui.sync.SyncViewModel;
 
 import java.util.Date;
@@ -99,8 +103,7 @@ public class SettingsFragment extends Fragment {
         binding.btnProfile.setOnClickListener(v -> Navigation.findNavController(v).navigate(
                 SettingsFragmentDirections.actionSettingsToProfile()));
 
-        binding.btnSecurity.setOnClickListener(v -> Navigation.findNavController(v).navigate(
-                SettingsFragmentDirections.actionSettingsToPasscode()));
+        binding.btnSecurity.setOnClickListener(v -> openChangePasscode());
 
         binding.btnWallets.setOnClickListener(v -> Navigation.findNavController(v).navigate(
                 SettingsFragmentDirections.actionSettingsToWallets()));
@@ -270,6 +273,30 @@ public class SettingsFragment extends Fragment {
                         ContextCompat.getColor(requireContext(), R.color.statistics_text_secondary));
                 break;
         }
+    }
+
+    // ─── Security ─────────────────────────────────────────────────────────────
+
+    /**
+     * Mở PasscodeActivity ở MODE_CHANGE:
+     *  1. Nhập PIN cũ để xác nhận
+     *  2. Nhập PIN mới
+     *  3. Nhập lại PIN mới để xác nhận
+     *
+     * Nếu chưa thiết lập PIN → mở trực tiếp ở MODE_CREATE.
+     */
+    private void openChangePasscode() {
+        AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
+                .getAppContainer();
+
+        int mode = container.authRepository.isPasscodeEnabled()
+                ? SecurityViewModel.MODE_CHANGE
+                : SecurityViewModel.MODE_CREATE;
+
+        Intent intent = new Intent(requireContext(), PasscodeActivity.class);
+        intent.putExtra(PasscodeActivity.EXTRA_MODE, mode);
+        intent.putExtra(PasscodeActivity.EXTRA_FINISH_TO_HOME, false); // finish() về Settings
+        startActivity(intent);
     }
 
     // ─── Navigation ──────────────────────────────────────────────────────────

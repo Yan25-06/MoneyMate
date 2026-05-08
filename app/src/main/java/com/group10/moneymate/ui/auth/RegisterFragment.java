@@ -1,5 +1,6 @@
 package com.group10.moneymate.ui.auth;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -13,13 +14,15 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
+import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.FragmentRegisterBinding;
+import com.group10.moneymate.ui.security.PasscodeActivity;
+import com.group10.moneymate.ui.security.SecurityViewModel;
 import com.group10.moneymate.utils.ValidationResult;
 
 /**
  * Fragment for user registration.
- * Sau khi đăng ký thành công → điều hướng sang PasscodeFragment (CREATE mode).
- * Không còn hỗ trợ đăng nhập khách.
+ * Sau khi đăng ký thành công → seed category + bắt buộc tạo mã PIN.
  */
 public class RegisterFragment extends Fragment {
 
@@ -57,7 +60,7 @@ public class RegisterFragment extends Fragment {
             setLoading(false);
 
             if (state == AuthViewModel.AuthState.REGISTERED_NEEDS_PASSCODE) {
-                // Đăng ký xong → seed category + chuyển sang tạo passcode
+                // Đăng ký xong → seed category + bắt buộc tạo PIN
                 seedDefaultCategories();
                 navigateToCreatePasscode();
             }
@@ -110,8 +113,11 @@ public class RegisterFragment extends Fragment {
     }
 
     private void navigateToCreatePasscode() {
-        Navigation.findNavController(requireView())
-                .navigate(RegisterFragmentDirections.actionRegisterToPasscode());
+        Intent intent = new Intent(requireContext(), PasscodeActivity.class);
+        intent.putExtra(PasscodeActivity.EXTRA_MODE, SecurityViewModel.MODE_CREATE);
+        intent.putExtra(PasscodeActivity.EXTRA_FINISH_TO_HOME, true);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 
     private void setLoading(boolean isLoading) {

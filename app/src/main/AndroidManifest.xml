@@ -49,10 +49,11 @@
             android:name=".ui.main.HomeActivity"
             android:exported="false" />
 
-        <!-- Passcode lock screen activity -->
+        <!-- Passcode lock screen -->
         <activity
             android:name=".ui.security.PasscodeActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="stateAlwaysHidden" />
 
         <receiver
             android:name=".workers.SyncRetryReceiver"

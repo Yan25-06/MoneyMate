@@ -31,6 +31,7 @@ import com.group10.moneymate.databinding.FragmentLoginBinding;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.ui.main.HomeActivity;
+import com.group10.moneymate.ui.security.PasscodeActivity;
 import com.group10.moneymate.ui.security.SecurityViewModel;
 import com.group10.moneymate.utils.ValidationResult;
 
@@ -134,7 +135,7 @@ public class LoginFragment extends Fragment {
                 .show();
     }
 
-    // Passcode login button
+    // ─── Passcode login button ────────────────────────────────────────────────
 
     private void setupPasscodeLoginButton() {
         AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
@@ -148,14 +149,14 @@ public class LoginFragment extends Fragment {
     }
 
     private void navigateToPasscodeVerify() {
-        Bundle args = new Bundle();
-        args.putInt("passcode_mode", SecurityViewModel.MODE_VERIFY);
-        args.putBoolean("passcode_finish_to_home", true);
-        Navigation.findNavController(requireView())
-                .navigate(R.id.action_login_to_passcode, args);
+        Intent intent = new Intent(requireContext(), PasscodeActivity.class);
+        intent.putExtra(PasscodeActivity.EXTRA_MODE, SecurityViewModel.MODE_VERIFY);
+        intent.putExtra(PasscodeActivity.EXTRA_FINISH_TO_HOME, true);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 
-    // Observers
+    // ─── Observers
 
     private void observeAuthState() {
         viewModel.getAuthState().observe(getViewLifecycleOwner(), state -> {
@@ -171,7 +172,7 @@ public class LoginFragment extends Fragment {
             if (state == AuthViewModel.AuthState.AUTHENTICATED) {
                 ((MoneyMateApplication) requireActivity().getApplication())
                         .getAppContainer().seedDefaultCategoriesIfNeeded();
-                openHomeActivity();
+                navigateAfterLogin();
                 return;
             }
 
@@ -235,6 +236,33 @@ public class LoginFragment extends Fragment {
     }
 
     // Helpers
+
+    /**
+     * Điều hướng sau khi đăng nhập thành công:
+     *  - Chưa thiết lập PIN → bắt buộc tạo PIN trước khi vào app
+     *  - Đã có PIN        → xác nhận PIN để vào app
+     *  - (Không nên xảy ra nếu passcode bị tắt hoàn toàn: vào thẳng Home)
+     */
+    private void navigateAfterLogin() {
+        AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
+                .getAppContainer();
+
+        if (!container.authRepository.isPasscodeEnabled()) {
+            // Chưa có PIN → buộc tạo mới
+            Intent intent = new Intent(requireContext(), PasscodeActivity.class);
+            intent.putExtra(PasscodeActivity.EXTRA_MODE, SecurityViewModel.MODE_CREATE);
+            intent.putExtra(PasscodeActivity.EXTRA_FINISH_TO_HOME, true);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        } else {
+            // Đã có PIN → xác nhận trước khi vào Home
+            Intent intent = new Intent(requireContext(), PasscodeActivity.class);
+            intent.putExtra(PasscodeActivity.EXTRA_MODE, SecurityViewModel.MODE_VERIFY);
+            intent.putExtra(PasscodeActivity.EXTRA_FINISH_TO_HOME, true);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        }
+    }
 
     private void openHomeActivity() {
         Intent intent = new Intent(requireContext(), HomeActivity.class);

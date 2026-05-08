@@ -72,7 +72,7 @@
     <string name="error_password_policy">Mật khẩu tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt</string>
 
     <!-- Passcode titles -->
-    <string name="title_passcode">Mã PIN</string>
+    <string name="title_passcode">Đặt mã PIN mới</string>
     <string name="title_create_passcode">Tạo mã PIN</string>
     <string name="title_confirm_passcode">Xác nhận mã PIN</string>
     <string name="title_enter_passcode">Nhập mã PIN</string>
@@ -81,6 +81,7 @@
     <string name="passcode_subtitle_create">Nhập 6 chữ số để bảo vệ tài khoản của bạn</string>
     <string name="passcode_subtitle_confirm">Nhập lại mã PIN để xác nhận</string>
     <string name="passcode_subtitle_verify">Nhập mã PIN để đăng nhập</string>
+    <string name="passcode_change_verify_hint">Nhập mã PIN hiện tại để xác nhận</string>
 
     <!-- Passcode actions -->
     <string name="btn_passcode_login">Đăng nhập bằng mã PIN</string>
@@ -96,6 +97,11 @@
     <string name="error_passcode_too_easy">Mã PIN quá dễ đoán. Vui lòng chọn mã an toàn hơn</string>
     <string name="error_passcode_wrong_with_attempts">Mã PIN không đúng. Bạn còn %1$d lần thử</string>
     <string name="error_passcode_locked_with_time">Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau %1$d giây hoặc đăng nhập bằng mật khẩu</string>
+
+    <!-- Forgot PIN dialog -->
+    <string name="title_forgot_passcode">Quên mã PIN?</string>
+    <string name="msg_forgot_passcode_enter_password">Nhập mật khẩu tài khoản để xác nhận danh tính. Sau đó bạn có thể tạo mã PIN mới.</string>
+    <string name="btn_confirm">Xác nhận</string>
 
     <!-- Navigation -->
     <string name="home">Trang chủ</string>
