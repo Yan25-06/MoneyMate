@@ -81,6 +81,7 @@
     <string name="passcode_subtitle_create">Nhập 6 chữ số để bảo vệ tài khoản của bạn</string>
     <string name="passcode_subtitle_confirm">Nhập lại mã PIN để xác nhận</string>
     <string name="passcode_subtitle_verify">Nhập mã PIN để đăng nhập</string>
+    <string name="passcode_change_verify_hint">Nhập mã PIN hiện tại để xác nhận</string>
 
     <!-- Passcode actions -->
     <string name="btn_passcode_login">Đăng nhập bằng mã PIN</string>

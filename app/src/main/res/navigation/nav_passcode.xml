@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_passcode"
     app:startDestination="@id/passcodeFragment">
 
@@ -8,15 +9,15 @@
         android:id="@+id/passcodeFragment"
         android:name="com.group10.moneymate.ui.security.PasscodeFragment"
         android:label="@string/title_passcode"
-        app:enterAnim="@anim/slide_in_right"
-        app:exitAnim="@anim/slide_out_left"
-        app:popEnterAnim="@anim/slide_in_left"
-        app:popExitAnim="@anim/slide_out_right">
+        tools:layout="@layout/fragment_passcode">
 
+        <!-- mode: 0=CREATE, 1=CONFIRM, 2=VERIFY, 3=CHANGE -->
         <argument
             android:name="passcode_mode"
             app:argType="integer"
             android:defaultValue="0" />
+
+        <!-- sau khi xác thực xong: true=HomeActivity, false=back -->
         <argument
             android:name="passcode_finish_to_home"
             app:argType="boolean"

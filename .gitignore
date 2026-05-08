@@ -64,3 +64,7 @@ lint-results*
 
 AGENT.md
 .codex/
+.agents/
+
+# graphify
+graphify-out/

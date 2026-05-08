@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- res/drawable/bg_passcode_key.xml -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="@color/statistics_chip_ripple">
+    android:color="#1A16A34A">
 
+    <!-- Mask: hình tròn để ripple bo tròn -->
     <item android:id="@android:id/mask">
         <shape android:shape="oval">
-            <solid android:color="@color/white" />
+            <solid android:color="#FFFFFFFF" />
         </shape>
     </item>
 
+    <!-- Nền mặc định: trong suốt -->
     <item>
         <shape android:shape="oval">
-            <solid android:color="@color/statistics_chip_background" />
+            <solid android:color="@android:color/transparent" />
         </shape>
     </item>
 

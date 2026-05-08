@@ -18,6 +18,7 @@ import com.group10.moneymate.data.repository.SyncMetadataRepository;
 import com.group10.moneymate.data.repository.TransactionRepository;
 import com.group10.moneymate.data.repository.UserRepository;
 import com.group10.moneymate.data.repository.WalletRepository;
+import com.group10.moneymate.utils.AppLifecycleMonitor;
 import com.group10.moneymate.utils.PrefsManager;
 import com.group10.moneymate.workers.SyncScheduler;
 
@@ -39,6 +40,7 @@ public class AppContainer {
         public final SyncScheduler syncScheduler;
         public final ReceiptParserBridge receiptParserBridge;
         public final GeminiService geminiService;
+        public final AppLifecycleMonitor appLifecycleMonitor;
 
         public AppContainer(Context context) {
                 database = AppDatabase.getInstance(context);
@@ -78,6 +80,7 @@ public class AppContainer {
                                 syncScheduler);
                 eventRepository = new EventRepository(database.eventDao());
                 syncMetadataRepository = new SyncMetadataRepository(database.syncMetadataDao());
+                appLifecycleMonitor = new AppLifecycleMonitor(prefsManager);
         }
 
         public void seedDefaultCategoriesIfNeeded() {

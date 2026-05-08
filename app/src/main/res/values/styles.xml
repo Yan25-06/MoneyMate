@@ -142,4 +142,25 @@
         <item name="android:textColor">@color/statistics_text_secondary</item>
     </style>
 
+
+    <!-- Passcode numpad key — nền trong, chữ đen đậm, ripple xanh lá -->
+    <style name="PasscodeKey">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">72dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/budget_text_primary</item>
+        <item name="android:textSize">26sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:background">@drawable/bg_passcode_key</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Variant: nút Quên mã PIN và Backspace — chữ xám -->
+    <style name="PasscodeKey.Muted">
+        <item name="android:textColor">@color/statistics_text_secondary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
 </resources>

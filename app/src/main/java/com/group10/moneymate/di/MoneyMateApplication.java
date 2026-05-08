@@ -27,6 +27,9 @@ public class MoneyMateApplication extends Application implements Configuration.P
         appContainer.bootstrapLocalData();
         appContainer.syncScheduler.ensurePeriodicSync();
 
+        // Đăng ký lifecycle monitor để theo dõi thời gian nền (passcode timeout)
+        registerActivityLifecycleCallbacks(appContainer.appLifecycleMonitor);
+
         // Khởi tạo kênh thông báo và lên lịch alarm
         NotificationHelper.createNotificationChannels(this);
         NotificationScheduler.scheduleAll(this);
