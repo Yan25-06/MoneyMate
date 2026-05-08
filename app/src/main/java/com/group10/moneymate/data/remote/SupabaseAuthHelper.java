@@ -2,6 +2,7 @@ package com.group10.moneymate.data.remote;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -149,10 +150,12 @@ public class SupabaseAuthHelper {
                     fireSuccess(callback, user);
                 }
                 @Override public void onError(int httpCode, String body) {
+                    Log.e("SupabaseAuth", "signInWithEmail FAILED — HTTP " + httpCode + " body: " + body);
                     fireError(callback, mapHttpError(httpCode, body, false));
                 }
             });
         } catch (JSONException e) {
+            Log.e("SupabaseAuth", "signInWithEmail JSON error", e);
             fireError(callback, "auth_login_failed");
         }
     }

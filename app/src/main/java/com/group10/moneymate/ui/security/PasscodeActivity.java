@@ -6,6 +6,8 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.group10.moneymate.R;
+import com.group10.moneymate.di.AppContainer;
+import com.group10.moneymate.di.MoneyMateApplication;
 
 /**
  * Activity độc lập chứa PasscodeFragment.
@@ -25,12 +27,26 @@ public class PasscodeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_passcode);
-
-        // Truyền arguments vào PasscodeFragment qua defaultArgs của NavController
-        // (Fragment tự đọc args từ intent extras trong onViewCreated)
     }
 
-    /** Gọi từ PasscodeFragment khi xác thực thành công và cần chuyển sang HomeActivity. */
+    /**
+     * Gọi từ PasscodeFragment khi xác thực/tạo PIN thành công.
+     * Đánh dấu session đã xác thực rồi chuyển sang HomeActivity.
+     */
+    public void onPasscodeSuccess() {
+        // Đánh dấu session đã xác thực → reset timeout flag
+        AppContainer container = ((MoneyMateApplication) getApplication()).getAppContainer();
+        container.appLifecycleMonitor.markAuthenticated();
+
+        boolean finishToHome = getIntent().getBooleanExtra(EXTRA_FINISH_TO_HOME, false);
+        if (finishToHome) {
+            navigateToHomeAndFinish();
+        } else {
+            finish();
+        }
+    }
+
+    /** Chuyển sang HomeActivity và clear back stack. */
     public void navigateToHomeAndFinish() {
         Intent homeIntent = new Intent(this, com.group10.moneymate.ui.main.HomeActivity.class);
         homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

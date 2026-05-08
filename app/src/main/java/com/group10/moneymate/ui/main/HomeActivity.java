@@ -1,5 +1,6 @@
 package com.group10.moneymate.ui.main;
 
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.View;
@@ -20,6 +21,11 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.ActivityHomeBinding;
+import com.group10.moneymate.di.AppContainer;
+import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.ui.security.PasscodeActivity;
+import com.group10.moneymate.ui.security.SecurityViewModel;
+import com.group10.moneymate.utils.AppLifecycleMonitor;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -62,6 +68,31 @@ public class HomeActivity extends AppCompatActivity {
         setupContentInsets();
 
         requestNotificationPermission();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Kiểm tra background timeout: nếu đã tắt app > 30s → yêu cầu nhập lại passcode
+        checkPasscodeTimeout();
+    }
+
+    /**
+     * Nếu session cần xác thực (timeout sau 30s ngoại tài) → mở PasscodeActivity(VERIFY).
+     * AppLifecycleMonitor.onActivityResumed() đã tự reset sessionAuthenticated khi cần.
+     */
+    private void checkPasscodeTimeout() {
+        AppContainer container = ((MoneyMateApplication) getApplication()).getAppContainer();
+        AppLifecycleMonitor monitor = container.appLifecycleMonitor;
+
+        if (monitor.needsAuthentication() && container.authRepository.isPasscodeEnabled()) {
+            Intent intent = new Intent(this, PasscodeActivity.class);
+            intent.putExtra(PasscodeActivity.EXTRA_MODE, SecurityViewModel.MODE_VERIFY);
+            intent.putExtra(PasscodeActivity.EXTRA_FINISH_TO_HOME, true);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
     }
 
     private void requestNotificationPermission() {

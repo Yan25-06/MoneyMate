@@ -157,7 +157,7 @@ public class AuthRepository {
                 new SupabaseAuthHelper.AuthCallback() {
                     @Override
                     public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
-                        // Login → có thể là thiết bị mới, cần kiểm tra
+                        prefsManager.saveAuthProvider(PrefsManager.PROVIDER_EMAIL);
                         handleAuthSuccess(user, user.displayName != null ? user.displayName : "", true);
                         callback.onSuccess(user);
                     }
@@ -175,6 +175,7 @@ public class AuthRepository {
                 new SupabaseAuthHelper.AuthCallback() {
                     @Override
                     public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                        prefsManager.saveAuthProvider(PrefsManager.PROVIDER_GOOGLE);
                         handleAuthSuccess(user, user.displayName != null ? user.displayName : "", true);
                         callback.onSuccess(user);
                     }
@@ -256,6 +257,132 @@ public class AuthRepository {
                 user.setHashedPasscode(null);
                 user.setUpdatedAt(System.currentTimeMillis());
                 userDao.updateUser(user);
+            }
+        });
+    }
+
+    /**
+     * Xác minh mật khẩu tài khoản để đặt lại PIN.
+     *
+     * Lấy email từ Room (UserEntity) để tránh lỗi currentUser = null sau khi
+     * process restart (SupabaseAuthHelper.currentUser là biến in-memory).
+     *
+     * Flow: signInWithEmail(emailFromRoom, password)
+     *   → Thành công: xóa PIN cũ, callback.onSuccess()
+     *   → Thất bại:   callback.onError(message)
+     */
+    public void verifyPasswordForPinReset(String password, @NonNull final SimpleCallback callback) {
+        // Tài khoản Google không có mật khẩu email
+        if (PrefsManager.PROVIDER_GOOGLE.equals(prefsManager.getAuthProvider())) {
+            callback.onError(
+                "Tài khoản Google không có mật khẩu riêng. " +
+                "Vui lòng đăng xuất và đăng nhập lại bằng Google để xác nhận.");
+            return;
+        }
+
+        String uid = getCurrentUserId();
+        if (android.text.TextUtils.isEmpty(uid)) {
+            callback.onError("Không tìm thấy thông tin tài khoản. Vui lòng đăng xuất và đăng nhập lại.");
+            return;
+        }
+
+        // Lấy email từ Room (persistent) — không phụ thuộc vào session in-memory
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            UserEntity userEntity = userDao.getUserByIdSync(uid);
+
+            // Fallback: thử lấy từ supabase session nếu Room không có
+            String email = null;
+            if (userEntity != null && !android.text.TextUtils.isEmpty(userEntity.getEmail())) {
+                email = userEntity.getEmail();
+            } else {
+                SupabaseAuthHelper.SupabaseUser sessionUser = supabaseAuthHelper.getCurrentUser();
+                if (sessionUser != null && !android.text.TextUtils.isEmpty(sessionUser.email)) {
+                    email = sessionUser.email;
+                }
+            }
+
+            if (android.text.TextUtils.isEmpty(email)) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                        callback.onError("Không tìm thấy email tài khoản. Vui lòng đăng xuất và đăng nhập lại."));
+                return;
+            }
+
+            final String finalEmail = email;
+            android.util.Log.d("PinReset", "Attempting signIn with email: " + finalEmail);
+            supabaseAuthHelper.signInWithEmail(finalEmail, password, new SupabaseAuthHelper.AuthCallback() {
+                @Override
+                public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                    android.util.Log.d("PinReset", "Password verified OK — clearing PIN");
+                    clearPasscode(uid);
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(callback::onSuccess);
+                }
+                @Override
+                public void onError(String errorKey) {
+                    android.util.Log.e("PinReset", "Password verify FAILED — errorKey: " + errorKey);
+                    String userMsg;
+                    switch (errorKey) {
+                        case "auth_wrong_password":
+                            // Có thể là tài khoản Google không có mật khẩu email
+                            // Lưu lại provider để lần sau không hỏi nữa
+                            prefsManager.saveAuthProvider(PrefsManager.PROVIDER_GOOGLE);
+                            userMsg = "Tài khoản này đăng nhập bằng Google và không có mật khẩu riêng.\n\n" +
+                                      "Để đặt lại PIN, hãy đăng xuất và đăng nhập lại bằng Google.";
+                            break;
+                        case "auth_network_timeout":
+                            userMsg = "Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.";
+                            break;
+                        case "auth_user_not_found":
+                            userMsg = "Tài khoản không tồn tại hoặc chưa xác thực email.";
+                            break;
+                        default:
+                            userMsg = "Xác minh thất bại (" + errorKey + "). Vui lòng thử lại.";
+                    }
+                    final String msg = userMsg;
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                            callback.onError(msg));
+                }
+            });
+        });
+    }
+
+    /**
+     * Xác minh tài khoản Google để đặt lại PIN.
+     *
+     * Flow: signInWithGoogle(idToken)
+     *   → Thành công: xóa PIN cũ, callback.onSuccess()
+     *   → Thất bại:   callback.onError(message)
+     */
+    public void verifyGoogleForPinReset(String idToken, @NonNull final SimpleCallback callback) {
+        String uid = getCurrentUserId();
+        if (android.text.TextUtils.isEmpty(uid)) {
+            callback.onError("Không tìm thấy thông tin tài khoản. Vui lòng đăng xuất và đăng nhập lại.");
+            return;
+        }
+
+        supabaseAuthHelper.signInWithGoogle(idToken, new SupabaseAuthHelper.AuthCallback() {
+            @Override
+            public void onSuccess(SupabaseAuthHelper.SupabaseUser user) {
+                // Đăng nhập Google thành công -> xóa PIN cũ
+                clearPasscode(uid);
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(callback::onSuccess);
+            }
+
+            @Override
+            public void onError(String errorKey) {
+                String userMsg;
+                switch (errorKey) {
+                    case "auth_network_timeout":
+                        userMsg = "Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.";
+                        break;
+                    case "auth_user_not_found":
+                        userMsg = "Tài khoản không tồn tại.";
+                        break;
+                    default:
+                        userMsg = "Xác minh Google thất bại. Vui lòng thử lại.";
+                }
+                final String msg = userMsg;
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                        callback.onError(msg));
             }
         });
     }

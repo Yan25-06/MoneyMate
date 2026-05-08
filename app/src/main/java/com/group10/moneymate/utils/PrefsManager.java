@@ -19,6 +19,10 @@ public class PrefsManager {
     private static final String KEY_FAILED_ATTEMPTS  = "passcode_failed_attempts";
     private static final String KEY_LOCKOUT_UNTIL    = "passcode_lockout_until";
     private static final String KEY_LAST_PAUSE_TIME  = "last_pause_time";
+    private static final String KEY_AUTH_PROVIDER    = "auth_provider"; // "email" | "google"
+
+    public static final String PROVIDER_EMAIL  = "email";
+    public static final String PROVIDER_GOOGLE = "google";
 
     private final SharedPreferences prefs;
 
@@ -52,6 +56,15 @@ public class PrefsManager {
 
     public void setLoggedIn(boolean loggedIn) {
         prefs.edit().putBoolean(KEY_LOGGED_IN, loggedIn).apply();
+    }
+
+    public void saveAuthProvider(String provider) {
+        prefs.edit().putString(KEY_AUTH_PROVIDER, provider).apply();
+    }
+
+    /** Trả về "email" hoặc "google". Mặc định "email" nếu chưa lưu. */
+    public String getAuthProvider() {
+        return prefs.getString(KEY_AUTH_PROVIDER, PROVIDER_EMAIL);
     }
 
     // ─── Passcode ─────────────────────────────────────────────────────────────

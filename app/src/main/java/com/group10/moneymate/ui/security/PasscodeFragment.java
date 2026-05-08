@@ -1,28 +1,40 @@
 package com.group10.moneymate.ui.security;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
+import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.FragmentPasscodeBinding;
-import com.group10.moneymate.ui.auth.LoginActivity;
+import com.group10.moneymate.di.AppContainer;
+import com.group10.moneymate.di.MoneyMateApplication;
+import com.group10.moneymate.utils.PrefsManager;
 
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -42,6 +54,13 @@ public class PasscodeFragment extends Fragment {
 
     private ImageView[] dots;
     private CountDownTimer lockoutTimer;
+
+    private GoogleSignInClient googleSignInClient;
+    private final ActivityResultLauncher<Intent> googleSignInLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    this::handleGoogleSignInResult
+            );
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -73,6 +92,7 @@ public class PasscodeFragment extends Fragment {
 
         setupTitle(mode);
         setupNumpad();
+        setupGoogleSignIn();
         observeViewModel();
     }
 
@@ -96,7 +116,6 @@ public class PasscodeFragment extends Fragment {
                 binding.tvSubtitle.setText(R.string.passcode_subtitle_confirm);
                 break;
             case SecurityViewModel.MODE_CHANGE:
-                // Bước đầu của CHANGE: xác nhận PIN cũ
                 binding.tvTitle.setText(R.string.title_enter_passcode);
                 binding.tvSubtitle.setText(R.string.passcode_change_verify_hint);
                 break;
@@ -124,7 +143,7 @@ public class PasscodeFragment extends Fragment {
         // "Quên mã" chỉ hiển thị ở mode VERIFY
         if (mode == SecurityViewModel.MODE_VERIFY || mode == SecurityViewModel.MODE_CHANGE) {
             binding.keyForgot.setVisibility(View.VISIBLE);
-            binding.keyForgot.setOnClickListener(v -> navigateToForgotPin());
+            binding.keyForgot.setOnClickListener(v -> showForgotPinDialog());
         } else {
             binding.keyForgot.setVisibility(View.INVISIBLE);
         }
@@ -133,15 +152,12 @@ public class PasscodeFragment extends Fragment {
     // ─── Observers ────────────────────────────────────────────────────────────
 
     private void observeViewModel() {
-        // Số dots đã lấp đầy
         viewModel.getFilledDots().observe(getViewLifecycleOwner(), count -> updateDots(count, false));
 
-        // Mode thay đổi (CREATE → CONFIRM)
         viewModel.getCurrentMode().observe(getViewLifecycleOwner(), newMode -> {
             if (newMode != null) setupTitle(newMode);
         });
 
-        // UI State
         viewModel.getUiState().observe(getViewLifecycleOwner(), state -> {
             if (state == null) return;
             switch (state) {
@@ -159,11 +175,11 @@ public class PasscodeFragment extends Fragment {
             }
         });
 
-        // Error message
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), msg -> {
             if (msg == null) {
                 binding.tvSubtitle.setText(getSubtitleForMode());
-                binding.tvSubtitle.setTextColor(0xAAFFFFFF);
+                binding.tvSubtitle.setTextColor(
+                        requireContext().getColor(R.color.statistics_text_secondary));
                 return;
             }
             if (msg.equals("mismatch")) {
@@ -173,10 +189,10 @@ public class PasscodeFragment extends Fragment {
                 binding.tvSubtitle.setText(
                         getString(R.string.error_passcode_wrong_with_attempts, remaining));
             }
-            binding.tvSubtitle.setTextColor(0xFFF44336); // red
+            binding.tvSubtitle.setTextColor(
+                    requireContext().getColor(R.color.expense_red));
         });
 
-        // Lockout timestamp
         viewModel.getLockoutUntil().observe(getViewLifecycleOwner(), until -> {
             if (until != null && until > 0) startLockoutCountdown(until);
         });
@@ -185,20 +201,17 @@ public class PasscodeFragment extends Fragment {
     // ─── State handlers ───────────────────────────────────────────────────────
 
     private void onSuccess() {
-        if (finishToHome && requireActivity() instanceof PasscodeActivity) {
-            ((PasscodeActivity) requireActivity()).navigateToHomeAndFinish();
+        if (requireActivity() instanceof PasscodeActivity) {
+            ((PasscodeActivity) requireActivity()).onPasscodeSuccess();
         } else {
             requireActivity().finish();
         }
     }
 
     private void onError() {
-        // Đổi dots sang đỏ
         updateDots(SecurityViewModel.PASSCODE_LENGTH, true);
-        // Shake animation
         binding.llDots.startAnimation(
                 AnimationUtils.loadAnimation(requireContext(), R.anim.shake));
-        // Reset sau 500ms
         binding.llDots.postDelayed(() -> {
             if (binding != null) viewModel.resetAfterError();
         }, 500);
@@ -213,8 +226,8 @@ public class PasscodeFragment extends Fragment {
 
     private void updateDots(int filled, boolean error) {
         for (int i = 0; i < dots.length; i++) {
-            dots[i].setSelected(error);          // selected = error (red)
-            dots[i].setActivated(!error && i < filled); // activated = filled (white)
+            dots[i].setSelected(error);
+            dots[i].setActivated(!error && i < filled);
         }
     }
 
@@ -241,7 +254,7 @@ public class PasscodeFragment extends Fragment {
                 if (binding == null) return;
                 binding.tvLockout.setVisibility(View.GONE);
                 setNumpadEnabled(true);
-                viewModel.init(mode); // reset state
+                viewModel.init(mode);
             }
         }.start();
     }
@@ -260,13 +273,167 @@ public class PasscodeFragment extends Fragment {
         binding.keyBackspace.setEnabled(enabled);
     }
 
-    // ─── Navigation ───────────────────────────────────────────────────────────
+    // ─── Forgot PIN ──────────────────────────────────────────────────────────
 
-    private void navigateToForgotPin() {
-        // Chuyển về LoginActivity (password fallback)
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+    private void setupGoogleSignIn() {
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .requestProfile()
+                .build();
+        googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso);
+    }
+
+    /**
+     * Kiểm tra provider hiện tại.
+     * Nếu là Google -> gọi Google Sign-In để xác thực.
+     * Nếu là Email -> hiện dialog nhập password.
+     */
+    private void showForgotPinDialog() {
+        AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
+                .getAppContainer();
+        String provider = container.prefsManager.getAuthProvider();
+
+        if (PrefsManager.PROVIDER_GOOGLE.equals(provider)) {
+            // Xác thực bằng Google
+            googleSignInClient.signOut().addOnCompleteListener(task -> {
+                Intent signInIntent = googleSignInClient.getSignInIntent();
+                googleSignInLauncher.launch(signInIntent);
+            });
+        } else {
+            // Xác thực bằng Email/Password
+            showPasswordDialog();
+        }
+    }
+
+    private void showPasswordDialog() {
+        EditText passwordInput = new EditText(requireContext());
+        passwordInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        passwordInput.setHint(getString(R.string.hint_password));
+        int paddingDp = (int) (16 * requireContext().getResources().getDisplayMetrics().density);
+        passwordInput.setPadding(paddingDp, paddingDp / 2, paddingDp, paddingDp / 2);
+
+        new MaterialAlertDialogBuilder(requireContext(),
+                com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+                .setTitle(getString(R.string.title_forgot_passcode))
+                .setMessage(getString(R.string.msg_forgot_passcode_enter_password))
+                .setView(passwordInput)
+                .setPositiveButton(getString(R.string.btn_confirm), (dialog, which) -> {
+                    String password = passwordInput.getText().toString().trim();
+                    if (password.isEmpty()) {
+                        Toast.makeText(requireContext(),
+                                getString(R.string.error_auth_wrong_password),
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    verifyPasswordAndResetPin(password);
+                })
+                .setNegativeButton(getString(android.R.string.cancel), null)
+                .setCancelable(true)
+                .show();
+    }
+
+    /**
+     * Gọi AuthRepository.verifyPasswordForPinReset() trên background thread.
+     * Hiện loading state trong khi chờ.
+     */
+    private void verifyPasswordAndResetPin(String password) {
+        // Disable numpad khi đang xử lý
+        setNumpadEnabled(false);
+
+        AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
+                .getAppContainer();
+
+        container.authRepository.verifyPasswordForPinReset(password,
+                new com.group10.moneymate.data.repository.AuthRepository.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (binding == null) return;
+                        requireActivity().runOnUiThread(() -> {
+                            if (binding == null) return;
+                            // Reset lockout
+                            container.prefsManager.setFailedAttempts(0);
+                            container.prefsManager.setLockoutUntil(0L);
+                            // Chuyển sang CREATE mode để nhập PIN mới
+                            mode = SecurityViewModel.MODE_CREATE;
+                            viewModel.init(SecurityViewModel.MODE_CREATE);
+                            setupTitle(SecurityViewModel.MODE_CREATE);
+                            binding.keyForgot.setVisibility(View.INVISIBLE);
+                            setNumpadEnabled(true);
+                            binding.tvLockout.setVisibility(View.GONE);
+                        });
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        if (binding == null) return;
+                        requireActivity().runOnUiThread(() -> {
+                            if (binding == null) return;
+                            setNumpadEnabled(true);
+                            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
+    }
+
+    private void handleGoogleSignInResult(ActivityResult activityResult) {
+        Task<GoogleSignInAccount> task =
+                GoogleSignIn.getSignedInAccountFromIntent(activityResult.getData());
+        try {
+            GoogleSignInAccount account = task.getResult(ApiException.class);
+            String idToken = account.getIdToken();
+            if (idToken != null) {
+                verifyGoogleAndResetPin(idToken);
+            } else {
+                Toast.makeText(requireContext(),
+                        getString(R.string.error_auth_login_failed), Toast.LENGTH_SHORT).show();
+            }
+        } catch (ApiException e) {
+            if (e.getStatusCode() != 12501) { // Lỗi người dùng chủ động hủy
+                Toast.makeText(requireContext(),
+                        getString(R.string.error_auth_login_failed), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void verifyGoogleAndResetPin(String idToken) {
+        setNumpadEnabled(false);
+        AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
+                .getAppContainer();
+
+        container.authRepository.verifyGoogleForPinReset(idToken,
+                new com.group10.moneymate.data.repository.AuthRepository.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (binding == null) return;
+                        requireActivity().runOnUiThread(() -> {
+                            if (binding == null) return;
+                            // Reset lockout
+                            container.prefsManager.setFailedAttempts(0);
+                            container.prefsManager.setLockoutUntil(0L);
+                            // Chuyển sang CREATE mode để nhập PIN mới
+                            mode = SecurityViewModel.MODE_CREATE;
+                            viewModel.init(SecurityViewModel.MODE_CREATE);
+                            setupTitle(SecurityViewModel.MODE_CREATE);
+                            binding.keyForgot.setVisibility(View.INVISIBLE);
+                            setNumpadEnabled(true);
+                            binding.tvLockout.setVisibility(View.GONE);
+                            Toast.makeText(requireContext(),
+                                    "Xác thực thành công. Vui lòng tạo mã PIN mới.",
+                                    Toast.LENGTH_SHORT).show();
+                        });
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        if (binding == null) return;
+                        requireActivity().runOnUiThread(() -> {
+                            if (binding == null) return;
+                            setNumpadEnabled(true);
+                            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
