@@ -82,7 +82,7 @@ public interface TransactionDao {
             "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
             "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
             "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
-            "ORDER BY t.timestamp DESC, t.id DESC LIMIT :limit")
+            "ORDER BY t.timestamp DESC, t.updated_at DESC, t.id DESC LIMIT :limit")
     LiveData<List<TransactionEntity>> getTransactionsWindow(String userId, int limit);
 
     @Query("SELECT COALESCE(MAX(t.updated_at), 0) FROM transactions t " +
@@ -94,7 +94,7 @@ public interface TransactionDao {
             "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
             "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
             "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
-            "ORDER BY t.timestamp DESC LIMIT :limit")
+            "ORDER BY t.timestamp DESC, t.updated_at DESC, t.id DESC LIMIT :limit")
     LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit);
 
     @Query("SELECT t.* FROM transactions t " +

@@ -16,6 +16,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavBackStackEntry;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -42,6 +44,7 @@ import com.group10.moneymate.databinding.FragmentHomeBinding;
 import com.group10.moneymate.ui.main.HomeActivity;
 import com.group10.moneymate.ui.statistics.MonthlyComparisonPoint;
 import com.group10.moneymate.ui.sync.SyncViewModel;
+import com.group10.moneymate.ui.transaction.AddEditTransactionFragment;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
@@ -115,29 +118,35 @@ public class HomeFragment extends Fragment {
         configureCharts();
         bindActions();
         observeData();
+        observeTransactionChangedResult();
         updateReportCardTypeUi();
         updateExpenseRangeModeUi();
         updateTopSpendingModeUi();
         updateTrendMetricUi();
     }
 
-
-    private void observeSyncBanner() {
-        syncViewModel = new ViewModelProvider(requireActivity()).get(SyncViewModel.class);
-        syncViewModel.getSyncState().observe(getViewLifecycleOwner(), state -> {
-            // Hiện banner chỉ khi đang sync VÀ chưa có dữ liệu local
-            // (phát hiện qua viewModel.wallets being empty)
-            // Banner cần được thêm vào fragment_home.xml: id = banner_initial_sync
-            // Xem layout snippet bên dưới.
-        });
-
-        syncViewModel.isSyncing().observe(getViewLifecycleOwner(), isSyncing -> {
-//             Thêm vào fragment_home.xml: View với id banner_initial_sync
-//             if (binding.bannerInitialSync != null) {
-//                 binding.bannerInitialSync.setVisibility(isSyncing ? View.VISIBLE : View.GONE);
-//             }
-        });
+    private void observeTransactionChangedResult() {
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        NavBackStackEntry currentBackStackEntry = navController.getCurrentBackStackEntry();
+        if (currentBackStackEntry == null) {
+            return;
+        }
+        currentBackStackEntry.getSavedStateHandle()
+                .<Boolean>getLiveData(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED)
+                .observe(getViewLifecycleOwner(), changed -> {
+                    if (!Boolean.TRUE.equals(changed)) {
+                        return;
+                    }
+                    viewModel.requestRefresh();
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED_ID);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGE_TYPE);
+                });
     }
+
     private void setupInsets() {
         final int initialTopPadding = binding.layoutBalanceHeader.getPaddingTop();
         ViewCompat.setOnApplyWindowInsetsListener(binding.scrollContent, (v, insets) -> {

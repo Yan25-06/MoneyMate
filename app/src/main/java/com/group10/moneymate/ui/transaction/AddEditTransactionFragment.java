@@ -30,7 +30,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.NavController;
 import androidx.navigation.NavDirections;
-import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -1467,29 +1466,7 @@ public class AddEditTransactionFragment extends Fragment {
         dispatchOcrDraftSavedResultIfNeeded();
         dispatchTransactionChangedResultIfNeeded();
         stopSavingUi();
-        NavController navController = Navigation.findNavController(binding.getRoot());
-        if (shouldOpenTransactionListAfterSave()) {
-            openTransactionList(navController);
-            return;
-        }
-        navController.navigateUp();
-    }
-
-    private boolean shouldOpenTransactionListAfterSave() {
-        return CHANGE_TYPE_INSERT.equals(savedTransactionChangeType)
-                && TextUtils.isEmpty(ocrDraftId);
-    }
-
-    private void openTransactionList(@NonNull NavController navController) {
-        boolean poppedToExistingList = navController.popBackStack(R.id.transactionListFragment, false);
-        if (poppedToExistingList) {
-            return;
-        }
-        NavOptions navOptions = new NavOptions.Builder()
-                .setLaunchSingleTop(true)
-                .setPopUpTo(R.id.addEditTransactionFragment, true)
-                .build();
-        navController.navigate(R.id.transactionListFragment, null, navOptions);
+        Navigation.findNavController(binding.getRoot()).navigateUp();
     }
 
     private void dispatchOcrDraftSavedResultIfNeeded() {

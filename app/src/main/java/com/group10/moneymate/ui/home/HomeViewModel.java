@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
+import androidx.lifecycle.Transformations;
 
 import com.group10.moneymate.data.local.dto.CategorySumDTO;
 import com.group10.moneymate.data.local.dto.DailyTrendDTO;
@@ -44,6 +45,8 @@ public class HomeViewModel extends AndroidViewModel {
     private final LiveData<Double> previousWeeklyExpense;
     private final LiveData<List<CategorySumDTO>> monthlyTopExpenseCategories;
     private final LiveData<List<CategorySumDTO>> weeklyTopExpenseCategories;
+    private final LiveData<Long> transactionInvalidationKey;
+    private final MediatorLiveData<Long> transactionRefreshSignal = new MediatorLiveData<>();
     private final LiveData<List<CategoryEntity>> expenseCategories;
     private final LiveData<List<CategoryEntity>> incomeCategories;
     private final MediatorLiveData<List<MonthlyComparisonPoint>> expenseComparisonPoints = new MediatorLiveData<>();
@@ -88,53 +91,68 @@ public class HomeViewModel extends AndroidViewModel {
         incomeCategories = container.categoryRepository.getCategoriesByType(userId, TYPE_INCOME);
         totalBalance = container.walletRepository.getTotalBalance(userId);
 
-        recentTransactions = container.transactionRepository.getRecentTransactions(userId, 4);
+        transactionInvalidationKey = container.transactionRepository.getTransactionInvalidationKey(userId);
+        transactionRefreshSignal.setValue(0L);
+        transactionRefreshSignal.addSource(transactionInvalidationKey, value ->
+                transactionRefreshSignal.setValue(value != null ? value : 0L));
+        transactionRefreshSignal.addSource(transactionRepository.getLocalWriteEvents(), event ->
+                transactionRefreshSignal.setValue(System.currentTimeMillis()));
 
         long[] currentMonthBounds = getCurrentMonthBounds();
         long[] previousMonthBounds = getPreviousMonthBounds();
         long[] currentWeekBounds = getCurrentWeekBounds();
         long[] previousWeekBounds = getPreviousWeekBounds();
 
-        monthlyIncome = container.transactionRepository.getTotalIncome(
-                userId,
-                currentMonthBounds[0],
-                currentMonthBounds[1]
-        );
-        monthlyExpense = container.transactionRepository.getTotalExpense(
-                userId,
-                currentMonthBounds[0],
-                currentMonthBounds[1]
-        );
-        previousMonthlyExpense = container.transactionRepository.getTotalExpense(
-                userId,
-                previousMonthBounds[0],
-                previousMonthBounds[1]
-        );
-        weeklyExpense = container.transactionRepository.getTotalExpense(
-                userId,
-                currentWeekBounds[0],
-                currentWeekBounds[1]
-        );
-        previousWeeklyExpense = container.transactionRepository.getTotalExpense(
-                userId,
-                previousWeekBounds[0],
-                previousWeekBounds[1]
-        );
+        recentTransactions = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getRecentTransactions(userId, 4));
 
-        monthlyTopExpenseCategories = container.transactionRepository.getCategorySums(
-                userId,
-                TYPE_EXPENSE,
-                currentMonthBounds[0],
-                currentMonthBounds[1],
-                null
-        );
-        weeklyTopExpenseCategories = container.transactionRepository.getCategorySums(
-                userId,
-                TYPE_EXPENSE,
-                currentWeekBounds[0],
-                currentWeekBounds[1],
-                null
-        );
+        monthlyIncome = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getTotalIncome(
+                        userId,
+                        currentMonthBounds[0],
+                        currentMonthBounds[1]
+                ));
+        monthlyExpense = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getTotalExpense(
+                        userId,
+                        currentMonthBounds[0],
+                        currentMonthBounds[1]
+                ));
+        previousMonthlyExpense = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getTotalExpense(
+                        userId,
+                        previousMonthBounds[0],
+                        previousMonthBounds[1]
+                ));
+        weeklyExpense = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getTotalExpense(
+                        userId,
+                        currentWeekBounds[0],
+                        currentWeekBounds[1]
+                ));
+        previousWeeklyExpense = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getTotalExpense(
+                        userId,
+                        previousWeekBounds[0],
+                        previousWeekBounds[1]
+                ));
+
+        monthlyTopExpenseCategories = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getCategorySums(
+                        userId,
+                        TYPE_EXPENSE,
+                        currentMonthBounds[0],
+                        currentMonthBounds[1],
+                        null
+                ));
+        weeklyTopExpenseCategories = Transformations.switchMap(transactionRefreshSignal,
+                ignored -> container.transactionRepository.getCategorySums(
+                        userId,
+                        TYPE_EXPENSE,
+                        currentWeekBounds[0],
+                        currentWeekBounds[1],
+                        null
+                ));
 
         initializeComparisonSources();
     }
@@ -167,28 +185,30 @@ public class HomeViewModel extends AndroidViewModel {
     @NonNull
     private LiveData<List<DailyTrendDTO>> buildPreviousMonthSource(@NonNull String type,
                                                                    @NonNull LocalDate month) {
-        return transactionRepository.getAmountTrend(
-                userId,
-                type,
-                toStartMillis(month.withDayOfMonth(1)),
-                toEndMillis(month.withDayOfMonth(month.lengthOfMonth())),
-                null,
-                DAILY_PERIOD_FORMAT
-        );
+        return Transformations.switchMap(transactionRefreshSignal, ignored ->
+                transactionRepository.getAmountTrend(
+                        userId,
+                        type,
+                        toStartMillis(month.withDayOfMonth(1)),
+                        toEndMillis(month.withDayOfMonth(month.lengthOfMonth())),
+                        null,
+                        DAILY_PERIOD_FORMAT
+                ));
     }
 
     @NonNull
     private LiveData<List<DailyTrendDTO>> createCurrentMonthSource(@NonNull String type,
                                                                    @NonNull LocalDate currentMonth,
                                                                    @NonNull LocalDate visibleEnd) {
-        return transactionRepository.getAmountTrend(
-                userId,
-                type,
-                toStartMillis(currentMonth),
-                toEndMillis(visibleEnd),
-                null,
-                DAILY_PERIOD_FORMAT
-        );
+        return Transformations.switchMap(transactionRefreshSignal, ignored ->
+                transactionRepository.getAmountTrend(
+                        userId,
+                        type,
+                        toStartMillis(currentMonth),
+                        toEndMillis(visibleEnd),
+                        null,
+                        DAILY_PERIOD_FORMAT
+                ));
     }
 
     private void observeComparisonSource(@NonNull MediatorLiveData<List<MonthlyComparisonPoint>> target,
@@ -397,5 +417,9 @@ public class HomeViewModel extends AndroidViewModel {
 
     public LiveData<List<MonthlyComparisonPoint>> getIncomeComparisonPoints() {
         return incomeComparisonPoints;
+    }
+
+    public void requestRefresh() {
+        transactionRefreshSignal.setValue(System.currentTimeMillis());
     }
 }
