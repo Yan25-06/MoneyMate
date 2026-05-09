@@ -356,7 +356,6 @@
     <string name="budget_view_finished">Xem ngân sách đã kết thúc</string>
     <string name="budget_no_active">Không có ngân sách nào đang chạy hôm nay.</string>
     <string name="budget_spent_and_time">Đã chi %1$s • %2$s</string>
-    <string name="budget_how_to_use">Cách sử dụng ngân sách?</string>
     <string name="budget_save_success">Đã lưu ngân sách</string>
     <string name="budget_save_failed">Không thể lưu ngân sách. Vui lòng thử lại.</string>
     <string name="budget_category_picker_title">Chọn danh mục</string>

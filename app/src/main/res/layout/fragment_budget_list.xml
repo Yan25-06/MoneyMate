@@ -463,14 +463,6 @@
             android:textSize="18sp"
             app:backgroundTint="@color/budget_safe_green"
             app:cornerRadius="999dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="@string/budget_how_to_use"
-            android:textColor="@color/budget_safe_green"
-            android:textSize="16sp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

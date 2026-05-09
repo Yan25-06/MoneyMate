@@ -87,11 +87,6 @@ public class SettingsFragment extends Fragment {
                 requireContext(),
                 R.layout.item_moneymate_dropdown_option,
                 dateFormats);
-        binding.dropdownDateFormat.setAdapter(adapter);
-        if (dateFormats.length > 0) {
-            binding.dropdownDateFormat.setText(dateFormats[0], false);
-        }
-        binding.dropdownDateFormat.setOnClickListener(v -> binding.dropdownDateFormat.showDropDown());
         binding.tvVersion.setText(String.format("%s %s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
 
         // Trạng thái mặc định cho sync card — trước khi observe

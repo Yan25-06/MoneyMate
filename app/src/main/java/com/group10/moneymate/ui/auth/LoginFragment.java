@@ -140,12 +140,12 @@ public class LoginFragment extends Fragment {
     private void setupPasscodeLoginButton() {
         AppContainer container = ((MoneyMateApplication) requireActivity().getApplication())
                 .getAppContainer();
-        if (container.authRepository.isPasscodeEnabled()) {
-            binding.btnPasscodeLogin.setVisibility(View.VISIBLE);
-            binding.btnPasscodeLogin.setOnClickListener(v -> navigateToPasscodeVerify());
-        } else {
-            binding.btnPasscodeLogin.setVisibility(View.GONE);
-        }
+//        if (container.authRepository.isPasscodeEnabled()) {
+//            binding.btnPasscodeLogin.setVisibility(View.VISIBLE);
+//            binding.btnPasscodeLogin.setOnClickListener(v -> navigateToPasscodeVerify());
+//        } else {
+//            binding.btnPasscodeLogin.setVisibility(View.GONE);
+//        }
     }
 
     private void navigateToPasscodeVerify() {
@@ -274,7 +274,7 @@ public class LoginFragment extends Fragment {
         binding.pbLoading.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         binding.btnLogin.setEnabled(!isLoading);
         binding.btnGoogleLogin.setEnabled(!isLoading);
-        binding.btnPasscodeLogin.setEnabled(!isLoading);
+//        binding.btnPasscodeLogin.setEnabled(!isLoading);
         binding.etEmail.setEnabled(!isLoading);
         binding.etPassword.setEnabled(!isLoading);
     }

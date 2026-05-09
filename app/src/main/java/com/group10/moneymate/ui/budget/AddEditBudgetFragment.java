@@ -421,7 +421,6 @@ public class AddEditBudgetFragment extends Fragment {
         MaterialDatePicker.Builder<androidx.core.util.Pair<Long, Long>> builder =
                 MaterialDatePicker.Builder.dateRangePicker();
         builder.setTitleText(R.string.date);
-        builder.setTheme(R.style.ThemeOverlay_MoneyMate_MaterialDatePicker);
         builder.setSelection(new androidx.core.util.Pair<>(selectedStartDate, selectedEndDate));
         MaterialDatePicker<androidx.core.util.Pair<Long, Long>> picker = builder.build();
         picker.addOnPositiveButtonClickListener(selection -> {
