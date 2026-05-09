@@ -73,6 +73,7 @@ public class TransactionCategoryPickerFragment extends Fragment {
 
         applyTabSelection();
         viewModel.setSelectedType(selectedType);
+        viewModel.requestRefresh();
     }
 
     private void setupToolbar() {

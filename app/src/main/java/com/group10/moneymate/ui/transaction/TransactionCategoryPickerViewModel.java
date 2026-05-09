@@ -75,6 +75,21 @@ public class TransactionCategoryPickerViewModel extends AndroidViewModel {
         filterState.setValue(new Filter(type, walletId));
     }
 
+    /**
+     * Force a fresh Room query by re-setting filterState with a new Filter instance.
+     * This is needed because when the Fragment is in the backstack (view destroyed),
+     * Room LiveData becomes inactive. If a category write + refreshVersionsSync()
+     * happens while inactive, the invalidation log is cleared but no re-query occurs.
+     * When the Fragment returns, Room returns stale cached data.
+     * Calling this forces switchMap to create a new inner LiveData source.
+     */
+    public void requestRefresh() {
+        Filter current = filterState.getValue();
+        if (current != null) {
+            filterState.setValue(new Filter(current.type, current.walletId));
+        }
+    }
+
     @NonNull
     private List<TransactionCategoryPickerItem> buildDebtItems() {
         List<TransactionCategoryPickerItem> debtItems = new ArrayList<>();

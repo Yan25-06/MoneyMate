@@ -32,6 +32,12 @@ import com.group10.moneymate.utils.LoadingHelper;
 
 public class AddEditWalletFragment extends Fragment {
 
+    public static final String RESULT_WALLET_CHANGED = "result_wallet_changed";
+    public static final String RESULT_WALLET_CHANGED_ID = "result_wallet_changed_id";
+    public static final String RESULT_WALLET_CHANGE_TYPE = "result_wallet_change_type";
+    public static final String CHANGE_TYPE_INSERT = "insert";
+    public static final String CHANGE_TYPE_UPDATE = "update";
+
     private FragmentAddEditWalletBinding binding;
     private WalletViewModel viewModel;
     private String walletId;
@@ -42,6 +48,10 @@ public class AddEditWalletFragment extends Fragment {
     private boolean isFormattingBalance;
     private boolean isSaving;
     private final LoadingHelper loadingHelper = new LoadingHelper();
+    @Nullable
+    private String savedWalletId;
+    @Nullable
+    private String savedWalletChangeType;
 
     @Nullable
     @Override
@@ -273,6 +283,8 @@ public class AddEditWalletFragment extends Fragment {
                     new com.group10.moneymate.data.repository.WalletRepository.WriteCallback() {
                         @Override
                         public void onSuccess() {
+                            savedWalletId = null;
+                            savedWalletChangeType = CHANGE_TYPE_INSERT;
                             finishSavingAndNavigateUp();
                         }
 
@@ -290,6 +302,8 @@ public class AddEditWalletFragment extends Fragment {
                     new com.group10.moneymate.data.repository.WalletRepository.WriteCallback() {
                         @Override
                         public void onSuccess() {
+                            savedWalletId = editingWallet.getId();
+                            savedWalletChangeType = CHANGE_TYPE_UPDATE;
                             finishSavingAndNavigateUp();
                         }
 
@@ -329,7 +343,18 @@ public class AddEditWalletFragment extends Fragment {
         stopSavingUi();
         Toast.makeText(requireContext(), R.string.wallet_saved, Toast.LENGTH_SHORT).show();
         NavController navController = Navigation.findNavController(binding.getRoot());
+        dispatchWalletChangedResult(navController);
         navController.popBackStack();
+    }
+
+    private void dispatchWalletChangedResult(@NonNull NavController navController) {
+        NavBackStackEntry previous = navController.getPreviousBackStackEntry();
+        if (previous == null) {
+            return;
+        }
+        previous.getSavedStateHandle().set(RESULT_WALLET_CHANGED, true);
+        previous.getSavedStateHandle().set(RESULT_WALLET_CHANGED_ID, savedWalletId);
+        previous.getSavedStateHandle().set(RESULT_WALLET_CHANGE_TYPE, savedWalletChangeType);
     }
 
     private WalletType labelToType(String label) {

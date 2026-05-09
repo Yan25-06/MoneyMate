@@ -96,6 +96,7 @@ public class TransactionListFragment extends Fragment {
         configureHeader();
         bindActions();
         observeWalletPickerResult();
+        observeTransactionChangedResult();
         observeReferenceData();
         observeTransactions();
         observePaginationState();
@@ -193,10 +194,11 @@ public class TransactionListFragment extends Fragment {
         String walletId = currentFilterState.getWalletId();
         WalletWithBalance selectedWalletItem = walletId != null ? walletMap.get(walletId) : null;
 
-        if (walletId != null && selectedWalletItem == null) {
-            // Auto-reset stale filter when selected wallet was edited/deleted elsewhere.
+        if (walletId != null && !isSelectableWallet(selectedWalletItem)) {
+            // Auto-reset stale filter when selected wallet is no longer selectable.
             currentFilterState = currentFilterState.withWalletId(null);
             selectedWalletLabel = null;
+            selectedWalletItem = null;
         }
 
         com.group10.moneymate.data.local.entity.WalletEntity selectedWallet =
@@ -212,6 +214,14 @@ public class TransactionListFragment extends Fragment {
                 displayLabel,
                 R.string.statistics_wallet_selector_all
         );
+    }
+
+    private boolean isSelectableWallet(@Nullable WalletWithBalance walletItem) {
+        if (walletItem == null || walletItem.getWallet() == null) {
+            return false;
+        }
+        com.group10.moneymate.data.local.entity.WalletEntity wallet = walletItem.getWallet();
+        return !wallet.isArchived() && !wallet.isDeleted();
     }
 
     private void renderBalance() {
@@ -376,6 +386,28 @@ public class TransactionListFragment extends Fragment {
                     renderScreen();
                     currentBackStackEntry.getSavedStateHandle().remove(RESULT_SELECTED_WALLET_ID);
                     currentBackStackEntry.getSavedStateHandle().remove(RESULT_SELECTED_WALLET_LABEL);
+                });
+    }
+
+    private void observeTransactionChangedResult() {
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        NavBackStackEntry currentBackStackEntry = navController.getCurrentBackStackEntry();
+        if (currentBackStackEntry == null) {
+            return;
+        }
+        currentBackStackEntry.getSavedStateHandle()
+                .<Boolean>getLiveData(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED)
+                .observe(getViewLifecycleOwner(), changed -> {
+                    if (!Boolean.TRUE.equals(changed)) {
+                        return;
+                    }
+                    binding.rvTransactions.scrollToPosition(0);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED_ID);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGE_TYPE);
                 });
     }
 

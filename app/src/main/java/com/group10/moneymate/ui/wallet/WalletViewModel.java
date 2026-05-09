@@ -3,16 +3,20 @@ package com.group10.moneymate.ui.wallet;
 import android.app.Application;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 
 import com.group10.moneymate.data.local.dto.WalletWithBalance;
 import com.group10.moneymate.data.local.entity.WalletEntity;
+import com.group10.moneymate.data.repository.WalletRepository;
 import com.group10.moneymate.di.AppContainer;
 import com.group10.moneymate.di.MoneyMateApplication;
 import com.group10.moneymate.models.SyncStatus;
 import com.group10.moneymate.models.WalletType;
 import com.group10.moneymate.ui.common.DebounceableAndroidViewModel;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,8 +24,8 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
 
     private final AppContainer container;
     private final String userId;
-    private final LiveData<List<WalletWithBalance>> wallets;
-    private final LiveData<Double> totalBalance;
+    private final MediatorLiveData<List<WalletWithBalance>> wallets = new MediatorLiveData<>();
+    private final MediatorLiveData<Double> totalBalance = new MediatorLiveData<>();
 
     public WalletViewModel(@NonNull Application application) {
         super(application);
@@ -30,8 +34,16 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
 
         userId = container.authRepository.getCurrentUserId();
 
-        wallets = container.walletRepository.getAllByUserWithBalance(userId);
-        totalBalance = container.walletRepository.getTotalBalance(userId);
+        LiveData<List<WalletWithBalance>> walletSource =
+                container.walletRepository.getAllByUserWithBalance(userId);
+        LiveData<Double> totalBalanceSource = container.walletRepository.getTotalBalance(userId);
+        wallets.setValue(new ArrayList<>());
+        totalBalance.setValue(0d);
+        wallets.addSource(walletSource, value ->
+                wallets.setValue(value != null ? new ArrayList<>(value) : new ArrayList<>()));
+        totalBalance.addSource(totalBalanceSource, value ->
+                totalBalance.setValue(value != null ? value : 0d));
+        wallets.addSource(container.walletRepository.getLocalWriteEvents(), this::onWalletWritten);
     }
 
     public LiveData<List<WalletWithBalance>> getWallets() {
@@ -40,6 +52,28 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
 
     public LiveData<Double> getTotalBalance() {
         return totalBalance;
+    }
+
+    private void onWalletWritten(@Nullable WalletRepository.LocalWriteEvent event) {
+        if (event == null || !userId.equals(event.getUserId())) {
+            return;
+        }
+        container.walletRepository.loadOverviewSnapshot(
+                userId,
+                new WalletRepository.OverviewSnapshotCallback() {
+                    @Override
+                    public void onSuccess(@NonNull List<WalletWithBalance> walletSnapshot,
+                                          double totalBalanceSnapshot) {
+                        wallets.setValue(new ArrayList<>(walletSnapshot));
+                        totalBalance.setValue(totalBalanceSnapshot);
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable throwable) {
+                        // Room LiveData remains the fallback source if the eager snapshot fails.
+                    }
+                }
+        );
     }
 
     public LiveData<WalletEntity> getWalletById(String walletId) {
@@ -121,11 +155,26 @@ public class WalletViewModel extends DebounceableAndroidViewModel {
         container.walletRepository.softDelete(wallet);
     }
 
+    public void deleteWallet(WalletEntity wallet,
+                             com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
+        container.walletRepository.softDelete(wallet, callback);
+    }
+
     public void archiveWallet(WalletEntity wallet) {
         container.walletRepository.archive(wallet);
     }
 
+    public void archiveWallet(WalletEntity wallet,
+                              com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
+        container.walletRepository.archive(wallet, callback);
+    }
+
     public void restoreWallet(WalletEntity wallet) {
         container.walletRepository.restore(wallet);
+    }
+
+    public void restoreWallet(WalletEntity wallet,
+                              com.group10.moneymate.data.repository.WalletRepository.WriteCallback callback) {
+        container.walletRepository.restore(wallet, callback);
     }
 }

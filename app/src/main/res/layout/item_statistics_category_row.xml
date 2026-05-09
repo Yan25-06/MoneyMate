@@ -38,8 +38,7 @@
                 android:layout_height="20dp"
                 android:layout_gravity="center"
                 android:contentDescription="@null"
-                android:src="@drawable/ic_category_other"
-                app:tint="@color/transfer_blue" />
+                android:src="@drawable/ic_category_other" />
         </com.google.android.material.card.MaterialCardView>
 
         <TextView

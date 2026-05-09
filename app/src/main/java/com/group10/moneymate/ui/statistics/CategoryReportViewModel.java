@@ -42,7 +42,7 @@ public class CategoryReportViewModel extends ViewModel {
     private final MediatorLiveData<Double> averagePerDay = new MediatorLiveData<>(0d);
     private final MediatorLiveData<List<IncomeExpenseDetailViewModel.PeriodSummaryUiModel>> trendSummaries =
             new MediatorLiveData<>(new ArrayList<>());
-    private final MediatorLiveData<List<IncomeExpenseDetailViewModel.ComparisonPointUiModel>> comparisonPoints =
+    private final MediatorLiveData<List<MonthlyComparisonPoint>> comparisonPoints =
             new MediatorLiveData<>(new ArrayList<>());
     private final MediatorLiveData<ChildQuery> childQuery = new MediatorLiveData<>();
     private final LiveData<List<IncomeExpenseDetailViewModel.CategoryBreakdownItemUiModel>> branchCategoryItems;
@@ -160,7 +160,7 @@ public class CategoryReportViewModel extends ViewModel {
         return trendSummaries;
     }
 
-    public LiveData<List<IncomeExpenseDetailViewModel.ComparisonPointUiModel>> getComparisonPoints() {
+    public LiveData<List<MonthlyComparisonPoint>> getComparisonPoints() {
         return comparisonPoints;
     }
 
@@ -436,55 +436,14 @@ public class CategoryReportViewModel extends ViewModel {
 
         LocalDate currentMonth = toLocalDate(currentFilter.getStartDate()).withDayOfMonth(1);
         LocalDate visibleEnd = toLocalDate(boundedEndDate(currentFilter.getEndDate()));
-        int lastVisibleDay = visibleEnd.getDayOfMonth();
-
-        Map<LocalDate, Double> currentMap = toDailyAmountMap(latestComparisonCurrent);
-        Map<LocalDate, Double> prevOneMap = toDailyAmountMap(latestComparisonPrevOne);
-        Map<LocalDate, Double> prevTwoMap = toDailyAmountMap(latestComparisonPrevTwo);
-        Map<LocalDate, Double> prevThreeMap = toDailyAmountMap(latestComparisonPrevThree);
-
-        List<Map<LocalDate, Double>> previousMaps = new ArrayList<>();
-        previousMaps.add(prevOneMap);
-        previousMaps.add(prevTwoMap);
-        previousMaps.add(prevThreeMap);
-
-        List<LocalDate> previousMonths = new ArrayList<>();
-        previousMonths.add(currentMonth.minusMonths(1));
-        previousMonths.add(currentMonth.minusMonths(2));
-        previousMonths.add(currentMonth.minusMonths(3));
-
-        List<IncomeExpenseDetailViewModel.ComparisonPointUiModel> items = new ArrayList<>();
-        double currentRunning = 0d;
-        double lastAverage = 0d;
-        for (int dayOfMonth = 1; dayOfMonth <= lastVisibleDay; dayOfMonth++) {
-            LocalDate currentDate = currentMonth.withDayOfMonth(dayOfMonth);
-            currentRunning += currentMap.containsKey(currentDate) ? currentMap.get(currentDate) : 0d;
-
-            double averageTotal = 0d;
-            int divisor = 0;
-            for (int index = 0; index < previousMonths.size(); index++) {
-                LocalDate month = previousMonths.get(index);
-                if (dayOfMonth > month.lengthOfMonth()) {
-                    continue;
-                }
-                LocalDate targetDate = month.withDayOfMonth(dayOfMonth);
-                Map<LocalDate, Double> monthMap = previousMaps.get(index);
-                averageTotal += sumRange(monthMap, month.withDayOfMonth(1), targetDate);
-                divisor++;
-            }
-
-            double averageValue = divisor > 0 ? averageTotal / divisor : lastAverage;
-            lastAverage = averageValue;
-            items.add(new IncomeExpenseDetailViewModel.ComparisonPointUiModel(
-                    String.format(Locale.getDefault(), "%02d/%02d",
-                            currentDate.getDayOfMonth(),
-                            currentDate.getMonthValue()),
-                    toStartMillis(currentDate),
-                    currentRunning,
-                    averageValue
-            ));
-        }
-        comparisonPoints.setValue(items);
+        comparisonPoints.setValue(MonthlyComparisonBuilder.build(
+                currentMonth,
+                visibleEnd,
+                latestComparisonCurrent,
+                latestComparisonPrevOne,
+                latestComparisonPrevTwo,
+                latestComparisonPrevThree
+        ));
     }
 
     private void detachComparisonSources() {

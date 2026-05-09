@@ -243,7 +243,7 @@ public class BudgetFinishedFragment extends Fragment {
             return;
         }
         for (WalletEntity wallet : wallets) {
-            if (selectedWalletId.equals(wallet.getId()) && !wallet.isArchived()) {
+            if (selectedWalletId.equals(wallet.getId()) && !wallet.isArchived() && !wallet.isDeleted()) {
                 return;
             }
         }

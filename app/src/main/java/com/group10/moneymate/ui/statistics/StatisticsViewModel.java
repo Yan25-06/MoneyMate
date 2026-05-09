@@ -22,7 +22,6 @@ import com.group10.moneymate.utils.DistinctLiveData;
 import com.group10.moneymate.utils.TimeWindowUtils;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -223,7 +222,7 @@ public class StatisticsViewModel extends DebounceableViewModel {
             return null;
         }
         for (WalletEntity wallet : wallets) {
-            if (walletId.equals(wallet.getId())) {
+            if (walletId.equals(wallet.getId()) && !wallet.isArchived() && !wallet.isDeleted()) {
                 return wallet;
             }
         }
@@ -479,7 +478,7 @@ public class StatisticsViewModel extends DebounceableViewModel {
 
         @NonNull
         public static FilterState createCurrentMonth(@Nullable String walletId) {
-            return createMonth(walletId, LocalDate.now(ZoneOffset.UTC));
+            return createMonth(walletId, LocalDate.now());
         }
 
         @Nullable
@@ -571,7 +570,7 @@ public class StatisticsViewModel extends DebounceableViewModel {
         @NonNull
         public static FilterState createForPeriodType(@NonNull PeriodType periodType,
                                                       @Nullable String walletId) {
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
+            LocalDate today = LocalDate.now();
             switch (periodType) {
                 case DAY:
                     return createDay(walletId, today);
@@ -690,22 +689,22 @@ public class StatisticsViewModel extends DebounceableViewModel {
         @NonNull
         private static LocalDate toLocalDate(long epochMillis) {
             if (epochMillis <= 0L || epochMillis == Long.MAX_VALUE) {
-                return LocalDate.now(ZoneOffset.UTC);
+                return LocalDate.now();
             }
-            return TimeWindowUtils.toUtcLocalDate(epochMillis);
+            return TimeWindowUtils.toDeviceLocalDate(epochMillis);
         }
 
         private static long toStartMillis(@NonNull LocalDate date) {
-            return TimeWindowUtils.startOfDayUtc(date);
+            return TimeWindowUtils.startOfDayLocalDateUtc(date);
         }
 
         private static long toEndMillis(@NonNull LocalDate date) {
-            return TimeWindowUtils.startOfDayUtc(date.plusDays(1)) - 1L;
+            return TimeWindowUtils.endOfDayLocalDateUtc(date);
         }
 
         @NonNull
         private static String formatDayLabel(@NonNull LocalDate date) {
-            if (date.equals(LocalDate.now(ZoneOffset.UTC))) {
+            if (date.equals(LocalDate.now())) {
                 return "HÔM NAY";
             }
             return String.format(Locale.getDefault(), "%02d/%02d/%d",
@@ -716,7 +715,7 @@ public class StatisticsViewModel extends DebounceableViewModel {
 
         @NonNull
         private static String formatWeekLabel(@NonNull LocalDate start, @NonNull LocalDate end) {
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
+            LocalDate today = LocalDate.now();
             LocalDate currentWeekStart = today.minusDays(today.getDayOfWeek().getValue() - 1L);
             if (start.equals(currentWeekStart)) {
                 return "TUẦN NÀY";
@@ -730,7 +729,7 @@ public class StatisticsViewModel extends DebounceableViewModel {
 
         @NonNull
         private static String formatMonthLabel(@NonNull LocalDate start) {
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
+            LocalDate today = LocalDate.now();
             if (start.getMonthValue() == today.getMonthValue() && start.getYear() == today.getYear()) {
                 return "THÁNG NÀY";
             }
@@ -739,7 +738,7 @@ public class StatisticsViewModel extends DebounceableViewModel {
 
         @NonNull
         private static String formatQuarterLabel(@NonNull LocalDate start) {
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
+            LocalDate today = LocalDate.now();
             int quarter = ((start.getMonthValue() - 1) / 3) + 1;
             int currentQuarter = ((today.getMonthValue() - 1) / 3) + 1;
             if (quarter == currentQuarter && start.getYear() == today.getYear()) {
@@ -750,7 +749,7 @@ public class StatisticsViewModel extends DebounceableViewModel {
 
         @NonNull
         private static String formatYearLabel(@NonNull LocalDate start) {
-            if (start.getYear() == LocalDate.now(ZoneOffset.UTC).getYear()) {
+            if (start.getYear() == LocalDate.now().getYear()) {
                 return "NĂM NÀY";
             }
             return String.valueOf(start.getYear());

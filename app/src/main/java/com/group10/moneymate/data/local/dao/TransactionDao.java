@@ -77,6 +77,14 @@ public interface TransactionDao {
             "ORDER BY t.timestamp DESC")
     LiveData<List<TransactionEntity>> getAllTransactions(String userId);
 
+    @Query("SELECT t.* FROM transactions t " +
+            "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
+            "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
+            "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
+            "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
+            "ORDER BY t.timestamp DESC, t.updated_at DESC, t.id DESC LIMIT :limit")
+    LiveData<List<TransactionEntity>> getTransactionsWindow(String userId, int limit);
+
     @Query("SELECT COALESCE(MAX(t.updated_at), 0) FROM transactions t " +
             "WHERE t.user_id = :userId")
     LiveData<Long> getTransactionInvalidationKey(String userId);
@@ -86,7 +94,7 @@ public interface TransactionDao {
             "LEFT JOIN wallets tw ON tw.id = t.to_wallet_id " +
             "WHERE t.user_id = :userId AND t.is_deleted = 0 " +
             "AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) " +
-            "ORDER BY t.timestamp DESC LIMIT :limit")
+            "ORDER BY t.timestamp DESC, t.updated_at DESC, t.id DESC LIMIT :limit")
     LiveData<List<TransactionEntity>> getRecentTransactions(String userId, int limit);
 
     @Query("SELECT t.* FROM transactions t " +
@@ -255,7 +263,7 @@ public interface TransactionDao {
                                                String periodLabel);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
+            "strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END), 0.0) AS totalIncome, " +
             "COALESCE(SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END), 0.0) AS totalExpense, " +
             "COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount WHEN t.type = 'EXPENSE' THEN -t.amount ELSE 0 END), 0.0) AS netAmount, " +
@@ -268,7 +276,7 @@ public interface TransactionDao {
             "AND t.sync_status != 2 " +
             "AND t.type != 'TRANSFER' " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
+            "GROUP BY strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<NetIncomeDTO>> getNetIncomeTrend(String userId,
                                                    long startDate,
@@ -415,7 +423,7 @@ public interface TransactionDao {
                                                                             String categoryId);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
+            "strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -426,7 +434,7 @@ public interface TransactionDao {
             "AND t.sync_status != 2 " +
             "AND t.type = :type " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
+            "GROUP BY strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
                                                  String type,
@@ -436,7 +444,7 @@ public interface TransactionDao {
                                                  String periodFormat);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
+            "strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -448,7 +456,7 @@ public interface TransactionDao {
             "AND t.type = :type " +
             "AND t.category_id = :categoryId " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
+            "GROUP BY strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getCategoryAmountTrend(String userId,
                                                          String type,
@@ -459,7 +467,7 @@ public interface TransactionDao {
                                                          String periodFormat);
 
     @Query("SELECT MIN(t.timestamp) AS periodStart, " +
-            "CAST((CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) AS TEXT) AS periodLabel, " +
+            "strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') AS periodLabel, " +
             "COALESCE(SUM(t.amount), 0.0) AS totalAmount, " +
             "COUNT(t.id) AS transactionCount " +
             "FROM transactions t " +
@@ -472,7 +480,7 @@ public interface TransactionDao {
             "AND t.type = :type " +
             "AND (c.id = :parentCategoryId OR c.parent_id = :parentCategoryId) " +
             "AND (:walletId IS NULL OR t.wallet_id = :walletId) " +
-            "GROUP BY (CASE WHEN :periodFormat = '%Y-%m' THEN (t.timestamp / 2592000000) ELSE (t.timestamp / 86400000) END) " +
+            "GROUP BY strftime(:periodFormat, t.timestamp / 1000, 'unixepoch', 'localtime') " +
             "ORDER BY MIN(t.timestamp) ASC")
     LiveData<List<DailyTrendDTO>> getParentCategoryBranchAmountTrend(String userId,
                                                                      String type,

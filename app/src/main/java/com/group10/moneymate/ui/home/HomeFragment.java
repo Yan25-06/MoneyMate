@@ -16,6 +16,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavBackStackEntry;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -40,7 +42,9 @@ import com.group10.moneymate.data.local.entity.CategoryEntity;
 import com.group10.moneymate.data.local.entity.TransactionEntity;
 import com.group10.moneymate.databinding.FragmentHomeBinding;
 import com.group10.moneymate.ui.main.HomeActivity;
+import com.group10.moneymate.ui.statistics.MonthlyComparisonPoint;
 import com.group10.moneymate.ui.sync.SyncViewModel;
+import com.group10.moneymate.ui.transaction.AddEditTransactionFragment;
 import com.group10.moneymate.utils.Constants;
 import com.group10.moneymate.utils.CurrencyFormatter;
 import com.group10.moneymate.utils.IconProvider;
@@ -75,8 +79,8 @@ public class HomeFragment extends Fragment {
     private List<CategorySumDTO> weeklyTopCategories = new ArrayList<>();
     private List<TransactionEntity> recentTransactions = new ArrayList<>();
     private List<WalletWithBalance> walletItems = new ArrayList<>();
-    private List<HomeViewModel.TrendPointUiModel> expenseTrendPoints = new ArrayList<>();
-    private List<HomeViewModel.TrendPointUiModel> incomeTrendPoints = new ArrayList<>();
+    private List<MonthlyComparisonPoint> expenseTrendPoints = new ArrayList<>();
+    private List<MonthlyComparisonPoint> incomeTrendPoints = new ArrayList<>();
 
     private double currentTotalBalance = 0.0;
     private double currentMonthExpense = 0.0;
@@ -114,29 +118,35 @@ public class HomeFragment extends Fragment {
         configureCharts();
         bindActions();
         observeData();
+        observeTransactionChangedResult();
         updateReportCardTypeUi();
         updateExpenseRangeModeUi();
         updateTopSpendingModeUi();
         updateTrendMetricUi();
     }
 
-
-    private void observeSyncBanner() {
-        syncViewModel = new ViewModelProvider(requireActivity()).get(SyncViewModel.class);
-        syncViewModel.getSyncState().observe(getViewLifecycleOwner(), state -> {
-            // Hiện banner chỉ khi đang sync VÀ chưa có dữ liệu local
-            // (phát hiện qua viewModel.wallets being empty)
-            // Banner cần được thêm vào fragment_home.xml: id = banner_initial_sync
-            // Xem layout snippet bên dưới.
-        });
-
-        syncViewModel.isSyncing().observe(getViewLifecycleOwner(), isSyncing -> {
-//             Thêm vào fragment_home.xml: View với id banner_initial_sync
-//             if (binding.bannerInitialSync != null) {
-//                 binding.bannerInitialSync.setVisibility(isSyncing ? View.VISIBLE : View.GONE);
-//             }
-        });
+    private void observeTransactionChangedResult() {
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        NavBackStackEntry currentBackStackEntry = navController.getCurrentBackStackEntry();
+        if (currentBackStackEntry == null) {
+            return;
+        }
+        currentBackStackEntry.getSavedStateHandle()
+                .<Boolean>getLiveData(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED)
+                .observe(getViewLifecycleOwner(), changed -> {
+                    if (!Boolean.TRUE.equals(changed)) {
+                        return;
+                    }
+                    viewModel.requestRefresh();
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGED_ID);
+                    currentBackStackEntry.getSavedStateHandle()
+                            .remove(AddEditTransactionFragment.RESULT_TRANSACTION_CHANGE_TYPE);
+                });
     }
+
     private void setupInsets() {
         final int initialTopPadding = binding.layoutBalanceHeader.getPaddingTop();
         ViewCompat.setOnApplyWindowInsetsListener(binding.scrollContent, (v, insets) -> {
@@ -505,7 +515,7 @@ public class HomeFragment extends Fragment {
         if (binding == null) {
             return;
         }
-        List<HomeViewModel.TrendPointUiModel> points = trendMetric == TrendMetric.EXPENSE
+        List<MonthlyComparisonPoint> points = trendMetric == TrendMetric.EXPENSE
                 ? expenseTrendPoints
                 : incomeTrendPoints;
         if (points == null || points.isEmpty()) {
@@ -521,36 +531,33 @@ public class HomeFragment extends Fragment {
         float maxValue = 0f;
 
         for (int index = 0; index < points.size(); index++) {
-            HomeViewModel.TrendPointUiModel point = points.get(index);
+            MonthlyComparisonPoint point = points.get(index);
             currentEntries.add(new Entry(index, (float) point.getCurrentAmount()));
             averageEntries.add(new Entry(index, (float) point.getAverageAmount()));
             labels.add(point.getLabel());
             maxValue = Math.max(maxValue, (float) Math.max(point.getCurrentAmount(), point.getAverageAmount()));
         }
 
-        HomeViewModel.TrendPointUiModel latestPoint = points.get(points.size() - 1);
+        MonthlyComparisonPoint latestPoint = points.get(points.size() - 1);
         @ColorInt int primaryColor = ContextCompat.getColor(requireContext(),
                 trendMetric == TrendMetric.EXPENSE ? R.color.expense_red : R.color.transfer_blue);
-        @ColorInt int averageColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_muted);
+        @ColorInt int averageColor = ContextCompat.getColor(requireContext(), R.color.statistics_text_primary);
 
         LineDataSet currentDataSet = new LineDataSet(currentEntries, getString(R.string.home_trend_legend_current));
         currentDataSet.setColor(primaryColor);
         currentDataSet.setLineWidth(3f);
         currentDataSet.setDrawCircles(false);
         currentDataSet.setDrawValues(false);
-        currentDataSet.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
-        currentDataSet.setDrawFilled(true);
-        currentDataSet.setFillDrawable(ContextCompat.getDrawable(requireContext(),
-                trendMetric == TrendMetric.EXPENSE
-                        ? R.drawable.bg_statistics_compare_fill_red
-                        : R.drawable.bg_statistics_compare_fill_blue));
+        currentDataSet.setHighlightEnabled(false);
+        currentDataSet.setMode(LineDataSet.Mode.LINEAR);
 
         LineDataSet averageDataSet = new LineDataSet(averageEntries, getString(R.string.home_trend_legend_average));
         averageDataSet.setColor(averageColor);
-        averageDataSet.setLineWidth(2.4f);
+        averageDataSet.setLineWidth(2.2f);
         averageDataSet.setDrawCircles(false);
         averageDataSet.setDrawValues(false);
-        averageDataSet.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
+        averageDataSet.setHighlightEnabled(false);
+        averageDataSet.setMode(LineDataSet.Mode.LINEAR);
 
         List<Entry> focusEntries = new ArrayList<>();
         focusEntries.add(new Entry(points.size() - 1, (float) latestPoint.getCurrentAmount()));
@@ -563,16 +570,24 @@ public class HomeFragment extends Fragment {
         focusDataSet.setDrawValues(false);
         focusDataSet.setLineWidth(0f);
 
-        binding.chartTrendReport.setData(new LineData(averageDataSet, currentDataSet, focusDataSet));
+        LineData lineData = new LineData(
+                averageDataSet,
+                currentDataSet,
+                focusDataSet
+        );
+        lineData.setHighlightEnabled(false);
+        binding.chartTrendReport.setData(lineData);
         binding.chartTrendReport.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
         binding.chartTrendReport.getXAxis().setLabelCount(Math.min(labels.size(), 6), false);
         binding.chartTrendReport.getAxisLeft().setAxisMaximum(Math.max(maxValue * 1.12f, 1f));
+        binding.chartTrendReport.notifyDataSetChanged();
         binding.chartTrendReport.invalidate();
         binding.chartTrendReport.animateX(700, Easing.EaseInOutQuad);
         renderTrendSummary(latestPoint, primaryColor);
     }
 
-    private void renderTrendSummary(@NonNull HomeViewModel.TrendPointUiModel point, @ColorInt int accentColor) {
+
+    private void renderTrendSummary(@NonNull MonthlyComparisonPoint point, @ColorInt int accentColor) {
         binding.layoutTrendSummary.getRoot().setVisibility(View.VISIBLE);
         binding.layoutTrendSummary.tvComparisonSummaryDate.setText(formatComparisonDate(point.getDateMillis()));
         binding.layoutTrendSummary.tvComparisonSummaryCurrentValue.setText(
@@ -700,6 +715,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void configureTrendChart(@NonNull LineChart chart) {
+        chart.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         chart.getDescription().setEnabled(false);
         chart.getLegend().setEnabled(false);
         chart.setNoDataText(getString(R.string.statistics_no_data));

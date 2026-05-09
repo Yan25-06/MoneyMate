@@ -16,6 +16,13 @@ public class PrefsManager {
     private static final String KEY_PASSCODE_HASH    = "passcode_hash";
     private static final String KEY_PASSCODE_UID     = "passcode_uid";
     private static final String KEY_PASSCODE_ENABLED = "passcode_enabled";
+    private static final String KEY_FAILED_ATTEMPTS  = "passcode_failed_attempts";
+    private static final String KEY_LOCKOUT_UNTIL    = "passcode_lockout_until";
+    private static final String KEY_LAST_PAUSE_TIME  = "last_pause_time";
+    private static final String KEY_AUTH_PROVIDER    = "auth_provider"; // "email" | "google"
+
+    public static final String PROVIDER_EMAIL  = "email";
+    public static final String PROVIDER_GOOGLE = "google";
 
     private final SharedPreferences prefs;
 
@@ -49,6 +56,15 @@ public class PrefsManager {
 
     public void setLoggedIn(boolean loggedIn) {
         prefs.edit().putBoolean(KEY_LOGGED_IN, loggedIn).apply();
+    }
+
+    public void saveAuthProvider(String provider) {
+        prefs.edit().putString(KEY_AUTH_PROVIDER, provider).apply();
+    }
+
+    /** Trả về "email" hoặc "google". Mặc định "email" nếu chưa lưu. */
+    public String getAuthProvider() {
+        return prefs.getString(KEY_AUTH_PROVIDER, PROVIDER_EMAIL);
     }
 
     // ─── Passcode ─────────────────────────────────────────────────────────────
@@ -97,6 +113,33 @@ public class PrefsManager {
     public boolean isPasscodeEnabled() {
         return prefs.getBoolean(KEY_PASSCODE_ENABLED, false)
                 && prefs.getString(KEY_PASSCODE_HASH, null) != null;
+    }
+
+    /** Số lần nhập sai liên tiếp hiện tại. */
+    public int getFailedAttempts() {
+        return prefs.getInt(KEY_FAILED_ATTEMPTS, 0);
+    }
+
+    public void setFailedAttempts(int count) {
+        prefs.edit().putInt(KEY_FAILED_ATTEMPTS, count).apply();
+    }
+
+    /** Timestamp (ms) khi hết thời gian lockout; 0 nếu không bị khóa. */
+    public long getLockoutUntil() {
+        return prefs.getLong(KEY_LOCKOUT_UNTIL, 0L);
+    }
+
+    public void setLockoutUntil(long timestampMs) {
+        prefs.edit().putLong(KEY_LOCKOUT_UNTIL, timestampMs).apply();
+    }
+
+    /** Lưu thời điểm app vào nền (dùng để tính timeout 30 giây). */
+    public void saveLastPauseTime(long timestampMs) {
+        prefs.edit().putLong(KEY_LAST_PAUSE_TIME, timestampMs).apply();
+    }
+
+    public long getLastPauseTime() {
+        return prefs.getLong(KEY_LAST_PAUSE_TIME, 0L);
     }
 
     // ─── Theme ────────────────────────────────────────────────────────────────

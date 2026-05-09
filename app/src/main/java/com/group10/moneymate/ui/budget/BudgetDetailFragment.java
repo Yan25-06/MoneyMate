@@ -259,6 +259,7 @@ public class BudgetDetailFragment extends Fragment {
                 model.iconName,
                 model.title
         ));
+        binding.ivCategoryIcon.setImageTintList(null);
         binding.iconContainer.setBackgroundTintList(ColorStateList.valueOf(
                 ContextCompat.getColor(requireContext(), android.R.color.white)
         ));

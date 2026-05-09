@@ -117,6 +117,7 @@ public class StatisticsCategoryBreakdownAdapter extends ListAdapter<IncomeExpens
                     ContextCompat.getColor(context, R.color.transaction_border)
             ));
             binding.ivCategoryIcon.setImageResource(IconProvider.resolveCategoryIcon(context, item.getIconName()));
+            binding.ivCategoryIcon.setImageTintList(null);
             if (amountAccentColor != 0) {
                 binding.tvCategoryAmount.setTextColor(amountAccentColor);
                 binding.tvCategoryPercent.setTextColor(amountAccentColor);
