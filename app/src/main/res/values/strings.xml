@@ -707,5 +707,43 @@
     <string name="notif_time_label">Thời gian thông báo</string>
     <string name="notif_budget_threshold_label">Ngưỡng cảnh báo</string>
     <string name="notif_budget_threshold_hint">Thông báo khi đã sử dụng ít nhất x% ngân sách</string>
+
+    <!-- Transaction Search -->
+    <string name="search">Tìm kiếm</string>
+    <string name="search_transactions_title">Tìm kiếm</string>
+    <string name="search_hint">Tìm theo ghi chú, danh mục…</string>
+    <string name="search_action">TÌM KIẾM</string>
+    <string name="search_simple">ĐƠN GIẢN</string>
+    <string name="search_no_results">Không tìm thấy giao dịch nào</string>
+    <string name="search_empty_hint">Nhập từ khóa hoặc chọn bộ lọc để tìm kiếm</string>
+    <string name="search_field_amount">Số tiền</string>
+    <string name="search_field_wallet">Ví</string>
+    <string name="search_field_time">Thời gian</string>
+    <string name="search_field_note">Ghi chú</string>
+    <string name="search_field_category">Danh mục</string>
+    <string name="search_all">Tất cả</string>
+    <string name="search_all_wallets">Tất cả các ví</string>
+    <string name="search_all_categories">Tất cả danh mục</string>
+    <string name="search_amount_gt">Lớn hơn</string>
+    <string name="search_amount_lt">Nhỏ hơn</string>
+    <string name="search_amount_eq">Bằng</string>
+    <string name="search_amount_between">Trong khoảng</string>
+    <string name="search_time_after">Sau ngày</string>
+    <string name="search_time_before">Trước ngày</string>
+    <string name="search_time_on">Đúng ngày</string>
+    <string name="search_time_between">Trong khoảng</string>
+    <string name="search_total_income">Thu nhập</string>
+    <string name="search_total_expense">Chi tiêu</string>
+    <string name="search_total_net">Tổng</string>
+    <string name="search_enter_amount">Nhập số tiền</string>
+    <string name="search_enter_amount_from">Từ</string>
+    <string name="search_enter_amount_to">Đến</string>
+    <string name="search_select_date">Chọn ngày</string>
+    <string name="search_date_from">Từ ngày</string>
+    <string name="search_date_to">Đến ngày</string>
+    <string name="search_clear_filter">Xóa bộ lọc</string>
+    <string name="search_apply_filter">Tìm kiếm</string>
+    <string name="search_advanced_title">Bộ lọc nâng cao</string>
+    <string name="search_transaction_count">%d giao dịch</string>
 </resources>
 

@@ -5,6 +5,12 @@
     android:id="@+id/nav_main"
     app:startDestination="@id/homeFragment">
 
+    <action
+        android:id="@+id/action_global_transactionSearchFragment"
+        app:destination="@id/transactionSearchFragment"
+        app:enterAnim="@anim/slide_in_right"
+        app:popExitAnim="@anim/slide_out_right" />
+
     <!-- Home -->
     <fragment
         android:id="@+id/homeFragment"
@@ -16,6 +22,11 @@
         <action
             android:id="@+id/action_home_to_wallets"
             app:destination="@id/walletListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_home_to_transactionSearch"
+            app:destination="@id/transactionSearchFragment"
             app:enterAnim="@anim/slide_in_right"
             app:popExitAnim="@anim/slide_out_right" />
     </fragment>
@@ -968,6 +979,48 @@
             android:id="@+id/action_debtTransactionList_to_transactionDetail"
             app:destination="@id/transactionDetailFragment"
             app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/transactionSearchFragment"
+        android:name="com.group10.moneymate.ui.transaction.TransactionSearchFragment"
+        android:label="@string/search_transactions_title"
+        tools:layout="@layout/fragment_transaction_search">
+        <action
+            android:id="@+id/action_transactionSearchFragment_to_transactionDetailFragment"
+            app:destination="@id/transactionDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_transactionSearchFragment_to_advancedSearchFragment"
+            app:destination="@id/advancedSearchFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/advancedSearchFragment"
+        android:name="com.group10.moneymate.ui.transaction.TransactionAdvancedSearchFragment"
+        android:label="@string/search_advanced_title"
+        tools:layout="@layout/fragment_advanced_search">
+        <action
+            android:id="@+id/action_advancedSearch_to_walletPicker"
+            app:destination="@id/budgetWalletPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_advancedSearch_to_categoryPicker"
+            app:destination="@id/transactionCategoryPickerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 

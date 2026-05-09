@@ -79,6 +79,20 @@
             tools:text="Tổng cộng" />
 
         <ImageButton
+            android:id="@+id/btnSearchFilter"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_statistics_header_icon_button"
+            android:contentDescription="@string/search"
+            android:padding="8dp"
+            android:src="@drawable/outline_search_24"
+            app:tint="@color/statistics_text_primary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnDateFilter"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
             android:id="@+id/btnDateFilter"
             android:layout_width="36dp"
             android:layout_height="36dp"

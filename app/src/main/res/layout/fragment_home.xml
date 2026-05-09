@@ -135,17 +135,6 @@
                     android:padding="8dp"
                     android:src="@drawable/outline_search_24"
                     app:tint="@color/statistics_text_primary" />
-
-                <ImageButton
-                    android:id="@+id/btnNotificationsHome"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/bg_statistics_header_icon_button"
-                    android:contentDescription="@string/home_notifications"
-                    android:padding="8dp"
-                    android:src="@drawable/outline_notifications_24"
-                    app:tint="@color/statistics_text_primary" />
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView

@@ -27,8 +27,8 @@ import java.util.List;
 
 public class BudgetWalletPickerFragment extends Fragment {
 
-    private static final String RESULT_SELECTED_WALLET_ID = "result_selected_wallet_id";
-    private static final String RESULT_SELECTED_WALLET_LABEL = "result_selected_wallet_label";
+    public static final String RESULT_SELECTED_WALLET_ID = "result_selected_wallet_id";
+    public static final String RESULT_SELECTED_WALLET_LABEL = "result_selected_wallet_label";
 
     private FragmentBudgetWalletPickerBinding binding;
     private WalletViewModel viewModel;

@@ -90,6 +90,10 @@ public class DebtTransactionListFragment extends Fragment {
             mergeCategories(categories);
             renderList();
         });
+        transactionViewModel.getDebtCategories().observe(getViewLifecycleOwner(), categories -> {
+            mergeCategories(categories);
+            renderList();
+        });
 
         viewModel.getTransactionsByDebtId(debtId).observe(getViewLifecycleOwner(), transactions -> {
             currentTransactions.clear();

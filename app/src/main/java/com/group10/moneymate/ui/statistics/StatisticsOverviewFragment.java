@@ -135,6 +135,7 @@ public class StatisticsOverviewFragment extends Fragment {
         binding.statisticsHeader.tvPeriodPrevious.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-2));
         binding.statisticsHeader.tvPeriodCurrent.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
         binding.statisticsHeader.btnDateFilter.setOnClickListener(v -> showDateRangePicker());
+        binding.statisticsHeader.btnSearchFilter.setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.action_global_transactionSearchFragment));
         binding.statisticsHeader.btnWalletSelector.setOnClickListener(v -> openWalletPicker());
     }
 

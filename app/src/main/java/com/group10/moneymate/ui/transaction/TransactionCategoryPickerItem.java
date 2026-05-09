@@ -4,61 +4,26 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.group10.moneymate.data.local.entity.CategoryEntity;
-import com.group10.moneymate.models.DebtType;
 
 public final class TransactionCategoryPickerItem {
 
-    public enum ItemType {
-        GROUP,
-        DEBT
-    }
-
     @NonNull
-    private final ItemType itemType;
-    @Nullable
     private final CategoryGroup group;
-    @Nullable
-    private final DebtType debtType;
 
-    private TransactionCategoryPickerItem(@NonNull ItemType itemType,
-                                          @Nullable CategoryGroup group,
-                                          @Nullable DebtType debtType) {
-        this.itemType = itemType;
+    private TransactionCategoryPickerItem(@NonNull CategoryGroup group) {
         this.group = group;
-        this.debtType = debtType;
     }
 
     @NonNull
     public static TransactionCategoryPickerItem forCategoryGroup(@NonNull CategoryEntity root,
                                                                  @NonNull java.util.List<CategoryChildItem> children,
                                                                  @NonNull String walletLabel) {
-        return new TransactionCategoryPickerItem(ItemType.GROUP,
-                new CategoryGroup(root, children, walletLabel),
-                null);
-    }
-
-    @NonNull
-    public static TransactionCategoryPickerItem forDebt(@NonNull DebtType debtType) {
-        return new TransactionCategoryPickerItem(ItemType.DEBT, null, debtType);
-    }
-
-    @NonNull
-    public ItemType getItemType() {
-        return itemType;
-    }
-
-    public boolean isDebt() {
-        return itemType == ItemType.DEBT;
+        return new TransactionCategoryPickerItem(new CategoryGroup(root, children, walletLabel));
     }
 
     @Nullable
     public CategoryGroup getGroup() {
         return group;
-    }
-
-    @Nullable
-    public DebtType getDebtType() {
-        return debtType;
     }
 
     public boolean containsCategoryId(@Nullable String categoryId) {
@@ -81,19 +46,10 @@ public final class TransactionCategoryPickerItem {
         if (group != null && group.root.getId() != null) {
             return group.root.getId();
         }
-        if (debtType != null) {
-            return "DEBT_" + debtType.name();
-        }
         return "UNKNOWN";
     }
 
     public boolean contentEquals(@NonNull TransactionCategoryPickerItem other) {
-        if (itemType != other.itemType) {
-            return false;
-        }
-        if (itemType == ItemType.DEBT) {
-            return debtType == other.debtType;
-        }
         if (group == null || other.group == null) {
             return false;
         }

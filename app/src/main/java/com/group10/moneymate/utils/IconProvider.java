@@ -144,6 +144,11 @@ public final class IconProvider {
         map.put("outline_calendar_today_24", R.drawable.outline_calendar_today_24);
         map.put("ic_category_transfer_out", R.drawable.outline_payment_arrow_up_24);
         map.put("ic_category_transfer_in", R.drawable.outline_payment_arrow_down_24);
+        // Debt categories (reuse payment arrows: up = money out, down = money in)
+        map.put("ic_category_debt_lend",       R.drawable.outline_payment_arrow_up_24);
+        map.put("ic_category_debt_repayment",  R.drawable.outline_payment_arrow_up_24);
+        map.put("ic_category_debt_borrow",     R.drawable.outline_payment_arrow_down_24);
+        map.put("ic_category_debt_collection", R.drawable.outline_payment_arrow_down_24);
         return Collections.unmodifiableMap(map);
     }
 }

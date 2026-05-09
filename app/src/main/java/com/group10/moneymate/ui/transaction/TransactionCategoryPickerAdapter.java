@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.group10.moneymate.R;
 import com.group10.moneymate.databinding.ItemTransactionCategoryPickerBinding;
-import com.group10.moneymate.models.DebtType;
 import com.group10.moneymate.utils.IconProvider;
 
 import java.util.ArrayList;
@@ -30,8 +29,6 @@ public class TransactionCategoryPickerAdapter
     private OnItemClickListener clickListener;
     @Nullable
     private String selectedCategoryId;
-    @Nullable
-    private DebtType selectedDebtType;
 
     public TransactionCategoryPickerAdapter() {
         super(DIFF_CALLBACK);
@@ -46,23 +43,11 @@ public class TransactionCategoryPickerAdapter
         submitList(new ArrayList<>(getCurrentList()));
     }
 
-    public void setSelectedDebtType(@Nullable DebtType selectedDebtType) {
-        this.selectedDebtType = selectedDebtType;
-        submitList(new ArrayList<>(getCurrentList()));
-    }
+
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == R.layout.item_transaction_debt_picker) {
-            com.group10.moneymate.databinding.ItemTransactionDebtPickerBinding binding =
-                    com.group10.moneymate.databinding.ItemTransactionDebtPickerBinding.inflate(
-                            LayoutInflater.from(parent.getContext()),
-                            parent,
-                            false
-                    );
-            return new DebtViewHolder(binding);
-        }
         ItemTransactionCategoryPickerBinding binding = ItemTransactionCategoryPickerBinding.inflate(
                 LayoutInflater.from(parent.getContext()),
                 parent,
@@ -73,17 +58,13 @@ public class TransactionCategoryPickerAdapter
 
     @Override
     public int getItemViewType(int position) {
-        return getItem(position).isDebt()
-                ? R.layout.item_transaction_debt_picker
-                : R.layout.item_transaction_category_picker;
+        return R.layout.item_transaction_category_picker;
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         TransactionCategoryPickerItem item = getItem(position);
-        if (holder instanceof DebtViewHolder) {
-            ((DebtViewHolder) holder).bind(item, clickListener, selectedDebtType);
-        } else if (holder instanceof CategoryViewHolder) {
+        if (holder instanceof CategoryViewHolder) {
             ((CategoryViewHolder) holder).bind(item, clickListener, selectedCategoryId);
         }
     }
@@ -162,67 +143,7 @@ public class TransactionCategoryPickerAdapter
         }
     }
 
-    static class DebtViewHolder extends RecyclerView.ViewHolder {
-        private final com.group10.moneymate.databinding.ItemTransactionDebtPickerBinding binding;
 
-        DebtViewHolder(@NonNull com.group10.moneymate.databinding.ItemTransactionDebtPickerBinding binding) {
-            super(binding.getRoot());
-            this.binding = binding;
-        }
-
-        void bind(@NonNull TransactionCategoryPickerItem item,
-                  @Nullable OnItemClickListener listener,
-                  @Nullable DebtType selectedDebtType) {
-            Context context = binding.getRoot().getContext();
-            DebtType debtType = item.getDebtType();
-            if (debtType == null) {
-                return;
-            }
-
-            int iconRes;
-            int nameRes;
-            switch (debtType) {
-                case LEND:
-                    iconRes = R.drawable.outline_attach_money_24;
-                    nameRes = R.string.debt_type_lend;
-                    break;
-                case BORROW:
-                    iconRes = R.drawable.outline_account_balance_wallet_24;
-                    nameRes = R.string.debt_type_borrow;
-                    break;
-                case DEBT_COLLECTION:
-                    iconRes = R.drawable.outline_payments_24;
-                    nameRes = R.string.debt_type_collection;
-                    break;
-                case REPAYMENT:
-                    iconRes = R.drawable.outline_credit_card_24;
-                    nameRes = R.string.debt_type_repayment;
-                    break;
-                default:
-                    iconRes = R.drawable.outline_attach_money_24;
-                    nameRes = R.string.debt_type_lend;
-                    break;
-            }
-            binding.ivDebtIcon.setImageResource(iconRes);
-            binding.tvDebtName.setText(nameRes);
-
-            boolean selected = debtType == selectedDebtType;
-            int strokeColor = context.getColor(selected
-                    ? R.color.transaction_income_accent
-                    : R.color.transaction_border);
-            int backgroundColor = context.getColor(selected
-                    ? R.color.transaction_chip_bg_selected
-                    : R.color.white);
-            binding.getRoot().setStrokeColor(ColorStateList.valueOf(strokeColor));
-            binding.getRoot().setCardBackgroundColor(ColorStateList.valueOf(backgroundColor));
-
-            binding.getRoot().setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onItemClick(item);
-                }
-            });
-        }
-    }
 
     private static final DiffUtil.ItemCallback<TransactionCategoryPickerItem> DIFF_CALLBACK =
             new DiffUtil.ItemCallback<TransactionCategoryPickerItem>() {

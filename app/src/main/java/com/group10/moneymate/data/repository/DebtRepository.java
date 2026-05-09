@@ -523,25 +523,37 @@ public class DebtRepository {
     @Nullable
     private String resolveDebtCategoryId(@NonNull String debtTypeStr) {
         if (appDatabase == null) return null;
+        // Tra cứu theo ID hằng số (stable UUID) — nhanh và đáng tin cậy nhất
+        String stableId = null;
+        if ("LEND".equals(debtTypeStr)) {
+            stableId = Constants.CATEGORY_ID_DEBT_LEND;
+        } else if ("BORROW".equals(debtTypeStr)) {
+            stableId = Constants.CATEGORY_ID_DEBT_BORROW;
+        } else if ("DEBT_COLLECTION".equals(debtTypeStr)) {
+            stableId = Constants.CATEGORY_ID_DEBT_COLLECTION;
+        } else if ("REPAYMENT".equals(debtTypeStr)) {
+            stableId = Constants.CATEGORY_ID_DEBT_REPAYMENT;
+        }
+        if (stableId != null) {
+            CategoryEntity cat = appDatabase.categoryDao().getCategoryByIdForValidationSync(stableId, null);
+            if (cat != null && !cat.isDeleted()) return cat.getId();
+        }
+        // Fallback: tìm theo name + TYPE_DEBT (cho DB đã tồn tại trước khi có stable UUID)
         String name = null;
-        String type = null;
         if ("LEND".equals(debtTypeStr)) {
             name = Constants.CATEGORY_NAME_LEND;
-            type = Constants.TYPE_EXPENSE;
         } else if ("BORROW".equals(debtTypeStr)) {
             name = Constants.CATEGORY_NAME_BORROW;
-            type = Constants.TYPE_INCOME;
         } else if ("DEBT_COLLECTION".equals(debtTypeStr)) {
             name = Constants.CATEGORY_NAME_COLLECTION;
-            type = Constants.TYPE_INCOME;
         } else if ("REPAYMENT".equals(debtTypeStr)) {
             name = Constants.CATEGORY_NAME_REPAYMENT;
-            type = Constants.TYPE_EXPENSE;
         }
-        if (name != null && type != null) {
-            CategoryEntity cat = appDatabase.categoryDao().getCategoryByNameAndTypeSync(name, type);
+        if (name != null) {
+            CategoryEntity cat = appDatabase.categoryDao().getCategoryByNameAndTypeSync(name, Constants.TYPE_DEBT);
             if (cat != null) return cat.getId();
         }
         return null;
     }
 }
+

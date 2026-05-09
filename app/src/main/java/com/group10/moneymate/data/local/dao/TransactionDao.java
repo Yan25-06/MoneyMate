@@ -196,6 +196,10 @@ public interface TransactionDao {
             "ORDER BY t.timestamp DESC")
     LiveData<List<TransactionEntity>> searchTransactions(String userId, String keyword);
 
+    @RawQuery(observedEntities = {TransactionEntity.class})
+    LiveData<List<TransactionEntity>> searchTransactionsAdvanced(SupportSQLiteQuery query);
+
+
     @Query("SELECT SUM(t.amount) FROM transactions t " +
             "INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 " +
             "WHERE t.user_id = :userId AND t.type = 'INCOME' AND t.timestamp BETWEEN :startDate AND :endDate AND t.is_deleted = 0 AND t.sync_status != 2")

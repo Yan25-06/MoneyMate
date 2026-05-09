@@ -25,6 +25,7 @@ public class Constants {
     // ─── Category types — lưu dạng String trong CategoryEntity.type ──────────
     public static final String TYPE_EXPENSE = "EXPENSE";
     public static final String TYPE_INCOME  = "INCOME";
+    public static final String TYPE_DEBT    = "DEBT";
 
     // ─── Budget ───────────────────────────────────────────────────────────────
     public static final float BUDGET_WARNING_THRESHOLD = 0.8f;
@@ -85,10 +86,18 @@ public class Constants {
     public static final String CATEGORY_ID_INC_OTHER = "00000000-0000-0000-0000-000000000010";
     public static final String CATEGORY_ID_EXP_TRANSFER_OUT = "00000000-0000-0000-0000-000000000011";
     public static final String CATEGORY_ID_INC_TRANSFER_IN = "00000000-0000-0000-0000-000000000012";
+    public static final String CATEGORY_ID_DEBT_LEND        = "00000000-0000-0000-0000-000000000013";
+    public static final String CATEGORY_ID_DEBT_BORROW      = "00000000-0000-0000-0000-000000000014";
+    public static final String CATEGORY_ID_DEBT_COLLECTION  = "00000000-0000-0000-0000-000000000015";
+    public static final String CATEGORY_ID_DEBT_REPAYMENT   = "00000000-0000-0000-0000-000000000016";
 
     /**
-     * Trả về 18 danh mục mặc định (10 Chi + 6 Thu + 2 Chuyển khoản).
+     * Trả về 22 danh mục mặc định (10 Chi + 6 Thu + 2 Chuyển khoản + 4 Nợ).
      * Dùng trong {@link com.group10.moneymate.data.repository.CategoryRepository()}.
+     *
+     * <p>Quan trọng: 4 danh mục Nợ (DEBT) phải được seed ở đây để
+     * {@link com.group10.moneymate.data.repository.DebtRepository#resolveDebtCategoryId}
+     * có thể tra cứu categoryId khi tạo transaction nợ.</p>
      */
     public static List<DefaultCategory> getDefaultCategories() {
         List<DefaultCategory> list = new ArrayList<>();
@@ -116,6 +125,13 @@ public class Constants {
         // ── Chuyển khoản ────────────────────────────────────────────────────
         list.add(new DefaultCategory(CATEGORY_ID_EXP_TRANSFER_OUT, CATEGORY_NAME_TRANSFER_OUT, "ic_category_transfer_out", TYPE_EXPENSE));
         list.add(new DefaultCategory(CATEGORY_ID_INC_TRANSFER_IN, CATEGORY_NAME_TRANSFER_IN,  "ic_category_transfer_in",  TYPE_INCOME));
+
+        // ── Vay & Nợ (DEBT) ─────────────────────────────────────────────────
+        // Dùng TYPE_DEBT để không lẫn vào tab Chi tiêu / Thu nhập
+        list.add(new DefaultCategory(CATEGORY_ID_DEBT_LEND,       CATEGORY_NAME_LEND,       "ic_category_debt_lend",       TYPE_DEBT));
+        list.add(new DefaultCategory(CATEGORY_ID_DEBT_REPAYMENT,  CATEGORY_NAME_REPAYMENT,  "ic_category_debt_repayment",  TYPE_DEBT));
+        list.add(new DefaultCategory(CATEGORY_ID_DEBT_BORROW,     CATEGORY_NAME_BORROW,     "ic_category_debt_borrow",     TYPE_DEBT));
+        list.add(new DefaultCategory(CATEGORY_ID_DEBT_COLLECTION, CATEGORY_NAME_COLLECTION, "ic_category_debt_collection", TYPE_DEBT));
 
         return list;
     }

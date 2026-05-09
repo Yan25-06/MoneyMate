@@ -129,21 +129,14 @@ public class CategoryListFragment extends Fragment {
                     currentType = Constants.TYPE_INCOME;
                     isDebtTab = false;
                 } else if (tab.getPosition() == 2) {
-                    currentType = Constants.TYPE_EXPENSE;
+                    currentType = Constants.TYPE_DEBT;
                     isDebtTab = true;
                 } else {
                     currentType = Constants.TYPE_EXPENSE;
                     isDebtTab = false;
                 }
-                if (isDebtTab) {
-                    if (currentCategorySource != null && currentCategoryObserver != null) {
-                        currentCategorySource.removeObserver(currentCategoryObserver);
-                    }
-                    adapter.submitList(new ArrayList<>());
-                    binding.tvEmpty.setVisibility(View.VISIBLE);
-                    return;
-                }
-                observeCategories(currentType, selectedWalletId);
+                // Debt tab: load TYPE_DEBT categories (wallet filter không áp dụng)
+                observeCategories(currentType, isDebtTab ? null : selectedWalletId);
             }
 
             @Override

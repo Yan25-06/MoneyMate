@@ -136,6 +136,7 @@ public class StatisticsCategoryDayDetailFragment extends Fragment {
         binding.statisticsHeader.btnHeaderBack.setOnClickListener(v ->
                 Navigation.findNavController(v).navigateUp());
         binding.statisticsHeader.btnDateFilter.setOnClickListener(v -> showDateRangePicker());
+        binding.statisticsHeader.btnSearchFilter.setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.action_global_transactionSearchFragment));
         binding.statisticsHeader.btnPreviousPeriod.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-1));
         binding.statisticsHeader.btnNextPeriod.setOnClickListener(v -> viewModel.shiftCurrentPeriod(1));
         binding.statisticsHeader.tvPeriodPrevious.setOnClickListener(v -> viewModel.shiftCurrentPeriod(-2));

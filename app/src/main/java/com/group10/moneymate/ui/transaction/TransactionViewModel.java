@@ -69,6 +69,7 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
     private final LiveData<List<WalletEntity>> activeWallets;
     private final LiveData<List<CategoryEntity>> expenseCategories;
     private final LiveData<List<CategoryEntity>> incomeCategories;
+    private final LiveData<List<CategoryEntity>> debtCategories;
     private final LiveData<List<CategoryEntity>> expenseCategoriesIncludingDeleted;
     private final LiveData<List<CategoryEntity>> incomeCategoriesIncludingDeleted;
 
@@ -111,6 +112,7 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
         activeWallets = DistinctLiveData.distinctUntilChanged(walletRepository.getActiveByUser(userId));
         expenseCategories = DistinctLiveData.distinctUntilChanged(categoryRepository.getCategoriesByType(userId, "EXPENSE"));
         incomeCategories  = DistinctLiveData.distinctUntilChanged(categoryRepository.getCategoriesByType(userId, "INCOME"));
+        debtCategories = DistinctLiveData.distinctUntilChanged(categoryRepository.getCategoriesByType(userId, "DEBT"));
         expenseCategoriesIncludingDeleted =
                 DistinctLiveData.distinctUntilChanged(
                         categoryRepository.getCategoriesByTypeIncludingDeleted(userId, "EXPENSE")
@@ -165,6 +167,10 @@ public class TransactionViewModel extends DebounceableAndroidViewModel {
 
     public LiveData<List<CategoryEntity>> getIncomeCategories() {
         return incomeCategories;
+    }
+
+    public LiveData<List<CategoryEntity>> getDebtCategories() {
+        return debtCategories;
     }
 
     public LiveData<List<CategoryEntity>> getExpenseCategoriesIncludingDeleted() {

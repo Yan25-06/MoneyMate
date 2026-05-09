@@ -8,6 +8,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.sqlite.db.SimpleSQLiteQuery;
 
 import com.group10.moneymate.data.local.AppDatabase;
 import com.group10.moneymate.data.local.dao.TransactionDao;
@@ -37,16 +38,19 @@ public class TransactionRepository {
 
     public interface PageCallback<T> {
         void onSuccess(T data);
+
         void onError(Exception exception);
     }
 
     public interface WriteCallback {
         void onSuccess();
+
         void onError(@NonNull Throwable throwable);
     }
 
     public interface DuplicateCheckCallback {
         void onCompleted(@NonNull DuplicateCheckResult result);
+
         void onError(@NonNull Throwable throwable);
     }
 
@@ -62,8 +66,8 @@ public class TransactionRepository {
         private final String transactionId;
 
         private LocalWriteEvent(@NonNull String type,
-                                @Nullable TransactionEntity transaction,
-                                @Nullable String transactionId) {
+                @Nullable TransactionEntity transaction,
+                @Nullable String transactionId) {
             this.type = type;
             this.transaction = transaction;
             this.transactionId = transactionId;
@@ -106,10 +110,10 @@ public class TransactionRepository {
         private final String note;
 
         public OcrDuplicateCandidate(@NonNull String candidateId,
-                                     @Nullable String imagePath,
-                                     double amount,
-                                     long timestamp,
-                                     @Nullable String note) {
+                @Nullable String imagePath,
+                double amount,
+                long timestamp,
+                @Nullable String note) {
             this.candidateId = candidateId;
             this.imagePath = imagePath;
             this.amount = amount;
@@ -152,10 +156,10 @@ public class TransactionRepository {
         private final String existingNote;
 
         public SuspectedDuplicate(@NonNull String candidateId,
-                                  @NonNull String existingTransactionId,
-                                  double amount,
-                                  long existingTimestamp,
-                                  @Nullable String existingNote) {
+                @NonNull String existingTransactionId,
+                double amount,
+                long existingTimestamp,
+                @Nullable String existingNote) {
             this.candidateId = candidateId;
             this.existingTransactionId = existingTransactionId;
             this.amount = amount;
@@ -232,15 +236,15 @@ public class TransactionRepository {
     private static final AtomicLong LAST_WRITE_TIMESTAMP = new AtomicLong(0L);
 
     public TransactionRepository(@NonNull AppDatabase appDatabase,
-                                 @NonNull TransactionDao transactionDao,
-                                 @NonNull WalletDao walletDao) {
+            @NonNull TransactionDao transactionDao,
+            @NonNull WalletDao walletDao) {
         this(appDatabase, transactionDao, walletDao, null);
     }
 
     public TransactionRepository(@NonNull AppDatabase appDatabase,
-                                 @NonNull TransactionDao transactionDao,
-                                 @NonNull WalletDao walletDao,
-                                 @Nullable SyncScheduler syncScheduler) {
+            @NonNull TransactionDao transactionDao,
+            @NonNull WalletDao walletDao,
+            @Nullable SyncScheduler syncScheduler) {
         this.appDatabase = appDatabase;
         this.transactionDao = transactionDao;
         this.walletDao = walletDao;
@@ -286,10 +290,10 @@ public class TransactionRepository {
     }
 
     public LiveData<List<TransactionEntity>> getTransactionsForBudget(String userId,
-                                                                      String categoryId,
-                                                                      String walletId,
-                                                                      long startDate,
-                                                                      long endDate) {
+            String categoryId,
+            String walletId,
+            long startDate,
+            long endDate) {
         if (Constants.isOtherCategoryId(categoryId)) {
             return transactionDao.getTransactionsForOtherCategories(
                     userId,
@@ -297,15 +301,14 @@ public class TransactionRepository {
                     endDate,
                     walletId,
                     Constants.CATEGORY_ID_OTHER,
-                    Constants.CATEGORY_ID_OTHER_LEGACY
-            );
+                    Constants.CATEGORY_ID_OTHER_LEGACY);
         }
         return transactionDao.getTransactionsForBudget(userId, categoryId, walletId, startDate, endDate);
     }
 
     public LiveData<List<TransactionEntity>> getExpenseTransactionsByRange(String userId,
-                                                                           long startDate,
-                                                                           long endDate) {
+            long startDate,
+            long endDate) {
         return transactionDao.getExpenseTransactionsByRange(userId, startDate, endDate);
     }
 
@@ -317,9 +320,116 @@ public class TransactionRepository {
         return transactionDao.searchTransactions(userId, keyword);
     }
 
+    public LiveData<List<TransactionEntity>> searchTransactionsAdvanced(
+            String userId,
+            @Nullable String keyword,
+            @Nullable String amountMode,
+            @Nullable Double amountValue,
+            @Nullable Double amountMin,
+            @Nullable Double amountMax,
+            @Nullable String timeMode,
+            @Nullable Long timeValue,
+            @Nullable Long timeStart,
+            @Nullable Long timeEnd,
+            @Nullable String walletId,
+            @Nullable String categoryId) {
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT t.* FROM transactions t ");
+        query.append("INNER JOIN wallets w ON w.id = t.wallet_id AND w.is_deleted = 0 ");
+        query.append("LEFT JOIN wallets tw ON tw.id = t.to_wallet_id ");
+        query.append("WHERE t.user_id = ? AND t.is_deleted = 0 ");
+        query.append("AND (t.to_wallet_id IS NULL OR tw.is_deleted = 0) ");
+
+        List<Object> args = new ArrayList<>();
+        args.add(userId);
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            query.append("AND (t.note LIKE ? OR t.category_id IN (SELECT id FROM categories WHERE name LIKE ?)) ");
+            args.add("%" + keyword.trim() + "%");
+            args.add("%" + keyword.trim() + "%");
+        }
+
+        if (amountMode != null && !"ALL".equals(amountMode)) {
+            switch (amountMode) {
+                case "GT":
+                    if (amountValue != null) {
+                        query.append("AND t.amount > ? ");
+                        args.add(amountValue);
+                    }
+                    break;
+                case "LT":
+                    if (amountValue != null) {
+                        query.append("AND t.amount < ? ");
+                        args.add(amountValue);
+                    }
+                    break;
+                case "EQ":
+                    if (amountValue != null) {
+                        query.append("AND t.amount = ? ");
+                        args.add(amountValue);
+                    }
+                    break;
+                case "BETWEEN":
+                    if (amountMin != null && amountMax != null) {
+                        query.append("AND t.amount BETWEEN ? AND ? ");
+                        args.add(amountMin);
+                        args.add(amountMax);
+                    }
+                    break;
+            }
+        }
+
+        if (timeMode != null && !"ALL".equals(timeMode)) {
+            switch (timeMode) {
+                case "AFTER":
+                    if (timeValue != null) {
+                        query.append("AND t.timestamp > ? ");
+                        args.add(timeValue);
+                    }
+                    break;
+                case "BEFORE":
+                    if (timeValue != null) {
+                        query.append("AND t.timestamp < ? ");
+                        args.add(timeValue);
+                    }
+                    break;
+                case "ON":
+                    if (timeValue != null) {
+                        long endOfDay = timeValue + 24L * 60 * 60 * 1000 - 1;
+                        query.append("AND t.timestamp BETWEEN ? AND ? ");
+                        args.add(timeValue);
+                        args.add(endOfDay);
+                    }
+                    break;
+                case "BETWEEN":
+                    if (timeStart != null && timeEnd != null) {
+                        query.append("AND t.timestamp BETWEEN ? AND ? ");
+                        args.add(timeStart);
+                        args.add(timeEnd);
+                    }
+                    break;
+            }
+        }
+
+        if (walletId != null && !walletId.trim().isEmpty()) {
+            query.append("AND t.wallet_id = ? ");
+            args.add(walletId);
+        }
+
+        if (categoryId != null && !categoryId.trim().isEmpty()) {
+            query.append("AND t.category_id = ? ");
+            args.add(categoryId);
+        }
+
+        query.append("ORDER BY t.timestamp DESC");
+
+        SimpleSQLiteQuery sqLiteQuery = new SimpleSQLiteQuery(query.toString(), args.toArray());
+        return transactionDao.searchTransactionsAdvanced(sqLiteQuery);
+    }
+
     public void getFirstTransactionsPage(String userId,
-                                         int limit,
-                                         @NonNull PageCallback<List<TransactionEntity>> callback) {
+            int limit,
+            @NonNull PageCallback<List<TransactionEntity>> callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 List<TransactionEntity> page = transactionDao.getFirstTransactionsPageSync(userId, limit);
@@ -331,18 +441,17 @@ public class TransactionRepository {
     }
 
     public void getTransactionsPageByCursor(String userId,
-                                            int limit,
-                                            long lastTimestamp,
-                                            @NonNull String lastId,
-                                            @NonNull PageCallback<List<TransactionEntity>> callback) {
+            int limit,
+            long lastTimestamp,
+            @NonNull String lastId,
+            @NonNull PageCallback<List<TransactionEntity>> callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 List<TransactionEntity> page = transactionDao.getTransactionsPagedByCursorSync(
                         userId,
                         lastTimestamp,
                         lastId,
-                        limit
-                );
+                        limit);
                 mainHandler.post(() -> callback.onSuccess(page));
             } catch (Exception exception) {
                 mainHandler.post(() -> callback.onError(exception));
@@ -359,147 +468,142 @@ public class TransactionRepository {
     }
 
     public LiveData<Double> getTotalIncomeFiltered(String userId,
-                                                   long startDate,
-                                                   long endDate,
-                                                   @Nullable String walletId) {
+            long startDate,
+            long endDate,
+            @Nullable String walletId) {
         return transactionDao.getTotalIncomeFiltered(userId, startDate, endDate, walletId);
     }
 
     public LiveData<Double> getTotalExpenseFiltered(String userId,
-                                                    long startDate,
-                                                    long endDate,
-                                                    @Nullable String walletId) {
+            long startDate,
+            long endDate,
+            @Nullable String walletId) {
         return transactionDao.getTotalExpenseFiltered(userId, startDate, endDate, walletId);
     }
 
     public LiveData<Double> getTotalAmountByCategoryFiltered(String userId,
-                                                             String type,
-                                                             String categoryId,
-                                                             long startDate,
-                                                             long endDate,
-                                                             @Nullable String walletId) {
+            String type,
+            String categoryId,
+            long startDate,
+            long endDate,
+            @Nullable String walletId) {
         return transactionDao.getTotalAmountByCategoryFiltered(
                 userId,
                 type,
                 categoryId,
                 startDate,
                 endDate,
-                walletId
-        );
+                walletId);
     }
 
     public LiveData<NetIncomeDTO> getNetIncomeSummary(String userId,
-                                                      long startDate,
-                                                      long endDate,
-                                                      @Nullable String walletId,
-                                                      String periodLabel) {
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            String periodLabel) {
         return transactionDao.getNetIncomeSummary(userId, startDate, endDate, walletId, periodLabel);
     }
 
     public LiveData<List<NetIncomeDTO>> getNetIncomeTrend(String userId,
-                                                          long startDate,
-                                                          long endDate,
-                                                          @Nullable String walletId,
-                                                          String periodFormat) {
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            String periodFormat) {
         return transactionDao.getNetIncomeTrend(userId, startDate, endDate, walletId, periodFormat);
     }
 
     public LiveData<List<CategorySumDTO>> getCategorySums(String userId,
-                                                          String type,
-                                                          long startDate,
-                                                          long endDate,
-                                                          @Nullable String walletId) {
+            String type,
+            long startDate,
+            long endDate,
+            @Nullable String walletId) {
         return transactionDao.getCategorySums(userId, type, startDate, endDate, walletId);
     }
 
     public LiveData<List<CategorySumDTO>> getRootCategorySums(String userId,
-                                                              String type,
-                                                              long startDate,
-                                                              long endDate,
-                                                              @Nullable String walletId) {
+            String type,
+            long startDate,
+            long endDate,
+            @Nullable String walletId) {
         return transactionDao.getRootCategorySums(userId, type, startDate, endDate, walletId);
     }
 
     public LiveData<List<CategorySumDTO>> getChildCategorySums(String userId,
-                                                               String type,
-                                                               long startDate,
-                                                               long endDate,
-                                                               @Nullable String walletId,
-                                                               @NonNull String parentCategoryId) {
+            String type,
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            @NonNull String parentCategoryId) {
         return transactionDao.getChildCategorySums(
                 userId,
                 type,
                 startDate,
                 endDate,
                 walletId,
-                parentCategoryId
-        );
+                parentCategoryId);
     }
 
     public LiveData<List<CategorySumDTO>> getCategoryBranchSums(String userId,
-                                                                String type,
-                                                                long startDate,
-                                                                long endDate,
-                                                                @Nullable String walletId,
-                                                                @NonNull String parentCategoryId) {
+            String type,
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            @NonNull String parentCategoryId) {
         return transactionDao.getCategoryBranchSums(
                 userId,
                 type,
                 startDate,
                 endDate,
                 walletId,
-                parentCategoryId
-        );
+                parentCategoryId);
     }
 
     public LiveData<Double> getParentCategoryBranchTotalAmount(String userId,
-                                                               String type,
-                                                               @NonNull String parentCategoryId,
-                                                               long startDate,
-                                                               long endDate,
-                                                               @Nullable String walletId) {
+            String type,
+            @NonNull String parentCategoryId,
+            long startDate,
+            long endDate,
+            @Nullable String walletId) {
         return transactionDao.getParentCategoryBranchTotalAmount(
                 userId,
                 type,
                 parentCategoryId,
                 startDate,
                 endDate,
-                walletId
-        );
+                walletId);
     }
 
     public LiveData<List<TransactionEntity>> getTransactionsForStatisticsDrillDown(String userId,
-                                                                                   String type,
-                                                                                   long startDate,
-                                                                                   long endDate,
-                                                                                   @Nullable String walletId,
-                                                                                   @NonNull String categoryId) {
+            String type,
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            @NonNull String categoryId) {
         return transactionDao.getTransactionsForStatisticsDrillDown(
                 userId,
                 type,
                 startDate,
                 endDate,
                 walletId,
-                categoryId
-        );
+                categoryId);
     }
 
     public LiveData<List<DailyTrendDTO>> getAmountTrend(String userId,
-                                                        String type,
-                                                        long startDate,
-                                                        long endDate,
-                                                        @Nullable String walletId,
-                                                        String periodFormat) {
+            String type,
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            String periodFormat) {
         return transactionDao.getAmountTrend(userId, type, startDate, endDate, walletId, periodFormat);
     }
 
     public LiveData<List<DailyTrendDTO>> getCategoryAmountTrend(String userId,
-                                                                String type,
-                                                                String categoryId,
-                                                                long startDate,
-                                                                long endDate,
-                                                                @Nullable String walletId,
-                                                                String periodFormat) {
+            String type,
+            String categoryId,
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            String periodFormat) {
         return transactionDao.getCategoryAmountTrend(
                 userId,
                 type,
@@ -507,17 +611,16 @@ public class TransactionRepository {
                 startDate,
                 endDate,
                 walletId,
-                periodFormat
-        );
+                periodFormat);
     }
 
     public LiveData<List<DailyTrendDTO>> getParentCategoryBranchAmountTrend(String userId,
-                                                                            String type,
-                                                                            @NonNull String parentCategoryId,
-                                                                            long startDate,
-                                                                            long endDate,
-                                                                            @Nullable String walletId,
-                                                                            String periodFormat) {
+            String type,
+            @NonNull String parentCategoryId,
+            long startDate,
+            long endDate,
+            @Nullable String walletId,
+            String periodFormat) {
         return transactionDao.getParentCategoryBranchAmountTrend(
                 userId,
                 type,
@@ -525,15 +628,14 @@ public class TransactionRepository {
                 startDate,
                 endDate,
                 walletId,
-                periodFormat
-        );
+                periodFormat);
     }
 
     public LiveData<Double> getTotalExpenseByCategory(String userId,
-                                                      @Nullable String categoryId,
-                                                      @Nullable String walletId,
-                                                      long startDate,
-                                                      long endDate) {
+            @Nullable String categoryId,
+            @Nullable String walletId,
+            long startDate,
+            long endDate) {
         if (Constants.isOtherCategoryId(categoryId)) {
             return transactionDao.getSpentForOtherCategories(
                     userId,
@@ -541,31 +643,29 @@ public class TransactionRepository {
                     endDate,
                     walletId,
                     Constants.CATEGORY_ID_OTHER,
-                    Constants.CATEGORY_ID_OTHER_LEGACY
-            );
+                    Constants.CATEGORY_ID_OTHER_LEGACY);
         }
         return transactionDao.getTotalExpenseByCategory(userId, categoryId, walletId, startDate, endDate);
     }
 
     public List<TransactionEntity> getPendingSyncSince(@NonNull String userId,
-                                                       long lastSyncedAt,
-                                                       @NonNull String lastSyncedId,
-                                                       int limit) {
+            long lastSyncedAt,
+            @NonNull String lastSyncedId,
+            int limit) {
         return transactionDao.getPendingSyncSince(userId, lastSyncedAt, lastSyncedId, limit);
     }
 
     public List<TransactionEntity> getPendingSyncPagedSince(@NonNull String userId,
-                                                            long lastSyncedAt,
-                                                            @NonNull String lastSyncedId,
-                                                            int limit,
-                                                            int offset) {
+            long lastSyncedAt,
+            @NonNull String lastSyncedId,
+            int limit,
+            int offset) {
         return transactionDao.getPendingSyncTransactionsPagedSince(
                 userId,
                 lastSyncedAt,
                 lastSyncedId,
                 limit,
-                offset
-        );
+                offset);
     }
 
     public void markSynced(@NonNull String id) {
@@ -579,18 +679,19 @@ public class TransactionRepository {
 
     /**
      * OCR duplicate gate before insert.
-     * A transaction is considered a suspected duplicate only when all three signals match:
-     * 1) same internal receipt image hash (SHA-256), 2) same amount, 3) timestamp within +/- 2 minutes.
+     * A transaction is considered a suspected duplicate only when all three signals
+     * match:
+     * 1) same internal receipt image hash (SHA-256), 2) same amount, 3) timestamp
+     * within +/- 2 minutes.
      * The result is advisory and must always be confirmed by the user in UI.
      */
     public void checkOcrDuplicateCandidates(@NonNull String userId,
-                                            @NonNull List<OcrDuplicateCandidate> candidates,
-                                            @NonNull DuplicateCheckCallback callback) {
+            @NonNull List<OcrDuplicateCandidate> candidates,
+            @NonNull DuplicateCheckCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 DuplicateCheckResult result = new DuplicateCheckResult(
-                        detectSuspectedDuplicates(userId, candidates)
-                );
+                        detectSuspectedDuplicates(userId, candidates));
                 mainHandler.post(() -> callback.onCompleted(result));
             } catch (Exception exception) {
                 mainHandler.post(() -> callback.onError(exception));
@@ -617,7 +718,7 @@ public class TransactionRepository {
     }
 
     public void insertTransactions(@NonNull List<TransactionEntity> transactions,
-                                   @Nullable WriteCallback callback) {
+            @Nullable WriteCallback callback) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 appDatabase.runInTransaction(() -> {
@@ -748,7 +849,7 @@ public class TransactionRepository {
 
     @NonNull
     private List<SuspectedDuplicate> detectSuspectedDuplicates(@NonNull String userId,
-                                                               @NonNull List<OcrDuplicateCandidate> candidates) {
+            @NonNull List<OcrDuplicateCandidate> candidates) {
         List<SuspectedDuplicate> suspectedDuplicates = new ArrayList<>();
         Map<String, String> hashCache = new HashMap<>();
         for (OcrDuplicateCandidate candidate : candidates) {
@@ -762,8 +863,7 @@ public class TransactionRepository {
                     candidate.getAmount() - OCR_DUPLICATE_AMOUNT_TOLERANCE,
                     candidate.getAmount() + OCR_DUPLICATE_AMOUNT_TOLERANCE,
                     candidateTimestamp - OCR_DUPLICATE_TIME_BUCKET_MS,
-                    candidateTimestamp + OCR_DUPLICATE_TIME_BUCKET_MS
-            );
+                    candidateTimestamp + OCR_DUPLICATE_TIME_BUCKET_MS);
             for (TransactionEntity existingTransaction : matchingTransactions) {
                 String existingHash = computeImageHash(existingTransaction.getImagePath(), hashCache);
                 if (isBlank(existingHash) || !existingHash.equals(candidateHash)) {
@@ -774,8 +874,7 @@ public class TransactionRepository {
                         existingTransaction.getId(),
                         existingTransaction.getAmount(),
                         existingTransaction.getTimestamp(),
-                        existingTransaction.getNote()
-                ));
+                        existingTransaction.getNote()));
                 break;
             }
         }
@@ -784,7 +883,7 @@ public class TransactionRepository {
 
     @Nullable
     private String computeImageHash(@Nullable String imagePath,
-                                    @NonNull Map<String, String> hashCache) {
+            @NonNull Map<String, String> hashCache) {
         if (isBlank(imagePath)) {
             return null;
         }

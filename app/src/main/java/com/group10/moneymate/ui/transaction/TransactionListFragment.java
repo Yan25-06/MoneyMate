@@ -115,6 +115,7 @@ public class TransactionListFragment extends Fragment {
     private void bindActions() {
         binding.statisticsHeader.btnWalletSelector.setOnClickListener(v -> openWalletPicker());
         binding.statisticsHeader.btnDateFilter.setOnClickListener(v -> showDateRangePicker());
+        binding.statisticsHeader.btnSearchFilter.setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.action_global_transactionSearchFragment));
         binding.statisticsHeader.btnPreviousPeriod.setOnClickListener(v -> shiftCurrentPeriod(-1));
         binding.statisticsHeader.btnNextPeriod.setOnClickListener(v -> shiftCurrentPeriod(1));
         binding.statisticsHeader.tvPeriodPrevious.setOnClickListener(v -> shiftCurrentPeriod(-2));
@@ -133,6 +134,7 @@ public class TransactionListFragment extends Fragment {
         });
         viewModel.getExpenseCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
         viewModel.getIncomeCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getDebtCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
     }
 
     private void observeTransactions() {

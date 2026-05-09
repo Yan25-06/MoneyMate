@@ -178,6 +178,7 @@ public class TransactionDetailFragment extends Fragment {
         });
         viewModel.getExpenseCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
         viewModel.getIncomeCategoriesIncludingDeleted().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getDebtCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
     }
 
     private void mergeCategories(@Nullable List<CategoryEntity> categories) {

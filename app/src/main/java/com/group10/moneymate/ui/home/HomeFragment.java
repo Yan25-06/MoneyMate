@@ -197,9 +197,7 @@ public class HomeFragment extends Fragment {
         });
 
         binding.btnSearchHome.setOnClickListener(v ->
-                Toast.makeText(requireContext(), R.string.home_feature_soon, Toast.LENGTH_SHORT).show());
-        binding.btnNotificationsHome.setOnClickListener(v ->
-                Toast.makeText(requireContext(), R.string.home_feature_soon, Toast.LENGTH_SHORT).show());
+                Navigation.findNavController(v).navigate(HomeFragmentDirections.actionHomeToTransactionSearch()));
 
         binding.btnReportExpense.setOnClickListener(v -> {
             reportCardType = ReportCardType.EXPENSE;
@@ -286,6 +284,7 @@ public class HomeFragment extends Fragment {
     private void observeCategoryData() {
         viewModel.getExpenseCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
         viewModel.getIncomeCategories().observe(getViewLifecycleOwner(), this::mergeCategories);
+        viewModel.getDebtCategoryies().observe(getViewLifecycleOwner(), this::mergeCategories);
     }
 
     private void observeTransactionData() {
